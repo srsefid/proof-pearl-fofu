@@ -2,6 +2,9 @@ theory Graph
 imports Complex_Main Base
 begin
 
+
+
+
   (* Graph definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
@@ -20,61 +23,60 @@ begin
     where "V \<equiv> {u. \<exists>v. (u, v) \<in> E \<or> (v, u) \<in> E}"
     
     definition incoming :: "node \<Rightarrow> edge set" 
-      ("\<delta>\<^sup>+(_)" 100) 
+      ("\<delta>\<^sup>+(_)" 1000) 
     where "\<delta>\<^sup>+ v \<equiv> {(u, v) | u. (u, v) \<in> E}"
     
     definition outgoing :: "node \<Rightarrow> edge set"
-      ("\<delta>\<^sup>-(_)" 100)
+      ("\<delta>\<^sup>-(_)" 1000)
     where "\<delta>\<^sup>- v \<equiv> {(v, u) | u. (v, u) \<in> E}"
       
     definition delta :: "node \<Rightarrow> edge set" 
-      ("\<delta>(_)" 100) 
+      ("\<delta>(_)" 1000) 
     where "\<delta> v \<equiv> (\<delta>\<^sup>+ v) \<union> \<delta>\<^sup>- v"
     
     definition incoming' :: "node set \<Rightarrow> edge set" 
-      ("\<Delta>\<^sup>+(_)" 100) 
+      ("\<Delta>\<^sup>+(_)" 1000) 
     where "\<Delta>\<^sup>+ k \<equiv> {(u, v) | u v. u \<notin> k \<and> v \<in> k \<and> (u, v) \<in> E}"
       
     definition outgoing' :: "node set \<Rightarrow> edge set" 
-      ("\<Delta>\<^sup>-(_)" 100)
+      ("\<Delta>\<^sup>-(_)" 1000)
     where "\<Delta>\<^sup>- k \<equiv> {(v, u) | u v. u \<notin> k \<and> v \<in> k \<and> (v, u) \<in> E}"
       
     definition delta' :: "node set \<Rightarrow> edge set" 
-      ("\<Delta>(_)" 100) 
+      ("\<Delta>(_)" 1000) 
     where "\<Delta> k \<equiv> (\<Delta>\<^sup>+ k) \<union> \<Delta>\<^sup>- k"
   end
-  
-  
+    
   abbreviation Graph_E :: "graph \<Rightarrow> edge set"
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ E\<rbrace>" 100)
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ E\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>G E\<rbrace> \<equiv> Graph.E c"
     
   abbreviation Graph_V :: "graph \<Rightarrow> node set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ V\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ V\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G V\<rbrace> \<equiv> Graph.V c"
     
   abbreviation Graph_incoming :: "graph \<Rightarrow> node \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>+(_)\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>+(_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<delta>\<^sup>+ u\<rbrace> \<equiv> Graph.incoming c u"
     
   abbreviation Graph_outgoing :: "graph \<Rightarrow> node \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>-(_)\<rbrace>" 100)
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>-(_)\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>G \<delta>\<^sup>- u\<rbrace> \<equiv> Graph.outgoing c u"
     
   abbreviation Graph_delta :: "graph \<Rightarrow> node \<Rightarrow> edge set"
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>(_)\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>(_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<delta> u\<rbrace> \<equiv> Graph.delta c u"
     
   abbreviation Graph_incoming' :: "graph \<Rightarrow> node set \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>+(_)\<rbrace>" 100)
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>+(_)\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>G \<Delta>\<^sup>+ u\<rbrace> \<equiv> Graph.incoming' c u"  
   
   abbreviation Graph_outgoing' :: "graph \<Rightarrow> node set \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>-(_)\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>-(_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<Delta>\<^sup>- u\<rbrace> \<equiv> Graph.outgoing' c u"
     
   abbreviation Graph_delta' :: "graph \<Rightarrow> node set \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>(_)\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>(_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<Delta> u\<rbrace> \<equiv> Graph.delta' c u"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -91,7 +93,7 @@ begin
   context Graph
   begin
     fun isPath :: "node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-      ("\<langle>\<leadsto>/ _,/ _,/ _\<rangle>"  100)
+      ("\<langle>\<leadsto>/ _,/ _,/ _\<rangle>"  1000)
     where
       "\<langle>\<leadsto> u, [], v\<rangle> \<longleftrightarrow> u = v"
     | "\<langle>\<leadsto> u, (x, y) # p, v\<rangle> \<longleftrightarrow> u = x \<and> (x, y) \<in> E \<and> \<langle>\<leadsto> y, p, v\<rangle>"
@@ -102,41 +104,40 @@ begin
     | "pathVertices u (e # es) = fst e # (pathVertices (snd e) es)"
     
     definition isReachable :: "node \<Rightarrow> node \<Rightarrow> bool" 
-      ("\<langle>_/ \<leadsto>/ _\<rangle>" 100)
+      ("\<langle>_/ \<leadsto>/ _\<rangle>" 1000)
     where "\<langle>u \<leadsto> v\<rangle> \<equiv> \<exists>p. \<langle>\<leadsto> u, p, v\<rangle>" 
     
     definition reachableNodes :: "node \<Rightarrow> node set"  
-      ("\<langle>\<leadsto>/ _\<rangle>" 100)
-    where "\<langle>\<leadsto> u\<rangle> \<equiv> {v. \<langle>u \<leadsto> v\<rangle>}"
+      ("\<langle>_/ \<hookrightarrow>\<rangle>" 1000)
+    where "\<langle>u \<hookrightarrow>\<rangle> \<equiv> {v. \<langle>u \<leadsto> v\<rangle>}"
     
     definition isShortestPath :: "node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-      ("\<langle>\<rightarrow>/ _,/ _,/ _\<rangle>" 100) 
+      ("\<langle>\<rightarrow>/ _,/ _,/ _\<rangle>" 1000) 
     where "\<langle>\<rightarrow> u, p, v\<rangle> \<equiv> \<langle>\<leadsto> u, p, v\<rangle> \<and> (\<forall>p'. \<langle>\<leadsto> u, p', v\<rangle> \<longrightarrow> length p \<le> length p')"
         
     definition isSimplePath :: "node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-      ("\<langle>\<Rightarrow>/ _,/ _,/ _\<rangle>" 100)
+      ("\<langle>\<Rightarrow>/ _,/ _,/ _\<rangle>" 1000)
     where "\<langle>\<Rightarrow> u, p, v\<rangle> \<equiv> \<langle>\<leadsto> u, p, v\<rangle> \<and> distinct (pathVertices u p)"
-  end
-  
+  end  
   
   abbreviation Graph_isPath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto> _, _, _\<rangle>\<rbrace>" 100)
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto> _, _, _\<rangle>\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<leadsto> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isPath c u p v"
     
   abbreviation Graph_isReachable :: "graph \<Rightarrow> node \<Rightarrow> node \<Rightarrow> bool" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>_/ \<leadsto>/ _\<rangle>\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>_/ \<leadsto>/ _\<rangle>\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<langle>u \<leadsto> v\<rangle>\<rbrace> \<equiv> Graph.isReachable c u v"
     
   abbreviation Graph_reachableNodes :: "graph \<Rightarrow> node \<Rightarrow> node set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto>/ _\<rangle>\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto>/ _\<rangle>\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<leadsto> u\<rangle>\<rbrace> \<equiv> Graph.reachableNodes c u"
     
   abbreviation Graph_isShortestPath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<rightarrow> _, _, _\<rangle>\<rbrace>" 100)
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<rightarrow> _, _, _\<rangle>\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<rightarrow> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isShortestPath c u p v"
     
   abbreviation Graph_isSimplePath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool"
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<Rightarrow> _, _, _\<rangle>\<rbrace>" 100) 
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<Rightarrow> _, _, _\<rangle>\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<Rightarrow> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isSimplePath c u p v"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -160,9 +161,8 @@ begin
     where "val \<equiv> (\<Sum>e \<in> \<delta>\<^sup>- s. f e) - (\<Sum>e \<in> \<delta>\<^sup>+ s. f e)"
   end
   
-  
   abbreviation Flow_val :: "graph \<Rightarrow> node \<Rightarrow> flow \<Rightarrow> real"
-    ("\<lbrace>_,/ _ \<parallel>\<^sub>F/ |_|\<rbrace>" 100) 
+    ("\<lbrace>_,/ _/ \<parallel>\<^sub>F/ |_|\<rbrace>" 1000) 
   where "\<lbrace>c, s \<parallel>\<^sub>F |f|\<rbrace> \<equiv> Flow.val c s f"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -179,8 +179,6 @@ begin
   locale Cut = Graph +
     fixes k :: cut
     assumes cut_ss_V: "k \<subseteq> V"
-  begin
-  end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -509,7 +507,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)  
   context Graph
   begin
-    lemma reachable_ss_V: "s \<in> V \<Longrightarrow> \<langle>\<leadsto> s\<rangle> \<subseteq> V"
+    lemma reachable_ss_V: "s \<in> V \<Longrightarrow> \<langle>s \<hookrightarrow>\<rangle> \<subseteq> V"
       proof
         assume asm: "s \<in> V"
         fix x
