@@ -1,5 +1,5 @@
 theory Graph
-imports Complex_Main Base
+imports Base
 begin
 
 
@@ -108,8 +108,8 @@ begin
     where "\<langle>u \<leadsto> v\<rangle> \<equiv> \<exists>p. \<langle>\<leadsto> u, p, v\<rangle>" 
     
     definition reachableNodes :: "node \<Rightarrow> node set"  
-      ("\<langle>_/ \<hookrightarrow>\<rangle>" 1000)
-    where "\<langle>u \<hookrightarrow>\<rangle> \<equiv> {v. \<langle>u \<leadsto> v\<rangle>}"
+      ("\<langle>\<star>/ _\<rangle>" 1000)
+    where "\<langle>\<star> u\<rangle> \<equiv> {v. \<langle>u \<leadsto> v\<rangle>}"
     
     definition isShortestPath :: "node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
       ("\<langle>\<rightarrow>/ _,/ _,/ _\<rangle>" 1000) 
@@ -129,8 +129,8 @@ begin
   where "\<lbrace>c \<parallel>\<^sub>G \<langle>u \<leadsto> v\<rangle>\<rbrace> \<equiv> Graph.isReachable c u v"
     
   abbreviation Graph_reachableNodes :: "graph \<Rightarrow> node \<Rightarrow> node set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto>/ _\<rangle>\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<leadsto> u\<rangle>\<rbrace> \<equiv> Graph.reachableNodes c u"
+    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<star>/ _\<rangle>\<rbrace>" 1000) 
+  where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<star> u\<rangle>\<rbrace> \<equiv> Graph.reachableNodes c u"
     
   abbreviation Graph_isShortestPath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
     ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<rightarrow> _, _, _\<rangle>\<rbrace>" 1000)
@@ -507,7 +507,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)  
   context Graph
   begin
-    lemma reachable_ss_V: "s \<in> V \<Longrightarrow> \<langle>s \<hookrightarrow>\<rangle> \<subseteq> V"
+    lemma reachable_ss_V: "s \<in> V \<Longrightarrow> \<langle>\<star> s\<rangle> \<subseteq> V"
       proof
         assume asm: "s \<in> V"
         fix x

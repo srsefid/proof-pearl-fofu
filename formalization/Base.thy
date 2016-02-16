@@ -1,5 +1,5 @@
 theory Base
-imports Main
+imports Complex_Main
 begin  
 
   context
@@ -186,7 +186,7 @@ begin
           ultimately show ?case by auto
       qed
     
-    lemma decomp_4: "finite s \<Longrightarrow> \<forall>x \<in> s. f x = a \<Longrightarrow> (\<Sum>x \<in> s. f x) = a * (card s)"
+    lemma decomp_4: "finite s \<Longrightarrow> \<forall>x \<in> s. f x = a \<Longrightarrow> (\<Sum>x \<in> s. f x) = (\<Sum>y \<in> {n. n < (card s)}. a)"
       proof (induction "card s" arbitrary: s)
         case 0
           thus ?case by auto
@@ -213,12 +213,26 @@ begin
               by (metis card_0_eq card_Suc_eq diff_Suc_Suc diff_zero finite_insert insert_is_Un)
             have f2: "finite bs" using Suc.prems(1) obt by auto
             have f3: " \<forall>x \<in> bs. f x = a" using obt Suc.prems(2) by auto
-            
             note Suc.hyps(1)[OF f1 f2 f3]
+            
+            then have "setsum f bs = (\<Sum>y\<in>{n. n < c}. a)" using f1 by simp
           }
-          ultimately have "?SUM_L s = a + a * (card bs)" by auto
-          thus ?case using Suc.hyps(2) by (metis Suc.prems(1)
-            card_insert_disjoint finite_insert insert_is_Un mult_Suc_right obt) 
+          ultimately have "?SUM_L s = a + (\<Sum>y\<in>{n. n < c}. a)" by auto
+          moreover {
+            have "{c} \<union> {n. n < c} = {n. n < c + 1}" by auto
+            then have "(\<Sum>x\<in>{c} \<union> {n. n < c}. a) = (\<Sum>x\<in>{n. n < c + 1}. a)" by simp
+            moreover {
+              have f1: "finite {c}" by simp
+              have f2: "finite {n. n < c}" by simp
+              have f3: "{c} \<inter> {n. n < c} = {}" by simp
+              
+              note setsum.union_disjoint[OF f1 f2 f3]
+              note this[of "\<lambda>x. a"]
+            }
+            moreover have "(\<Sum>x\<in>{c}. a) = a" by simp
+            ultimately have "a + (\<Sum>x\<in>{n. n < c}. a) = (\<Sum>x\<in>{n. n < c + 1}. a)" by simp
+          }
+          ultimately show ?case using Suc.hyps(2) by auto 
       qed
    end
 end

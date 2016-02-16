@@ -12,13 +12,13 @@ begin
     assumes s_node: "s \<in> V"
     assumes t_node: "t \<in> V"
     assumes s_not_t: "s \<noteq> t"
-    (*assumes cap_positive: "\<forall>u v. c (u, v) \<ge> 0"*)
+    assumes cap_positive: "\<forall>u v. c (u, v) \<ge> 0"
     assumes no_self_loop: "\<forall>u. (u, u) \<notin> E"
     assumes no_incoming_s: "\<forall>u. (u, s) \<notin> E"
     assumes no_outgoing_t: "\<forall>u. (t, u) \<notin> E"
     assumes no_parallel_edge: "\<forall>u v. (u, v) \<in> E \<longrightarrow> (v, u) \<notin> E"
     assumes nodes_on_st_path: "\<forall>v \<in> V. \<langle>s \<leadsto> v\<rangle> \<and> \<langle>v \<leadsto> t\<rangle>"
-    assumes finite_reachable: "finite \<langle>s \<hookrightarrow>\<rangle>"
+    assumes finite_reachable: "finite \<langle>\<star> s\<rangle>"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -48,16 +48,17 @@ begin
     assumes s_in_cut: "s \<in> k"
     assumes t_ni_cut: "t \<notin> k"
   begin
-    definition "cap \<equiv> (\<Sum>e \<in> \<Delta>\<^sup>- k. c e)"
+    definition cap :: "real"
+    where "cap \<equiv> (\<Sum>e \<in> \<Delta>\<^sup>- k. c e)"
   end
   
   abbreviation NCut_cap :: "graph \<Rightarrow> node set \<Rightarrow> real"
-    ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ \<CC>(_)\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>N\<^sub>C \<CC> k\<rbrace> \<equiv> NCut.cap c k"
+    ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ Cap(_)\<rbrace>" 1000) 
+  where "\<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k\<rbrace> \<equiv> NCut.cap c k"
   
   definition isMinCut :: "graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> cut \<Rightarrow> bool" 
   where "isMinCut c s t k \<equiv> NCut c s t k \<and>
-    (\<forall>k'. NCut c s t k' \<longrightarrow> \<lbrace>c \<parallel>\<^sub>N\<^sub>C \<CC> k\<rbrace> \<le> \<lbrace>c \<parallel>\<^sub>N\<^sub>C \<CC> k'\<rbrace>)"
+    (\<forall>k'. NCut c s t k' \<longrightarrow> \<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k\<rbrace> \<le> \<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k'\<rbrace>)"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -89,15 +90,15 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context Network
   begin
-    lemma V_ss_reachable : "V \<subseteq> \<langle>s \<hookrightarrow>\<rangle>"
+    lemma V_ss_reachable : "V \<subseteq> \<langle>\<star> s\<rangle>"
       proof
         fix x
         assume "x \<in> V"
-        thus "x \<in> \<langle>s \<hookrightarrow>\<rangle>"
+        thus "x \<in> \<langle>\<star> s\<rangle>"
           unfolding reachableNodes_def by (simp add: s_node nodes_on_st_path)
       qed
     
-    lemma reachable_is_V[simp]: "\<langle>s \<hookrightarrow>\<rangle> = V"
+    lemma reachable_is_V[simp]: "\<langle>\<star> s\<rangle> = V"
       using s_node reachable_ss_V V_ss_reachable by blast
       
     lemma finite_V: "finite V"
@@ -109,6 +110,10 @@ begin
         moreover have "E \<subseteq> V \<times> V" using V_def by auto
         ultimately show ?thesis by (metis finite_subset)
       qed
+      
+    lemma edges_positive: "e \<in> E \<Longrightarrow> c e > 0"
+      unfolding E_def
+      by (smt cap_positive case_prodE mem_Collect_eq)
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
