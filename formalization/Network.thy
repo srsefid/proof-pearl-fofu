@@ -53,7 +53,7 @@ begin
   end
   
   abbreviation NCut_cap :: "graph \<Rightarrow> node set \<Rightarrow> real"
-    ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ Cap(_)\<rbrace>" 1000) 
+    ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ Cap/ (_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k\<rbrace> \<equiv> NCut.cap c k"
   
   definition isMinCut :: "graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> cut \<Rightarrow> bool" 
