@@ -48,11 +48,11 @@ begin
     assumes s_in_cut: "s \<in> k"
     assumes t_ni_cut: "t \<notin> k"
   begin
-    definition cap :: "real"
+    definition cap :: "capacity"
     where "cap \<equiv> (\<Sum>e \<in> \<Delta>\<^sup>- k. c e)"
   end
   
-  abbreviation NCut_cap :: "graph \<Rightarrow> node set \<Rightarrow> real"
+  abbreviation NCut_cap :: "graph \<Rightarrow> node set \<Rightarrow> capacity"
     ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ Cap/ (_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k\<rbrace> \<equiv> NCut.cap c k"
   
@@ -71,11 +71,11 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   locale FoFu = NCut + NFlow
   begin  
-    definition netFlow :: "real"
+    definition netFlow :: "capacity"
     where "netFlow \<equiv> (\<Sum>e \<in> \<Delta>\<^sup>- k. f e) - (\<Sum>e \<in> \<Delta>\<^sup>+ k. f e)"
   end
   
-  abbreviation FoFu_netFlow :: "graph \<Rightarrow> cut \<Rightarrow> flow \<Rightarrow> real"
+  abbreviation FoFu_netFlow :: "graph \<Rightarrow> cut \<Rightarrow> flow \<Rightarrow> capacity"
     ("\<lbrace>_/ \<parallel>\<^sub>F\<^sub>F/ _/ \<Join>/ _\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>F\<^sub>F k \<Join> f\<rbrace> \<equiv> FoFu.netFlow c k f"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -167,6 +167,7 @@ begin
         let ?SIN = "\<lambda>u. (\<Sum>e \<in> incoming u. f e)"
         let ?SOG' = "(\<Sum>e \<in> outgoing' k. f e)"
         let ?SIN' = "(\<Sum>e \<in> incoming' k. f e)"
+
         have fct1: "netFlow =  ?SOG' + (\<Sum>e \<in> ?LCL. f e) - (?SIN' + (\<Sum>e \<in> ?LCL. f e))" 
           (is "_  = ?SAOG - (?SAIN)") using netFlow_def by auto
         {

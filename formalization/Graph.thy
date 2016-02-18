@@ -157,11 +157,11 @@ begin
     assumes capacity_const: "\<forall>e. 0 \<le> f e \<and> f e \<le> c e"
     assumes conservation_const: "\<forall>v \<in> V - {s, t}. (\<Sum>e \<in> \<delta>\<^sup>+ v. f e) = (\<Sum>e \<in> \<delta>\<^sup>- v. f e)"
   begin
-    definition val :: "real"
+    definition val :: "capacity"
     where "val \<equiv> (\<Sum>e \<in> \<delta>\<^sup>- s. f e) - (\<Sum>e \<in> \<delta>\<^sup>+ s. f e)"
   end
   
-  abbreviation Flow_val :: "graph \<Rightarrow> node \<Rightarrow> flow \<Rightarrow> real"
+  abbreviation Flow_val :: "graph \<Rightarrow> node \<Rightarrow> flow \<Rightarrow> capacity"
     ("\<lbrace>_,/ _/ \<parallel>\<^sub>F/ |_|\<rbrace>" 1000) 
   where "\<lbrace>c, s \<parallel>\<^sub>F |f|\<rbrace> \<equiv> Flow.val c s f"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
