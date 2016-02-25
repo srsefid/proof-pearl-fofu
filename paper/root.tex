@@ -141,14 +141,25 @@ There are several approaches to data refinement in Isabelle/HOL. We will be usin
       bottleneck and augment: Give iterative impl.
       
     Use efficient data structures:
-      Arrays for c,f, and ps
+      Arrays for c,f, and ps. c and f in row-major indexing.
+      
       List for augmenting path. [TODO/Future work: Iterator scheme]
   
+      In BFS, we use lists for the queues (we have split the queue into one for 
+        the current level, and one for the next level), and an array for the predecessor map. 
   
+      The refinement is performed using the Sepref tool.
 
-
-  
   NetCheck
+    We also implemented an algorithm that reads a list of edges and a source and target node, 
+    converts it to a capacity matrix and an adjacency map, and checks whether the resulting graph satisfies our network assumptions.
+    We proved that this algorithm returns the corresponding Network and adjacency function iff the input describes a valid network,
+    and returns a failure value otherwise.
+    
+  Combining the implementation of the Edmonds-Karp algorithm with the Network checker yields our final algorithm,
+  for which we can export code, and have proved the theorem: [...]. 
+    
+    
 
 \section{Benchmarking}
 \section{Conclusion} 
