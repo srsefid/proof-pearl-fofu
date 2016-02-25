@@ -1,0 +1,196 @@
+% Markierungen: TODO
+\documentclass{llncs}
+
+\pagestyle{plain} % turn on page numbers
+\usepackage[utf8]{inputenc}
+\usepackage{microtype} % Better typesetting for PDFs -- is enabling this ok?
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage{eufrak} %The eufrak package is redundant if the amsfonts package is used
+\usepackage{mathpartir}
+\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+\usepackage[boxed]{algorithm}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{color}
+\usepackage[noend]{algpseudocode}
+\usepackage{caption}
+\usepackage[font=scriptsize]{subcaption}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{wrapfig}
+
+\usepackage{multirow}
+
+\input{macros}
+
+\input{lstisabelle}
+\lstset{captionpos=b}
+\lstset{numberbychapter=false}
+
+
+% \overfullrule=8pt
+
+\begin{document}
+
+\title{Working title: Verifying the Edmonds-Karp Algorithm}
+\subtitle{A Proof Pearl}
+
+\author{S.~Reza Sefidgar, Peter Lammich}
+
+\institute{Technische Universit\"at M\"unchen, \email{\{sefidgar,lammich\}@in.tum.de}}
+
+\maketitle
+\begin{abstract}
+the Ford-Fulkerson algorithm is a generic method that computes the maximum flow in a flow network. This paper outlines a formal proof of the Ford-Fulkerson theorem in Isabelle/HOL which follows the informal proof found in standard algorithm text books. This formalization is then used to develop an implementation of the algorithm in Standard ML. Refinement techniques are used to transform an abstract definition of the algorithm into an executable code.
+\end{abstract}
+
+\section{Introduction}
+The Ford-Fulkerson algorithm [cite] is one of the important results of the graph theory and is used to find a solution to the maximum flow problem in flow networks. Many important mathematical problems like the maximum-bipartite-matching problem, the edge-disjoint-paths problem, the circulation-demand problem, and many other scheduling and resource allocating problems can be reduced to the maximum flow problem. Hence, the Ford-Fulkerson algorithm has major application in the field of mathematical optimization.
+
+Despite its importance, no formalization of the Ford-Fulkerson algorithm has been developed in modern proof assistants. The only similar work that the authors are aware of is formalization of the Ford-Fulkerson algorithm in Mizar [cite]. This formalization defines and proves correctness of the algorithm at the level of graph manipulations without providing concrete implementation of the algorithm. Providing such an implementation is specially important, as it could provide the basis for many verfied programs with practical importance.
+
+This paper present a formalization of the correctness proof of the Ford-Fulkerson algorithm in Isabelle/HOL. Our proof is based on the informal proof of the algorithm which is presented in the book "Introduction to algorithms" [cite]. Due to practical importance of the algorithm, we also present a verified implementation of the algorithm. Isabelle/HOL provides some automation for generating the code corresponding to a verified algorithm, however, in order to use the code generating features, one needs to do the formalization with executability in mind. Being limited only to executable concepts in the formalization has the disadvantage of cluttering the proofs with implementation details. Such approach makes the proofs more complicated, and may even render proofs of medium complex algorithms unmanageable.
+
+One solution for the aforementioned problem is refinement [cite]. In order to generate executable code of an algorithm using refinement, we first formulate the algorithm on an abstract level. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm. Next, we refine the abstract definition of the algorithm towards an executable implementation in possibly multiple refinement steps. During each step, we only need to prove the correctness of the implementation of a particular abstract concept. Hence, we can be sure about the correctness of the resulting executable program as each refinement step preserves the correctness.
+
+There are several approaches to data refinement in Isabelle/HOL. We will be using the Autoref tool [cite], which has been used for proving more complex results such as formalized implementation of Hopcroft’s DFA-minimization algorithm [cite]. Given an algorithm phrased over abstract concepts like sets and maps, it automatically synthesizes a concrete, executable algorithm and the corresponding refinement theorem. To make it applicable for the development of actual algorithms, Autoref is integrated with the Isabelle Refinement Framework [cite] and the Isabelle Collection Framework [cite].
+
+
+\section{Short Background on MinCutMaxFlow and FoFu}
+  GOAL: 
+    1) Remind the reader of FoFu. The educated reader should have the feeling:
+      Yes, now I recall FoFu, and understand (again) what it does.
+      
+    2) Set the field for further, more detailed descriptions in next section.
+  
+
+  Short description of Network: Finite graph over nodes V, 
+    edge (u,v) annotated with capacity c(u,v).
+    Assuming distinct nodes s and t. 
+    Note on additional assumptions: 
+        No parallel edges, s only outgoing, t only incoming, all nodes on path from s to t. 
+        Can transform any Network to match these assumptions, preserving the flow \cite{???}.
+        
+  s-t Flow: Annotation of edges with values, such that: 
+    1) Values smaller than capacities.
+    2) Kirchhoff law: sum of incoming flows = sum of outgoing flows, for all nodes except s t
+  
+  Value of flow: Incoming flow - outgoing flow of s
+  
+  Max-Flow problem. 
+    Rpt. why important?
+  
+  Cuts, intuition of min-cut >= max-flow
+  
+  Theorem: Min-Cut = Max-Flow
+  Proven via augmenting flow in residual graph. 
+    Present 1,2,3 of min-cut max-flow equivalences
+  
+  This yields an algorithm to compute max-flows, if we can compute flows in residual graph.
+    --> Simple way: Augmenting flow via augmenting path. ==> FoFu-scheme. 
+      Termination? In General: Only for integer capacities.
+      Edmonds-Karp: Shortest augmenting path. Always terminates! Complexity: O(|E||V|) outer loop iterations, BFS requires O|E|.
+  
+
+
+\section{Formalizing MinCutMaxFlow and Fofu}
+  GOAL: Present highlights of our formalization, persuade the reader that we have done something substantial.
+    Reader should think: Yeah, they did cool stuff!
+
+  [???* Thematize definition of flows: On Graphs vs. on Networks. You find both in the literature. 
+      We decides for [...]. This is better suited, as is gives nice and elegant proofs, even formally, bla bla bla]
+    
+  Proof of MinCut-MaxFlow: Follows the textbook proof.
+    Uses Isar to even look like a textbook proof, being comprehensible even without running
+      Isabelle/HOL.
+      
+    For example, augment_flow_presv_cap.
+      Present formal proof text. Perhaps oppose it to textbook proof?.
+    
+  Abstract Algo looks like pseudocode presented in texbooks.
+    Oppose our algo to textbook pseudocode.
+    
+    
+\section{Refinement to executable code}
+  GOAL: Same as previous section
+  
+  Introduction to refinement. (On abstract level)
+
+  TODO: Show better complexity bound for FoFu with shortest path! --> Edmonds-Karp algo!
+ 
+  
+  FoFu-Scheme, can be instantiated with pathfinders now.
+  These are developed independently, they are just search algorithms on graphs.
+    We did BFS and DFS.
+      DFS took from Refinement Framework examples.
+      BFS: Based on our existing formalization for VSTTE12 verification competition, 
+        but extended to return shortest path, and refined to imperative code.
+    
+        ??? Highlights of the BFS formalization?
+    
+  Down to executable code:
+    Implement things that where not yet specified/specified in a non-executable way:
+      Residual graph: By combination of c and f, and pred-succ. TODO: Directly!
+        All we need is successor function. Implemented by tabulating 
+          adjacent nodes of each node (pred-succ), and using c and f to filter out actual successor nodes. 
+      augpath-spec by BFS/DFS (which work on succ-functions)
+      bottleneck and augment: Give iterative impl.
+      
+    Use efficient data structures:
+      Arrays for c,f, and ps
+      List for augmenting path. [TODO/Future work: Iterator scheme]
+  
+  
+
+
+  
+  NetCheck
+
+\section{Benchmarking}
+\section{Conclusion} 
+  ... and related work
+
+
+  
+Contributions
+
+  Formal proof of mincut maxflow
+  fofo-scheme
+  inst to edmonds karp
+  refinement down to executable code. Roughly 5 times slower than Java. (What about OCaml)
+    + NetCheck
+    
+What shines (its a Pearl)
+  Min-Cut Max-Flow: Textboook like formal reasoning: Comprehensible proof, BUT machine checked
+    (Present one (carefully worked) example in paperI. We could use lemma augment_flow_presv_cap)
+    
+  Refinement based approach: Fofu-Scheme, instantiation to EdsKa. 
+    +1: Abstract Algo looks almost like pseudo-code you would expect in textbook.
+    +2: Fofu-Scheme proved correct for all aug-path finders. EdsKa is instantiation of it.
+    +3: Modularity: Fofu-scheme and pathfinder developed+proved independently of each other.
+  
+  Down to executable code, plugging in efficient data structures.
+  
+Some minor contributions:
+  Reusable BFS algorithm
+  Imperative matrix data structure (really minor).
+  
+  
+  
+    
+
+
+
+
+
+
+
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}
+
