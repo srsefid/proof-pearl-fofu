@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2015.4.13)  25 FEB 2016 11:14
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2015.4.13)  26 FEB 2016 14:35
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -443,18 +443,6 @@ Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
 LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 (Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
 ))
-(/usr/share/texmf/tex/latex/mathpartir/mathpartir.sty
-Package: mathpartir 2005/12/20 version 1.2.0 Math Paragraph for Typesetting Inf
-erence Rules
-\mpr@tmpdim=\dimen134
-\mpr@andskip=\skip49
-\mpr@lista=\toks27
-\mpr@listb=\toks28
-\mpr@hlist=\box56
-\mpr@vlist=\box57
-\mpr@right=\box58
-\rule@dimen=\dimen135
-)
 (/usr/share/texlive/texmf-dist/tex/latex/algorithms/algorithm.sty
 Package: algorithm 2009/08/24 v0.1 Document Style `algorithm' - floating enviro
 nment
@@ -462,40 +450,40 @@ nment
 (/usr/share/texlive/texmf-dist/tex/latex/float/float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \c@float@type=\count130
-\float@exts=\toks29
-\float@box=\box59
-\@float@everytoks=\toks30
-\@floatcapt=\box60
+\float@exts=\toks27
+\float@box=\box56
+\@float@everytoks=\toks28
+\@floatcapt=\box57
 )
 (/usr/share/texlive/texmf-dist/tex/latex/base/ifthen.sty
 Package: ifthen 2001/05/26 v1.1c Standard LaTeX ifthen package (DPC)
 )
-\@float@every@algorithm=\toks31
+\@float@every@algorithm=\toks29
 \c@algorithm=\count131
 )
 (/usr/share/texlive/texmf-dist/tex/latex/tools/enumerate.sty
 Package: enumerate 1999/03/05 v3.00 enumerate extensions (DPC)
-\@enLab=\toks32
+\@enLab=\toks30
 )
 (/usr/share/texlive/texmf-dist/tex/latex/listings/listings.sty
 \lst@mode=\count132
-\lst@gtempboxa=\box61
-\lst@token=\toks33
+\lst@gtempboxa=\box58
+\lst@token=\toks31
 \lst@length=\count133
-\lst@currlwidth=\dimen136
+\lst@currlwidth=\dimen134
 \lst@column=\count134
 \lst@pos=\count135
-\lst@lostspace=\dimen137
-\lst@width=\dimen138
+\lst@lostspace=\dimen135
+\lst@width=\dimen136
 \lst@newlines=\count136
 \lst@lineno=\count137
-\lst@maxwidth=\dimen139
+\lst@maxwidth=\dimen137
 
 (/usr/share/texlive/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2013/08/26 1.5b (Carsten Heinz)
 \c@lstnumber=\count138
 \lst@skipnumbers=\count139
-\lst@framebox=\box62
+\lst@framebox=\box59
 )
 (/usr/share/texlive/texmf-dist/tex/latex/listings/listings.cfg
 File: listings.cfg 2013/08/26 1.5b listings configuration
@@ -527,47 +515,47 @@ Package: ltxcmds 2011/11/09 v1.22 LaTeX kernel commands for general use (HO)
 )
 \Gread@gobject=\count140
 ))
-\Gin@req@height=\dimen140
-\Gin@req@width=\dimen141
+\Gin@req@height=\dimen138
+\Gin@req@width=\dimen139
 )
 (/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
 Package: tabularx 1999/01/07 v2.07 `tabularx' package (DPC)
 
 (/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty
 Package: array 2008/09/09 v2.4c Tabular extension package (FMi)
-\col@sep=\dimen142
-\extrarowheight=\dimen143
-\NC@list=\toks34
-\extratabsurround=\skip50
-\backup@length=\skip51
+\col@sep=\dimen140
+\extrarowheight=\dimen141
+\NC@list=\toks32
+\extratabsurround=\skip49
+\backup@length=\skip50
 )
-\TX@col@width=\dimen144
-\TX@old@table=\dimen145
-\TX@old@col=\dimen146
-\TX@target=\dimen147
-\TX@delta=\dimen148
+\TX@col@width=\dimen142
+\TX@old@table=\dimen143
+\TX@old@col=\dimen144
+\TX@target=\dimen145
+\TX@delta=\dimen146
 \TX@cols=\count141
-\TX@ftn=\toks35
+\TX@ftn=\toks33
 )
 (/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty
 Package: booktabs 2005/04/14 v1.61803 publication quality tables
-\heavyrulewidth=\dimen149
-\lightrulewidth=\dimen150
-\cmidrulewidth=\dimen151
-\belowrulesep=\dimen152
-\belowbottomsep=\dimen153
-\aboverulesep=\dimen154
-\abovetopsep=\dimen155
-\cmidrulesep=\dimen156
-\cmidrulekern=\dimen157
-\defaultaddspace=\dimen158
+\heavyrulewidth=\dimen147
+\lightrulewidth=\dimen148
+\cmidrulewidth=\dimen149
+\belowrulesep=\dimen150
+\belowbottomsep=\dimen151
+\aboverulesep=\dimen152
+\abovetopsep=\dimen153
+\cmidrulesep=\dimen154
+\cmidrulekern=\dimen155
+\defaultaddspace=\dimen156
 \@cmidla=\count142
 \@cmidlb=\count143
-\@aboverulesep=\dimen159
-\@belowrulesep=\dimen160
+\@aboverulesep=\dimen157
+\@belowrulesep=\dimen158
 \@thisruleclass=\count144
 \@lastruleclass=\count145
-\@thisrulewidth=\dimen161
+\@thisrulewidth=\dimen159
 )
 (/usr/share/texlive/texmf-dist/tex/latex/graphics/color.sty
 Package: color 2005/11/14 v1.0j Standard LaTeX Color (DPC)
@@ -587,13 +575,13 @@ Document Style algorithmicx 1.2 - a greatly improved `algorithmic' style
 \c@ALG@line=\count146
 \c@ALG@rem=\count147
 \c@ALG@nested=\count148
-\ALG@tlm=\skip52
-\ALG@thistlm=\skip53
+\ALG@tlm=\skip51
+\ALG@thistlm=\skip52
 \c@ALG@Lnr=\count149
 \c@ALG@blocknr=\count150
 \c@ALG@storecount=\count151
 \c@ALG@tmpcounter=\count152
-\ALG@tmplength=\skip54
+\ALG@tmplength=\skip53
 )
 Document Style - pseudocode environments for use with the `algorithmicx' style
 ) (/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
@@ -602,13 +590,13 @@ Package: caption 2013/05/02 v3.3-89 Customizing captions (AR)
 (/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
 Package: caption3 2013/05/02 v1.6-88 caption3 kernel (AR)
 Package caption3 Info: TeX engine: e-TeX on input line 57.
-\captionmargin=\dimen162
-\captionmargin@=\dimen163
-\captionwidth=\dimen164
-\caption@tempdima=\dimen165
-\caption@indent=\dimen166
-\caption@parindent=\dimen167
-\caption@hangindent=\dimen168
+\captionmargin=\dimen160
+\captionmargin@=\dimen161
+\captionwidth=\dimen162
+\caption@tempdima=\dimen163
+\caption@indent=\dimen164
+\caption@parindent=\dimen165
+\caption@hangindent=\dimen166
 Package caption Info: Unknown document class (or package),
 (caption)             standard defaults will be used.
 )
@@ -686,7 +674,7 @@ Package: auxhook 2011/03/04 v1.3 Hooks for auxiliary files (HO)
 (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/kvoptions.sty
 Package: kvoptions 2011/06/30 v3.11 Key value format for package options (HO)
 )
-\@linkdim=\dimen169
+\@linkdim=\dimen167
 \Hy@linkcounter=\count156
 \Hy@pagecounter=\count157
 
@@ -714,10 +702,10 @@ Package hyperref Info: Bookmarks ON on input line 4688.
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
 LaTeX Info: Redefining \url on input line 5041.
-\XeTeXLinkMargin=\dimen170
+\XeTeXLinkMargin=\dimen168
 \Fld@menulength=\count160
-\Field@Width=\dimen171
-\Fld@charsize=\dimen172
+\Field@Width=\dimen169
+\Fld@charsize=\dimen170
 Package hyperref Info: Hyper figures OFF on input line 6295.
 Package hyperref Info: Link nesting OFF on input line 6300.
 Package hyperref Info: Hyper index ON on input line 6303.
@@ -744,18 +732,18 @@ Package: rerunfilecheck 2011/04/15 v1.7 Rerun checks for auxiliary files (HO)
 Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 82.
 )
-\Hy@SectionHShift=\skip55
+\Hy@SectionHShift=\skip54
 )
 (/usr/share/texlive/texmf-dist/tex/latex/wrapfig/wrapfig.sty
-\wrapoverhang=\dimen173
-\WF@size=\dimen174
+\wrapoverhang=\dimen171
+\WF@size=\dimen172
 \c@WF@wrappedlines=\count166
-\WF@box=\box63
-\WF@everypar=\toks36
+\WF@box=\box60
+\WF@everypar=\toks34
 Package: wrapfig 2003/01/31  v 3.6
 )
 (/usr/share/texlive/texmf-dist/tex/latex/multirow/multirow.sty
-\bigstrutjot=\dimen175
+\bigstrutjot=\dimen173
 ) (./macros.tex)
 (./lstisabelle.tex) (./root.aux)
 \openout1 = `root.aux'.
@@ -794,16 +782,16 @@ File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
 (/usr/share/texlive/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count168
-\scratchdimen=\dimen176
-\scratchbox=\box64
+\scratchdimen=\dimen174
+\scratchbox=\box61
 \nofMPsegments=\count169
 \nofMParguments=\count170
-\everyMPshowfont=\toks37
+\everyMPshowfont=\toks35
 \MPscratchCnt=\count171
-\MPscratchDim=\dimen177
+\MPscratchDim=\dimen175
 \MPnumerator=\count172
 \makeMPintoPDFobject=\count173
-\everyMPtoPDFconversion=\toks38
+\everyMPtoPDFconversion=\toks36
 ) (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
 Package: epstopdf-base 2010/02/09 v2.5 Base part for package epstopdf
 
@@ -823,7 +811,7 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: wrapfig package is loaded.
 Package caption Info: End \AtBeginDocument code.
-\AtBeginShipoutBox=\box65
+\AtBeginShipoutBox=\box62
 Package hyperref Info: Link coloring OFF on input line 37.
 
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
@@ -873,43 +861,48 @@ LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
 
 [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] (./root.bbl
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] [3] [4] (./root.bbl
 
 LaTeX Warning: Empty `thebibliography' environment on input line 3.
 
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 115.
- [3]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 115.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 235.
+ [5]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 235.
  (./root.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 115.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 115.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 235.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 235.
 Package rerunfilecheck Info: File `root.out' has not changed.
 (rerunfilecheck)             Checksum: 1CCBE773244090CA28F7B3F33E546FDF;86.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 115.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 235.
  ) 
 Here is how much of TeX's memory you used:
- 11507 strings out of 494935
- 170248 string characters out of 6178122
- 303177 words of memory out of 5000000
- 14505 multiletter control sequences out of 15000+600000
- 8900 words of font info for 56 fonts, out of 8000000 for 9000
+ 11838 strings out of 494935
+ 172229 string characters out of 6178122
+ 303182 words of memory out of 5000000
+ 14799 multiletter control sequences out of 15000+600000
+ 10329 words of font info for 76 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 36i,6n,40p,826b,333s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,6n,40p,829b,1212s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb></usr/share
-/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texliv
-e/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texlive/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmtt9.pfb>
-Output written on root.pdf (3 pages, 87258 bytes).
+/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texlive/texmf-dist/fonts/ty
+pe1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmt
+t9.pfb>
+Output written on root.pdf (5 pages, 139736 bytes).
 PDF statistics:
- 61 PDF objects out of 1000 (max. 8388607)
- 49 compressed objects within 1 object stream
- 13 named destinations out of 1000 (max. 500000)
- 9737 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 89 PDF objects out of 1000 (max. 8388607)
+ 70 compressed objects within 1 object stream
+ 15 named destinations out of 1000 (max. 500000)
+ 11785 words of extra memory for PDF output out of 12000 (max. 10000000)
 
