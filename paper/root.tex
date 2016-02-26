@@ -8,7 +8,7 @@
 \usepackage{amssymb}
 %\usepackage{eufrak} %The eufrak package is redundant if the amsfonts package is used
 % \usepackage{mathpartir}
-\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+%\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
 \usepackage[boxed]{algorithm}
 \usepackage{enumerate}
 \usepackage{listings}
@@ -25,11 +25,27 @@
 
 \usepackage{multirow}
 
+\usepackage{packages/isabelle}
+\usepackage{packages/isabelletags}
+\usepackage{packages/isabellesym}
+\usepackage{packages/comment}
+
 \input{macros}
 
 \input{lstisabelle}
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
+
+% Include snippets
+\newcommand{\DefineSnippet}[2]{%
+   \expandafter\newcommand\csname snippet--#1\endcsname{%
+     \begin{quote}
+     \begin{isabelle}
+     #2
+     \end{isabelle}
+     \end{quote}}}
+\newcommand{\Snippet}[1]{\csname snippet--#1\endcsname}
+\input{snippets/snippets}
 
 
 % \overfullrule=8pt
@@ -149,6 +165,7 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
 %    Oppose our algo to textbook pseudocode.
 %    
 
+\Snippet{isar-lem}
 
     
 \section{Refinement to executable code}
