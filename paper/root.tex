@@ -96,51 +96,60 @@ There are several approaches to data refinement in Isabelle/HOL. We will be usin
 %       Termination? In General: Only for integer capacities.
 %       Edmonds-Karp: Shortest augmenting path. Always terminates! Complexity: O(|E||V|) outer loop iterations, BFS requires O|E|.
 %   \end{comment}
-A flow network is a weighted digraph where the set of vertices (nodes) V is finite, and each edge (u, v) has a real capacity c (u, v) >=0. There are two distinct vertices s (source) and t (sink) in the flow network. In this case the network is called an s-t network. To make the formalization simple, some additional assumptions are added to the definition as following: 1) The source only has outgoing edges while the sink only has incoming edges; 2) If the flow network contains an edge (u, v) then there is no edge (v, u) in the reverse direction; and 3) every vertex of the flow network must be on a path from s to t. Although these assumptions seems restrictive, any network may be transformed such that it satisfies all the aformentioned properties.
+A flow network is a weighted digraph where the set of vertices (nodes) $V$ is finite, and each edge $(u, v)$ has a real capacity $c (u, v) \geq 0$. There are two distinct vertices $s$ (source) and $t$ (sink) in the flow network. In this case the network is called an $s$-$t$ network. To make the formalization simple, some additional assumptions are added to the definition as following: 1) The source only has outgoing edges while the sink only has incoming edges; 2) If the flow network contains an edge $(u, v)$ then there is no edge $(v, u)$ in the reverse direction; and 3) every vertex of the flow network must be on a path from $s$ to $t$. Although these assumptions seems restrictive, any network may be transformed such that it satisfies all the aforementioned properties.
 
-An s-t flow on a weighted digraph is a function f: E -> R which satisfies the following conditions. 1) (capacity constraint) the flow of
-each edge is a non-negative value which is smaller or equal to the edge capacity; 2) (conservation constraint) For all vertices except s and t, the sum of flows over incoming edges of the vertex is equal to the sum of flows over outgoing edges of the vertex.
+An $s$-$t$ flow on a weighted digraph is a function $\colon V \times V \rightarrow \mathbb{R}$ which satisfies the following conditions. 1) \textbf{Capacity constraint}: the flow of each edge is a non-negative value which is smaller or equal to the edge capacity; 2) \textbf{Conservation constraint}: For all vertices except $s$ and $t$, the sum of flows over incoming edges of the vertex is equal to the sum of flows over outgoing edges of the vertex.
 
-The value of an s-t flow f is denoted by |f |, and is computed by subtracting the sum of the flows over all incoming edges of s from the sum of the flows over all outgoing edges of s. Given an s-t network G, the maximum flow problem involves finding a flow f in G such that the value of f is greater or equal to the value of any other s-t flow in G. (Note that the value of the flow in our model of a flow network equals sum of flows over edges going out of s. Because the model prohibits edges coming into the source.)
+The value of an $s$-$t$ flow f is denoted by $|f|$, and is computed by subtracting the sum of the flows over all incoming edges of $s$ from the sum of the flows over all outgoing edges of $s$. Given an $s$-$t$ network $G$, the maximum flow problem involves finding a flow $f$ in $G$ such that the value of $f$ is greater or equal to the value of any other $s$-$t$ flow in $G$~\footnote{Note that the value of the flow in our model of a flow network equals sum of flows over edges going out of $s$. Because the model prohibits edges coming into the source.}.
 
-One of the important results in mathematical optimization is the corelation between flows and cuts in flow networks. An s-t cut in a flow network with source s and sink t is a partition of vertices that puts s and t in different subsets. Then the capacity of a cut is defined as sum of the edge capacities over all edges going from the source side to the sink side. Consider a valid flow in a flow network G. For any cut in G, the flow that crosses between the two subsets of the cut cannot exceed the capacity of the cut. So cuts define an upper bound for any flow in the flow network. The Ford-Fulkerson theorem tightens this bound and states that the value of the maximum flow is equal to the capacity of the minimum cut.
+One of the important results in mathematical optimization is the correlation between flows and cuts in flow networks. An $s$-$t$ cut in a flow network with source $s$ and sink $t$ is a partition of vertices that puts $s$ and $t$ in different subsets. Then the capacity of a cut is defined as sum of the edge capacities over all edges going from the source's side to the sink's side. Consider a valid flow in a flow network $G$. For any cut in $G$, the flow that crosses between the two subsets of the cut cannot exceed the capacity of the cut. So cuts define an upper bound for any flow in the flow network. The Ford-Fulkerson theorem tightens this bound and states that the value of the maximum flow is equal to the capacity of the minimum cut.
 
-The Ford-Fulkerson algorithm is the direct consequence of the Ford-Fulkerson theorem. It solves the maximum flow problem in a greedy approach. Assume an instance of the maximum flow problem in an s-t network. The algorithm starts with a zero flow: f ( e ) = 0 for all the edges e. In each iteration of the algorithm the value of f is increased by pushing flow along a path from s to t up to the limits imposed by the available edge capacities. The process would continue until no more paths can be found to push additional flow from s to t.
+The Ford-Fulkerson algorithm is the direct consequence of the Ford-Fulkerson theorem. It solves the maximum flow problem in a greedy approach. Assume an instance of the maximum flow problem in an $s$-$t$ network. The algorithm starts with a zero flow: $f(e) = 0$ for all the edges $e$. In each iteration of the algorithm the value of $f$ is increased by pushing flow along a path from $s$ to $t$ up to the limits imposed by the available edge capacities. The process would continue until no more paths can be found to push additional flow from $s$ to $t$.
 
 The total flow value is increased by manipulating the flow values along different edges. However, the flow along specific edges might decrease during this process. In order to perform these operations, the Ford-Fulkerson algorithm defines the residual graph of the flow network. Intuitively, the residual graph corresponding to a flow in a given flow network, has the same vertices as the flow network. It also and consists of edges with capacities representing how flow can be changed along the edges of the flow network.
 
-In each iteration of the algorithm, the residual graph $G_f$ corresponding to the current flow in the network is constructed. Then the algorithm looks for an augmenting path--- a simple path from source to the sink--- in the residual graph. If such a path could be found, it will be used to construct a flow in the residual graph. This flow provides a road map for modifying the current flow in the flow network. The process of increasing the current flow using an augmenting flow is called augmentation. Let f be the current flow in an s-t network G = ( V, E ) with capacity function c, and f be a flow in the corresponding residual graph. The augmentation of f using f' is a function from $V \times V$ to N, defined as following:
-(???? definition of augment function)
+Assume a flow $f$ in an $s$-$t$ network with capacity function $c$. An edge $(u, v)$ of the network can admit an additional amount of flow equal to the edge’s capacity minus the flow along that edge. If this value is positive, then a $(u, v)$ edge is added to the residual graph with a residual capacity $c_f (u, v) = c (u, v) - f (u, v)$. So, the residual graph only contains those edges of the original flow network that have left-over capacities. The residual graph may also contain some edges that do not exist in the original flow network. For each edge $(u, v)$ in the flow network which has a positive flow value, a $(v, u)$ edge is added to the residual graph with the residual capacity $c_f (v, u) = f (u, v)$. The edge $(v, u)$ indicates the possibility for pushing the flow backward along the edge $(u, v)$ in the original flow network.
 
-The intuition behind the above definition is based on the definition of the residual graph. The augment procedure increases the flow on ( u, v ) by f ( u, v ) but decreases it
-by f ( v, u ) . This is due to the fact that pushing flow on the reverse edge on the residual graph signifies decreasing the flow in the original network. In each iteration of the algorithm we replace the current flow with the result of the augment function, and the algorithm terminates if no more augmenting paths can be found in the residual graph. According to the Ford-Fulkerson theorem, the flow computed in this states is indeed the maximum flow in the flow network. The theorem states that following statements are equivalent:
+After each update of the flow $f$, the algorithm considers the new residual graph $G_f$ corresponding to that flow. Then the algorithm looks for an augmenting path--- a simple path from source to the sink--- in the residual graph. If such a path could be found, it will be used to construct a flow in the residual graph. This flow provides a road map for modifying the current flow in the flow network. The process of increasing the current flow using an augmenting flow is called augmentation. Let $f$ be the current flow in an $s$-$t$ network $G = (V, E)$ with capacity function $c$, and $f$ be a flow in the corresponding residual graph. The augmentation of $f$ using $f'$ is a function from $V \times V$ to $\mathbb{R}$, defined as following:
+\[ (f \uparrow f') (u, v) = 
+	\begin{cases}
+	f (u, v) + f'(u, v) - f'(v, u) \hfill & \text{ if $(u, v) \in E$} \\	
+	0 \hfill & \text{ otherwise} \\
+	\end{cases} 
+\]
 
-1- f is a maximum s-t flow in flow network G.
-2- there is no augmenting path in the residual graph $G_f$ corresponding to flow f and G.
-3- there is an s-t cut C in G such that capacity of C is equal to the value of f.
+The intuition behind the above definition is based on the definition of the residual graph. The augment procedure increases the flow on $(u, v)$ by $f ( u, v )$ but decreases it by $f (v, u)$. This is due to the fact that pushing flow on the reverse edge on the residual graph signifies decreasing the flow in the original network. In each iteration of the algorithm we replace the current flow with the result of the augment function, and the algorithm terminates if no more augmenting paths can be found in the residual graph. According to the Ford-Fulkerson theorem, the flow computed in this states is indeed the maximum flow in the flow network. The theorem states that following statements are equivalent:
 
-The termination of the Ford-Fulkerson algorithm depends on how the augmenting path is found. For the networks with irrational edge capacities the algorithm might even fail to terminate. In practice, the maximum-flow problem often arises with integral capacities. Moreover, we may convert rational edge capacities to integral values by multiplying them with a big enough integer. If f* denotes a maximum-flow in the transformed network, then the algorithm will iterate at most $|f^*|$ times, since the augmentation procedure increases the flow value by at least one unit in each iteration. Assuming that we use breadth-first-search (BFS) or depth-first-search (DFS) for finding augmenting paths makes the total execution time of the Ford-Fulkerson algorithm $O ( E | f^* |)$, as BFS and DFS run in O (E + V).
+\begin{itemize}
+\item $f$ is a maximum $s$-$t$ flow in flow network $G$.
+\item there is no augmenting path in the residual graph $G_f$.
+\item there is an $s$-$t$ cut $C$ in $G$ such that capacity of $C$ is equal to the value of $f$.
+\end{itemize}
 
-The Ford-Fulkerson algorithm is sometimes called a method instead of an algorithm because it does not fully specify the procedure for finding the augmenting path in the residual graph. There are several implementations with different execution times. For instance, the Edmond-Karp algorithm uses breadth-first-search (BFS) for finding augmenting paths and has O ( VE 2 ) running-time. The augmentings paths that are computed using BFS are also shortest paths connecting source to the sink in the residual graph. Edmond and Karp showed that in the Ford-Fulkerson algorithm, if each augmenting path is the shortest one, the length of the augmenting paths is non-decreasing and it always terminates. Which finally gave the polynomial algorithm for solving the maximum flow problem in generic case of real edge capacities.
+The termination of the Ford-Fulkerson algorithm depends on how the augmenting path is found. For the networks with irrational edge capacities the algorithm might even fail to terminate. In practice, the maximum-flow problem often arises with integral capacities. Moreover, we may convert rational edge capacities to integral values by multiplying them with a big enough integer. If $f^*$ denotes a maximum-flow in the transformed network, then the algorithm will iterate at most $|f^*|$ times, since the augmentation procedure increases the flow value by at least one unit in each iteration. Assuming that we use breadth-first-search (BFS) or depth-first-search (DFS) for finding augmenting paths makes the total execution time of the Ford-Fulkerson algorithm $O ( E | f^* |)$, as BFS and DFS run in $O (E + V)$.
+
+The Ford-Fulkerson algorithm is sometimes called a method instead of an algorithm because it does not fully specify the procedure for finding the augmenting path in the residual graph. There are several implementations with different execution times. For instance, the Edmond-Karp algorithm uses breadth-first-search (BFS) for finding augmenting paths and has $O (VE^2)$ running-time. The augmentings paths that are computed using BFS are also shortest paths connecting source to the sink in the residual graph. Edmond and Karp showed that in the Ford-Fulkerson algorithm, if each augmenting path is the shortest one, the length of the augmenting paths is non-decreasing and it always terminates. Which finally gave the polynomial algorithm for solving the maximum flow problem in generic case of real edge capacities.
 
 
 \section{Formalizing MinCutMaxFlow and Fofu}
-  GOAL: Present highlights of our formalization, persuade the reader that we have done something substantial.
-    Reader should think: Yeah, they did cool stuff!
+%  GOAL: Present highlights of our formalization, persuade the reader that we have done something substantial.
+%    Reader should think: Yeah, they did cool stuff!
+%
+%  [???* Thematize definition of flows: On Graphs vs. on Networks. You find both in the literature. 
+%      We decides for [...]. This is better suited, as is gives nice and elegant proofs, even formally, bla bla bla]
+%    
+%  Proof of MinCut-MaxFlow: Follows the textbook proof.
+%    Uses Isar to even look like a textbook proof, being comprehensible even without running
+%      Isabelle/HOL.
+%      
+%    For example, \isai{augment_flow_presv_cap}.
+%      Present formal proof text. Perhaps oppose it to textbook proof?.
+%    
+%  Abstract Algo looks like pseudocode presented in texbooks.
+%    Oppose our algo to textbook pseudocode.
+%    
 
-  [???* Thematize definition of flows: On Graphs vs. on Networks. You find both in the literature. 
-      We decides for [...]. This is better suited, as is gives nice and elegant proofs, even formally, bla bla bla]
-    
-  Proof of MinCut-MaxFlow: Follows the textbook proof.
-    Uses Isar to even look like a textbook proof, being comprehensible even without running
-      Isabelle/HOL.
-      
-    For example, \isai{augment_flow_presv_cap}.
-      Present formal proof text. Perhaps oppose it to textbook proof?.
-    
-  Abstract Algo looks like pseudocode presented in texbooks.
-    Oppose our algo to textbook pseudocode.
-    
+
     
 \section{Refinement to executable code}
   GOAL: Same as previous section
