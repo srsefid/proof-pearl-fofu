@@ -179,25 +179,95 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
 
 \Snippet{isar-lem}
 
-\section{Refinement in Isabelle}
-Purpose: Separation of concerns.
+\section{Refinement in Isabelle/HOL}
+When formalizing algorithms, there is often a trade off between verifiability 
+and efficiency: An efficient algorithm that uses elaborate data structures and optimizations is often harder to 
+verify than a simple but straightforward algorithm. 
 
-Short intro on Refinement Framework:
+The idea of stepwise refinement \cite{Wirth} is to first specify a simple, abstract version of an algorithm, which can be easily verified,
+and then refine this algorithm towards an efficient implementation. Here, each refinement step can focus on a single aspect of the algorithm or 
+its implementation, independently of the other refinement steps. This results in a greatly increased modularity of proofs. 
+Refinement calculi \cite{Back} are used to systematically perform refinement in a Hoare-logic setting, and are particularly well-suited for 
+implementation in theorem provers. 
 
-Programs phrased as error-set monad. With order structure. 
-Refinement: Less possible results (refinement ordering). Error is greatest element (refined by everything).
+Note that it is important to support nondeterminism in a refinement setting, as this allows to defer 
+implementation choices to the later refinement steps. For example, if we want to specify an algorithm 
+that returns a shortest path between two nodes of a graph, we do not want to fix a particular shortest path.
+Only later, when we decide to implement the specification by, e.g., breadth first search, we fix a particular path.
 
-Building chains of refinement, at the end there should be a deterministic algorithm (yielding exactly one result), which is
-contained (by transitivity) in the specification.
+In Isabelle/HOL, stepwise refinement is supported by the Isabelle Refinement Framework~\cite{LaTu12}. 
+It features a refinement calculus for programs phrased in a nondeterminism monad. 
+The monad's type is a set of results plus an additional value that indicates a failure:
+\begin{lstlisting}
+  datatype \<alpha> nres = res \<alpha> set | fail
+\end{lstlisting}
+The return operation \isai{return x} of the monad describes the single result \isai{x}, and the bind 
+operation \isai{bind m f} nondeterministically picks a result from $m$ and executes $f$ on it. 
+If either \isai{m = fail}, or \isai{f} may fail for a result in $m$, the bind operation fails.
 
-Standard combinators (bind, recursion, if, etc) are monotonic wrt. refinement ordering, which allows for modularity:
-Replacing part of a program by a refined version, yields a refined program. 
+On nondeterministic results we define the \emph{refinement ordering} by lifting the subset ordering with \isai{fail} being the greatest element.
+Intuitively, $m\le m'$ means that $m$ is a refinement of $m'$, i.e., all possible results of $m$ are 
+also possible results of $m'$. 
+Note that this ordering is a complete lattice, and bind is monotonic. Thus, we can define recursion using a fixed point construction~\cite{Kr10}.
+Moreover, we can use the standard Isabelle/HOL constructs for if, let and case distinctions, yielding a fully fledged programming 
+language, shallowly embedded into Isabelle/HOL's logic. For simpler usability, we define constants for loop constructs (while, foreach), 
+assertions and specifications, and use a Haskell-like do-notation:
+\begin{lstlisting}
+  assert \<Phi> = if \<Phi> then return () else fail
+  spec x. P x = RES {x. P x}
+  do {x <- m; f x} = bind m f
+  do {m; m'} = bind m (%_. m')
+\end{lstlisting}
 
-Data refinement: Changing the representation of data. Relation between concrete and abstract representation. 
-$\Uparrow m$ is biggest concrete program that refines $m$ wrt.\ relation $R$. 
+Correctness of a program $m$ with precondition $P$ and postcondition $Q$ is expressed as \isai{P ==> m <= spec r. Q r}, which
+means that, if $P$ holds, $m$ does not fail and all possible results of $m$ satisfy $Q$. Note that we provide different recursion constructs
+for partial and total correctness: A nonterminating total correct recursion yields \isai{fail}, while a nonterminating partial correct 
+recursion yields \isai|res {}|, which is the least element of the refinement ordering.
 
-The Isabelle Refinement Framework provides the nres-monad, and tools to reason about program refinement, 
-the most important one being a VCG.
+The Isabelle Refinement Framework also supports data refinement, changing the representation of results according to a \emph{refinement relation}, 
+which relates concrete with abstract results: Given a relation $R$, \isai{\<Down> R m} is the largest set of concrete results that are related to an 
+abstract result in $m$ by $R$. If \isai{m=fail}, then also \isai{\<Down> R m = fail}.
+
+Finally, the Isabelle Refinement Framework provides a refinement calculus, which comes with a verification condition 
+generator to simplify its usage.
+
+In a typical program development using the Isabelle refinement framework, one first comes up with an initial version $m_0$ of
+the algorithm and its specification $P,Q$, and shows \isai{P ==> m_0 <= spec Q}. Then, one iteratively provides refined versions $m_i$ of the algorithm,
+proving \isai{$m_i$ <= \<Down>$R_i$ $m_{i-1}$}. Using transitivity and composability of data refinement, one 
+gets \isai{P ==> $m_i$ <= \<Down>$R_i\ldots R_1$ spec Q}, showing the correctness of the refined algorithm.
+
+xxx, ctd here ...
+Refinement itself can be modular ... sub-chains of refinement to refine one part of algo. Monotonicity to combine.
+
+
+
+
+
+% Each refinement step is shown to preserve correctness
+% 
+% Refinement techniques \cite{Wirth,Back} structure the verification of an algorithm into
+% modular steps, such that one first verifies the abstract algorithmic ideas, and then 
+% 
+% 
+% 
+% Purpose: Separation of concerns.
+% 
+% Short intro on Refinement Framework:
+% 
+% Programs phrased as error-set monad. With order structure. 
+% Refinement: Less possible results (refinement ordering). Error is greatest element (refined by everything).
+% 
+% Building chains of refinement, at the end there should be a deterministic algorithm (yielding exactly one result), which is
+% contained (by transitivity) in the specification.
+% 
+% Standard combinators (bind, recursion, if, etc) are monotonic wrt. refinement ordering, which allows for modularity:
+% Replacing part of a program by a refined version, yields a refined program. 
+% 
+% Data refinement: Changing the representation of data. Relation between concrete and abstract representation. 
+% $\Uparrow m$ is biggest concrete program that refines $m$ wrt.\ relation $R$. 
+% 
+% The Isabelle Refinement Framework provides the nres-monad, and tools to reason about program refinement, 
+% the most important one being a VCG.
 
 
 
@@ -249,7 +319,7 @@ the most important one being a VCG.
 
 
     
-\section{Refinement to executable code}
+\section{Refinement to Executable Code}
   GOAL: Same as previous section
 
   In the previous sections, we have described the Ford-Fulkerson and the Edmonds-Karp algorithm abstractly,  
@@ -273,26 +343,22 @@ the most important one being a VCG.
 %       shows "bfs src dst ≤ (spec p. 
 %         case p of None ⇒ ¬conn src dst | Some p ⇒ shortestPath src p dst)"
   
-  
-  
-  FoFu-Scheme, can be instantiated with pathfinders now.
-  These are developed independently, they are just search algorithms on graphs.
-    We did BFS and DFS.
-      DFS took from Refinement Framework examples.
-      BFS: Based on our existing formalization for VSTTE12 verification competition, 
-        but extended to return shortest path, and refined to imperative code.
-    
-        ??? Highlights of the BFS formalization?
+  Obviously, the BFS algorithm refines the specification for obtaining a shortest path.
+  Using this to refine the Edmonds-Karp formalization yields an algorithm that algorithmically specifies all major operations.
     
   Down to executable code:
-    Implement things that where not yet specified/specified in a non-executable way:
-      
     
-      Residual graph: All operations of the algorithm can also be expressed as only modifying the residual graph. 
-      Although we can compute the edges of the residual graph from the capacities and the current flow on the fly,
-      this still requires 2 or 3 accesses to adjacency matrices per edge. 
-      
-      Thus, we refine the algorithm to directly operate on residual graphs. The shortest path specification and bottleneck computation are already 
+  In a next step, we observe that the algorithm is phrased in terms of a flow which is updated until it is maximal. However,
+  in order to update the flow, the residual graph is used, which is a combination of the current flow and the network.
+  Obviously, computing the complete residual graph each time before searching for an augmenting path would be a bad idea. 
+  One solution to this problem is to compute the edges of the residual graph on demand from the network and the current flow.
+  Although this solution seems to be common, it has the disadvantage that for each edge of the residual graph, two (or even three) 
+  edges of the network and the flow have to be accessed. As edges of the residual graph are accessed in the inner loop, during 
+  the BFS, these operations are especially time critical.
+  
+  Thus, we chose to let the algorithm operate on a representation of the residual graph directly.
+  
+      The shortest path specification and bottleneck computation are already 
       phrased on residual graphs. What remains is the computation of the initial residual graph (which equals the Network),
       the augmentation of the residual graph, given an augmenting path and its bottleneck capacity, and the computation of the 
       resulting maximum flow from the residual graph, at the end of the algorithm.
@@ -385,10 +451,19 @@ the most important one being a VCG.
   Comparsion of algorithms (Modified data structure: Flow vs Flow-like vs ResGraph)
     Computing successors in BFS: Filter by visited set first.
       -> Technically more challenging, when computing on flow: 1 access first vs 2 accesses first. On resGraph: No advantage in memory accesses (However, plain array access vs. matrix access)
+    Computing bottleneck during BFS. Saves one iteration over the path, at the cost of one extra memory access per discovered node.
+    For our benchmarks, we observed that the BFS discovers considerably more nodes than the length of the ultimately returned path, 
+    and the overall code was faster with the extra iteration for bottleneck computation.
+    
+    
 
 \section{Conclusion} 
   ... and related work
     Mizar-Formalization: What did they do.
+    
+    History of the formalization: 
+      Impl: From first impl that was hardly able to compute a 100 nodes graph, to current efficient one.
+    
     Future Work: Dinic. (Actually, our abstract scheme [almost] covers Dinic's algorithm!)
     
 
