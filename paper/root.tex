@@ -167,14 +167,101 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
 
 \Snippet{isar-lem}
 
+\section{Refinement in Isabelle}
+Purpose: Separation of concerns.
+
+Short intro on Refinement Framework:
+
+Programs phrased as error-set monad. With order structure. 
+Refinement: Less possible results (refinement ordering). Error is greatest element (refined by everything).
+
+Building chains of refinement, at the end there should be a deterministic algorithm (yielding exactly one result), which is
+contained (by transitivity) in the specification.
+
+Standard combinators (bind, recursion, if, etc) are monotonic wrt. refinement ordering, which allows for modularity:
+Replacing part of a program by a refined version, yields a refined program. 
+
+Data refinement: Changing the representation of data. Relation between concrete and abstract representation. 
+$\Uparrow m$ is biggest concrete program that refines $m$ wrt.\ relation $R$. 
+
+The Isabelle Refinement Framework provides the nres-monad, and tools to reason about program refinement, 
+the most important one being a VCG.
+
+
+
+
+\section{Edmonds-Karp Algorithm}
+  The general Ford-Fulkerson method can only be shown to terminate if the edge capacities are integer numbers. 
+  An improvement over that is the Edmonds-Karp algorithm~\cite{}, which is obtained when always choosing 
+  a shortest augmenting path. In this case, it can be shown that only $O(|V||E|)$ augmentations are performed until the
+  algorithm terminates, even for real-valued capacities. A shortest augmenting path can be obtained by breadth first search in time $O(|E|)$,
+  yielding an overall complexity of $O(|V||E|^2) $ algorithm.
+  
+  In our formalization, we refine the specification of an augmenting path to a specification of a shortest augmenting path, which immediately yields 
+  an abstract version of the Edmonds-Karp algorithm which refines the Ford-Fulkerson method. 
+  
+  The larger part of the formalization is spent on proving the complexity bound. Note that the refinement framework does not 
+  have a notion of computational complexity, so we cannot even define the runtime of an algorithm. However, we can instrument 
+  the while-loop of the algorithm with a counter, which is incremented on each iteration, and prove an upper bound on this counter.
+  Moreover, this also yields a termination argument for real-valued capacities.\footnote{As we restricted the algorithm 
+  to integer valued capacities at the very abstract level, this is actually not used.}
+  
+  The idea of the complexity proof is as follows: Note that edges that are reverse to edges on a shortest augmenting path cannot lie 
+  on a shortest path itself.
+  On every augmentation, at least one edge that lies on a shortest path is flipped. Thus, either the length of the shortest path increases,
+  or the number of edges that lie on a shortest path decreases. As the length of a shortest path is at most $|V|$, there are no more than $O(|E||V|)$ iterations.
+  
+  Formalizing the above intuitive argument is more tricky than it seems on first glance. 
+  While it easy to prove that, in a \emph{fixed graph}, an edge and its reverse cannot both lie on shortest paths, generalizing the argument
+  to a graph transformation which may add reverse edges and removes at least original edge, is tricky. Note that a straightforward induction
+  on the length of the augmenting path must fail, as after flipping the first edge, the path is no longer augmenting.
+  
+  We decided to generalize the statement as follows. Assume we have an original graph $cf$ with a shortest augmenting path $p$, and a transformed graph $cf'$ that has been created from
+  $cf$ by adding some flipped edges from $p$ and removing some edges from $p$.
+  Then, we consider an edge $(u,v) \in p$, a path $p_1$ from $s$ to $v$ in the original graph, and a path $p_2$ from $u$ to $t$ in the transformed graph.
+  
+  By induction on the number of reversed edges in $p_2$, we 
+  show that $|p_1|+|p_2| > |p|$. In the induction step, we use the proof idea for the single flipped edge $(v,u)$, and,
+  if $p_2$ contains more flipped edges, we split $p_2$ at the first flipped edge. Then, the initial segment of $p_2$ contains no flipped edges,
+  and thus also is a path in the original graph, and we can apply the induction hypothesis.
+  
+  Proving that augmentation with a shortest augmenting path actually only adds flipped edges, and removes at least one original edge, required some more work,
+  but was straightforward and yielded no surprises.
+  
+  Finally, we phrase the complexity argument as a measure function $m = l*2|E| + n$, where $l$ is the length of the shortest augmenting path,
+  and $n$ is the number of edges that lie on any shortest path. We show that $m$ is decreased by the loop body.
+  Adding a special case for loop termination (there are no augmenting paths), and observing that $m$ is bounded by $2|V||E|$, yields 
+  the desired upper bound on loop iterations. Refinement of the algorithm to add an explicit loop counter, and asserting the upper bound, is then straightforward.
+  
+
+
+
     
 \section{Refinement to executable code}
   GOAL: Same as previous section
-  
-  Introduction to refinement. (On abstract level)
 
-  TODO: Show better complexity bound for FoFu with shortest path! --> Edmonds-Karp algo!
- 
+  In the previous sections, we have described the Ford-Fulkerson and the Edmonds-Karp algorithm abstractly,  
+  leaving open how to obtain a (shortest) augmenting path. A standard way to find a shortest path in a graph 
+  is breadth first search (BFS). Luckily, we had already formalized a BFS algorithm as an example for the refinement framework.
+  However, the existing formalization could only compute the minimum distance between two nodes, without returning an actual path.
+  We briefly report on our adapted formalization here, which is displayed in Figure~\fig{TODO: Snippet}: 
+  TODO: Reference to figure (line numbers?)
+  The abstract algorithm keeps track of a set $C$ of current nodes, a set $N$ of new nodes, and a partial map $P$ from already visited nodes to predecessor nodes.
+  Initially, only the start node is in $C$ and $N$ is empty. In each iteration of the loop, a node $u\in C$ is picked, and its successors $v$ that have not yet been 
+  visited are added to $N$, and $P~v$ is set to $u$. If $C$ becomes empty, $C$ and $N$ are swapped. If the target node is encountered, the algorithm immediately terminates.
+  Note that this implementation is a generalized version of the usual queue implementation of BFS: While a queue enforces a complete order on the encountered nodes, our 
+  implementation only enforces an ordering between nodes on the current level and nodes on the next level. 
+
+  For the actual algorithm, we wrap this algorithm by a procedure to handle the special case where source and target nodes are the same, and to extract a shortest path 
+  from $P$ upon termination. Moreover, we implement the abstract specification of adding the successor nodes of a node by a loop.
+  
+  Finally, we prove the following theorem: %TODO: Not actually true, the impls are oly done in bfs2!
+%     theorem
+%       assumes "src∈V" 
+%       shows "bfs src dst ≤ (spec p. 
+%         case p of None ⇒ ¬conn src dst | Some p ⇒ shortestPath src p dst)"
+  
+  
   
   FoFu-Scheme, can be instantiated with pathfinders now.
   These are developed independently, they are just search algorithms on graphs.
@@ -187,13 +274,78 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
     
   Down to executable code:
     Implement things that where not yet specified/specified in a non-executable way:
-      Residual graph: By combination of c and f, and pred-succ. TODO: Directly!
+      
+    
+      Residual graph: All operations of the algorithm can also be expressed as only modifying the residual graph. 
+      Although we can compute the edges of the residual graph from the capacities and the current flow on the fly,
+      this still requires 2 or 3 accesses to adjacency matrices per edge. 
+      
+      Thus, we refine the algorithm to directly operate on residual graphs. The shortest path specification and bottleneck computation are already 
+      phrased on residual graphs. What remains is the computation of the initial residual graph (which equals the Network),
+      the augmentation of the residual graph, given an augmenting path and its bottleneck capacity, and the computation of the 
+      resulting maximum flow from the residual graph, at the end of the algorithm.
+      
+      In order to refine these operations, we note that the residual graph uniquely determines the flow (and vice versa). 
+%         definition (in Network) "flow_of_cf cf e ≡ (if (e∈E) then c e - cf e else 0)"
+
+      For a valid flow $f$, we have that
+%         lemma (in NFlow)
+%           "flow_of_cf (residualGraph f) = f"
+%           by (rule fo_rg_inv)
+        
+      Thus, augmentation can be expressed directly on the residual graph:
+%         "residualGraph (augment (augmentingFlow p)) (u,v) = (
+%           if (u,v)∈set p then (residualGraph f (u,v) - bottleNeck p)
+%           else if (v,u)∈set p then (residualGraph f (u,v) + bottleNeck p)
+%           else residualGraph f (u,v))"
+      
+      Having these characterizations, a straightforward refinement yields an algorithm that operates on residual graphs.
+
+      In a next step, we have to specify iterative implementations for finding the bottleneck capacity and doing the augmentation.
+      This is straightforward by folding over the path, exploiting that an augmenting path is simple, and thus never contains an edge 
+      and its flipped edge at the same time. 
+      
+      
+      By combination of c and f, and pred-succ. TODO: Directly!
         All we need is successor function. Implemented by tabulating 
           adjacent nodes of each node (pred-succ), and using c and f to filter out actual successor nodes. 
       augpath-spec by BFS/DFS (which work on succ-functions)
       bottleneck and augment: Give iterative impl.
       
+    
+      In order to find an augmenting path, the BFS algorithm has to compute the successors of a node. 
+      Although this can be implemented on the capacity matrix by iterating over all nodes, this implementation tends to be inefficient for sparser graphs.
+      A common optimization is to pre-compute a map from nodes to adjacent nodes in the network. As an edge in the residual graph is either parallel or reverse to 
+      a network edge, it is enough to iterate over the adjacent nodes in the network, and check whether they are actually successors in the residual graph.
+      It is straightforward to show that this implementation actually returns the successors in the residual graph:
+%         lemma (in RGraph) rg_succ_ref:
+%           assumes A: "is_pred_succ ps c"
+%           assumes B: "u∈V"
+%           shows "rg_succ2 ps cf u ≤ SPEC (λl. (l,cf.E``{u}) ∈ ⟨Id⟩list_set_rel)"
+
+      
     Use efficient data structures:
+      Now we have an abstract version of the algorithm that only relies on executable concepts.
+      However, to yield an efficient algorithm, we have to choose efficient data structures. 
+      
+      We assume that the nodes are natural numbers less than $N$. 
+      Then we implement the capacity matrix of the residual graph by an array with row-major indexing. 
+      The adjacency map for network nodes is implemented as an array of lists. 
+      In the BFS algorithm, we use two lists, one that holds the nodes of the current level, and another 
+      in which nodes of the next level are collected. The predecessor map is implemented as an array.
+      
+      The input of the algorithm is still a function mapping network edges to capacities, which is tabulated once 
+      to obtain the initial residual graph. This ensures some flexibility in using the algorithm, without preventing 
+      efficient implementations (The function can be based on array lookup itself\footnote{Due to technical limitations of our tools, this function 
+        cannot depend on heap content itself, but it can use the efficient functional and pseudo-functional datastructures provided by the Collection Framework.}).
+      
+      The output of the algorithm is just the residual graph. The user can decide how he computes the maximum flow from it. For example,
+      in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
+      expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
+
+      The last refinement step was performed using the Sepref tool, which supports data refinements from functional to imperative algorithms in Isabelle/HOL.
+      [Few sentences on Sepref]
+      
       Arrays for c,f, and ps. c and f in row-major indexing.
       
       List for augmenting path. [TODO/Future work: Iterator scheme]
@@ -215,9 +367,17 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
     
 
 \section{Benchmarking}
+  What implementations did we compare: Authors? Where do implementations come from? 
+  [We must convince the reader that we did not intentionally chose bad implementations to compare us against!]
+
+  Comparsion of algorithms (Modified data structure: Flow vs Flow-like vs ResGraph)
+    Computing successors in BFS: Filter by visited set first.
+      -> Technically more challenging, when computing on flow: 1 access first vs 2 accesses first. On resGraph: No advantage in memory accesses (However, plain array access vs. matrix access)
+
 \section{Conclusion} 
   ... and related work
     Mizar-Formalization: What did they do.
+    Future Work: Dinic. (Actually, our abstract scheme [almost] covers Dinic's algorithm!)
     
 
 
@@ -227,7 +387,8 @@ Contributions
   Formal proof of mincut maxflow
   fofo-scheme
   inst to edmonds karp
-  refinement down to executable code. Roughly 5 times slower than Java. (What about OCaml)
+  complexity analysis of edmonds karp
+  refinement down to executable code. Roughly 2.5 times slower than Java. (What about OCaml)
     + NetCheck
     
 What shines (its a Pearl)
