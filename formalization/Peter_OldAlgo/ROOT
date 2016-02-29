@@ -1,2 +1,7 @@
-session Edka = "CAVA_Base" +
+session Edka_Base = "CAVA_Base" +
+  "cava/DFS_Framework/Examples/Reachable_Nodes"
+  "cava/Libs/Refine_Imperative_HOL/Sepref"
+  "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
+
+session Edka = "Edka_Base" +
    theories Code
