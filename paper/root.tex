@@ -52,8 +52,8 @@
 
 \begin{document}
 
-\title{Working title: Verifying the Edmonds-Karp Algorithm}
-\subtitle{A Proof Pearl}
+\title{Formalizing the Edmonds-Karp Algorithm}
+% \subtitle{}
 
 \author{S.~Reza Sefidgar, Peter Lammich}
 
@@ -61,7 +61,19 @@
 
 \maketitle
 \begin{abstract}
-the Ford-Fulkerson algorithm is a generic method that computes the maximum flow in a flow network. This paper outlines a formal proof of the Ford-Fulkerson theorem in Isabelle/HOL which follows the informal proof found in standard algorithm text books. This formalization is then used to develop an implementation of the algorithm in Standard ML. Refinement techniques are used to transform an abstract definition of the algorithm into an executable code.
+We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network. 
+The formal proofs are done in Isabelle/HOL. They closely follow a standard textbook proof and are relatively easy 
+to read, even without being an Isabelle expert.
+
+We then use stepwise refinement to obtain the Edmonds-Karp algorithm and prove its upper complexity bound of $O(|V||E|^2)$.
+Further refinement yields a verified implementation, which is only 2.5 times slower than an unverified  
+reference implementation in Java. 
+
+% 
+% and a verified imperative implementation of it. Our implementation is roughly 2.5 times slower than an unverified  
+% reference implementation in Java. 
+% 
+% Finally, we prove the upper complexity bound of $O(|V||E|^2)$ for the Edmonds-Karp algorithm.
 \end{abstract}
 
 \section{Introduction}
@@ -244,7 +256,7 @@ the most important one being a VCG.
   leaving open how to obtain a (shortest) augmenting path. A standard way to find a shortest path in a graph 
   is breadth first search (BFS). Luckily, we had already formalized a BFS algorithm as an example for the refinement framework.
   However, the existing formalization could only compute the minimum distance between two nodes, without returning an actual path.
-  We briefly report on our adapted formalization here, which is displayed in Figure~\fig{TODO: Snippet}: 
+  We briefly report on our adapted formalization here, which is displayed in Figure~\ref{TODO: Snippet}: 
   TODO: Reference to figure (line numbers?)
   The abstract algorithm keeps track of a set $C$ of current nodes, a set $N$ of new nodes, and a partial map $P$ from already visited nodes to predecessor nodes.
   Initially, only the start node is in $C$ and $N$ is empty. In each iteration of the loop, a node $u\in C$ is picked, and its successors $v$ that have not yet been 
