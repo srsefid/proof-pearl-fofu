@@ -2,11 +2,9 @@ section \<open>Implementation of the Edmonds-Karp Algorithm\<close>
 theory EdmondsKarp_Impl
 imports 
   EdmondsKarp_Algo
-  "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
   "Augmenting_Path_BFS"
   "Capacity_Matrix_Impl"
 begin
-  hide_type (open) List_Seg.node
 
   text \<open>We now implement the Edmonds-Karp algorithm.\<close>
 
@@ -765,20 +763,6 @@ begin
     concrete_definition (in -) bottleNeck_imp uses Edka_Impl.bottleNeck_imp_impl
     prepare_code_thms (in -) bottleNeck_imp_def
 
-    (* TODO: Move. Should the replace hn_refine_cons? *)
-    lemma (in -) hn_refine_cons':
-      assumes I: "P\<Longrightarrow>\<^sub>AP'"
-      assumes R: "hn_refine P' c Q R m"
-      assumes I': "Q\<Longrightarrow>\<^sub>AQ'*true"
-      assumes R': "\<And>x y. R x y \<Longrightarrow>\<^sub>A R' x y"
-      shows "hn_refine P c Q' R' m"
-      using R unfolding hn_refine_def
-      apply clarsimp
-      apply (rule cons_pre_rule[OF I])
-      apply (erule cons_post_rule)
-      apply sep_auto
-      by (simp add: I' R' assn_aci(10) ent_star_mono ent_true_drop(1))
-      
     lemma bottleNeck_impl_refine[sepref_fr_rules]: 
       "(uncurry (bottleNeck_imp N), uncurry (PR_CONST bottleNeck_cf_impl)) 
         \<in> (is_mtx N)\<^sup>k *\<^sub>a (is_path)\<^sup>k \<rightarrow>\<^sub>a (pure Id)"
@@ -795,10 +779,6 @@ begin
 
     lemma [def_pat_rules]: "Network.bottleNeck_cf_impl$c \<equiv> UNPROTECT bottleNeck_cf_impl" by simp
     sepref_register "PR_CONST bottleNeck_cf_impl" "capacity i_mtx \<Rightarrow> path \<Rightarrow> capacity nres"
-    
-    (* TODO: Move *)  
-    lemma param_prod_swap[param]: "(prod.swap, prod.swap)\<in>A\<times>\<^sub>rB \<rightarrow> B\<times>\<^sub>rA" by auto
-    lemmas [sepref_import_param] = param_prod_swap
     
     schematic_lemma augment_imp_impl:
       fixes ps :: "node \<Rightarrow> node list" and cf :: graph
@@ -832,9 +812,6 @@ begin
 
     lemma [def_pat_rules]: "Network.augment_cf_impl$c \<equiv> UNPROTECT augment_cf_impl" by simp
     sepref_register "PR_CONST augment_cf_impl" "capacity i_mtx \<Rightarrow> path \<Rightarrow> capacity \<Rightarrow> capacity i_mtx nres"
-
-    (* TODO: Move *)
-    lemma (in -) fold_partial_uncurry: "uncurry (\<lambda>(ps, cf). f ps cf) = uncurry2 f" by auto
 
     thm succ_imp_def
     sublocale bfs!: Impl_Succ "snd" "TYPE(i_ps \<times> capacity i_mtx)" 

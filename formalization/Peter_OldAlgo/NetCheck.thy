@@ -1,5 +1,7 @@
 theory NetCheck
-imports CAVA_Base Network 
+imports 
+  Fofu_Impl_Base
+   Network 
   "cava/DFS_Framework/Examples/Reachable_Nodes"
 begin
 

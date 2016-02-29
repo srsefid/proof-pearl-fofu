@@ -1,7 +1,7 @@
 section \<open>Capacity Matrix by Fixed-Size Array\<close>
 theory Capacity_Matrix_Impl
-imports  CAVA_Base  
-  "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
+imports 
+  Fofu_Impl_Base   
   Graph
 begin
 

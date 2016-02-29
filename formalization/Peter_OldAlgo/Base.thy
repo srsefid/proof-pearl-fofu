@@ -1,4 +1,4 @@
-theory Base
+theory Base (* TODO: Rename to Fofu_Abs_Base *)
 imports Main
 begin  
   

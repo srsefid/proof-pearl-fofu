@@ -1,5 +1,5 @@
 theory Augmenting_Path_BFS
-imports Refine_Add_Fofu Graph_Impl Temporary_Graph_Add "~~/src/HOL/Library/Rewrite"
+imports Refine_Add_Fofu Graph_Impl Temporary_Graph_Add 
   Refine_Monadic_Syntax_Sugar
 begin
 

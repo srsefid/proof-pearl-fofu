@@ -1,11 +1,34 @@
 theory Refine_Add_Fofu
-imports CAVA_Base "cava/Libs/Refine_Imperative_HOL/Sepref"
+imports Fofu_Impl_Base
 begin
 
   (* TODO: Miscellaneous General Stuff *)
   lemma remove_subset[simp]: "x\<in>S \<Longrightarrow> S-{x} \<subset> S" by auto
 
   lemma fun_neq_ext_iff: "m\<noteq>m' \<longleftrightarrow> (\<exists>x. m x \<noteq> m' x)" by auto  
+
+
+  (* TODO: Move to Misc *)
+  lemma length_Suc_rev_conv: "length xs = Suc n \<longleftrightarrow> (\<exists>ys y. xs=ys@[y] \<and> length ys = n)"
+    by (cases xs rule: rev_cases) auto
+
+
+
+  (* TODO: Move: Misc, or even HOL/Finite_set *)  
+  lemma (in -) card_inverse[simp]: "card (R\<inverse>) = card R"
+  proof -
+    have "finite (R\<inverse>) \<longleftrightarrow> finite R" by auto
+    have [simp]: "\<And>R. prod.swap`R = R\<inverse>" by auto
+    {
+      assume "infinite R"
+      hence ?thesis
+        by auto
+    } moreover {
+      assume "finite R"
+      with card_image_le[of R prod.swap] card_image_le[of "R\<inverse>" prod.swap]
+      have ?thesis by auto
+    } ultimately show ?thesis by blast
+  qed  
 
 
   (* TODO: Elaborate and move to Misc, or HOL *)
@@ -35,6 +58,48 @@ begin
 
   lemma map_mmupd_update_less: "K\<subseteq>K' \<Longrightarrow> map_mmupd m (K - dom m) v \<subseteq>\<^sub>m map_mmupd m (K'-dom m) v"
     by (auto simp: map_le_def map_mmupd_def)
+
+  (* TODO: Move *)
+  text \<open>Lexicographic measure, assuming upper bound for second component\<close>
+  lemma mlex_fst_decrI:
+    fixes a a' b b' N :: nat
+    assumes "a<a'"
+    assumes "b<N" "b'<N"
+    shows "a*N + b < a'*N + b'"
+  proof -  
+    have "a*N + b + 1 \<le> a*N + N" using \<open>b<N\<close> by linarith 
+    also have "\<dots> \<le> a'*N" using \<open>a<a'\<close>
+      by (metis Suc_leI ab_semigroup_add_class.add.commute 
+        ab_semigroup_mult_class.mult.commute mult_Suc_right mult_le_mono2) 
+    also have "\<dots> \<le> a'*N + b'" by auto
+    finally show ?thesis by auto
+  qed      
+    
+  lemma mlex_leI:
+    fixes a a' b b' N :: nat
+    assumes "a\<le>a'"
+    assumes "b\<le>b'"
+    shows "a*N + b \<le> a'*N + b'"
+    using assms
+    by (auto intro!: add_mono)
+      
+  lemma mlex_snd_decrI:
+    fixes a a' b b' N :: nat
+    assumes "a=a'"
+    assumes "b<b'"
+    shows "a*N + b < a'*N + b'"
+    using assms
+    by (auto)
+
+  lemma mlex_bound:  
+    fixes a b :: nat
+    assumes "a<A"
+    assumes "b<N"
+    shows "a*N + b < A*N"
+    using assms
+    using mlex_fst_decrI by fastforce
+
+
 
 
 
@@ -145,8 +210,29 @@ lemma RECT_rule_arb':
   done
 
 
+    (* TODO: Move *)
+    lemma (in -) fold_partial_uncurry: "uncurry (\<lambda>(ps, cf). f ps cf) = uncurry2 f" by auto
 
 
+
+    (* TODO: Move. Should this replace hn_refine_cons? *)
+    lemma (in -) hn_refine_cons':
+      assumes I: "P\<Longrightarrow>\<^sub>AP'"
+      assumes R: "hn_refine P' c Q R m"
+      assumes I': "Q\<Longrightarrow>\<^sub>AQ'*true"
+      assumes R': "\<And>x y. R x y \<Longrightarrow>\<^sub>A R' x y"
+      shows "hn_refine P c Q' R' m"
+      using R unfolding hn_refine_def
+      apply clarsimp
+      apply (rule cons_pre_rule[OF I])
+      apply (erule cons_post_rule)
+      apply sep_auto
+      by (simp add: I' R' assn_aci(10) ent_star_mono ent_true_drop(1))
+      
+    (* TODO: Move *)  
+    lemma param_prod_swap[param]: "(prod.swap, prod.swap)\<in>A\<times>\<^sub>rB \<rightarrow> B\<times>\<^sub>rA" by auto
+    lemmas [sepref_import_param] = param_prod_swap
+    
 
 
 

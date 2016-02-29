@@ -2,53 +2,6 @@ section \<open>Edmonds-Karp Algorithm\<close>
 theory EdmondsKarp_Algo
 imports FordFulkerson_Algo Temporary_Graph_Add "~~/src/HOL/Library/Rewrite"
 begin
-  (*<*)
-  (* TODO: Move *)
-  text \<open>Lexicographic measure, assuming upper bound for second component\<close>
-  lemma mlex_fst_decrI:
-    fixes a a' b b' N :: nat
-    assumes "a<a'"
-    assumes "b<N" "b'<N"
-    shows "a*N + b < a'*N + b'"
-  proof -  
-    have "a*N + b + 1 \<le> a*N + N" using \<open>b<N\<close> by linarith 
-    also have "\<dots> \<le> a'*N" using \<open>a<a'\<close>
-      by (metis Suc_leI ab_semigroup_add_class.add.commute 
-        ab_semigroup_mult_class.mult.commute mult_Suc_right mult_le_mono2) 
-    also have "\<dots> \<le> a'*N + b'" by auto
-    finally show ?thesis by auto
-  qed      
-    
-  lemma mlex_leI:
-    fixes a a' b b' N :: nat
-    assumes "a\<le>a'"
-    assumes "b\<le>b'"
-    shows "a*N + b \<le> a'*N + b'"
-    using assms
-    by (auto intro!: add_mono)
-      
-  lemma mlex_snd_decrI:
-    fixes a a' b b' N :: nat
-    assumes "a=a'"
-    assumes "b<b'"
-    shows "a*N + b < a'*N + b'"
-    using assms
-    by (auto)
-
-  lemma mlex_bound:  
-    fixes a b :: nat
-    assumes "a<A"
-    assumes "b<N"
-    shows "a*N + b < A*N"
-    using assms
-    using mlex_fst_decrI by fastforce
-
-
-
-
-
-  (*>*)  
-
 
   subsection \<open>Algorithm\<close>
   text \<open>
@@ -637,22 +590,6 @@ begin
         using EIP ENIE' apply auto []
         done
     qed    
-
-    (* TODO: Move *)  
-    lemma (in -) card_inverse[simp]: "card (R\<inverse>) = card R"
-    proof -
-      have "finite (R\<inverse>) \<longleftrightarrow> finite R" by auto
-      have [simp]: "\<And>R. prod.swap`R = R\<inverse>" by auto
-      {
-        assume "infinite R"
-        hence ?thesis
-          by auto
-      } moreover {
-        assume "finite R"
-        with card_image_le[of R prod.swap] card_image_le[of "R\<inverse>" prod.swap]
-        have ?thesis by auto
-      } ultimately show ?thesis by blast
-    qed  
 
   end
 

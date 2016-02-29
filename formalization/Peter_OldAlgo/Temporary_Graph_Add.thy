@@ -1,13 +1,8 @@
 (* TODO: To be merged with Graph, once graph 
   has been merged with generic capacity version. *)
 theory Temporary_Graph_Add
-imports Misc Graph
+imports Misc Graph Refine_Add_Fofu
 begin
-
-  (* TODO: Move to Misc *)
-  lemma length_Suc_rev_conv: "length xs = Suc n \<longleftrightarrow> (\<exists>ys y. xs=ys@[y] \<and> length ys = n)"
-    by (cases xs rule: rev_cases) auto
-
 
   (* Graph: Finite Graphs *)  
   context Graph

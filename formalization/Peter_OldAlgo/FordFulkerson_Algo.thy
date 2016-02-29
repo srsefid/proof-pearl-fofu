@@ -1,9 +1,9 @@
 section \<open>The Ford-Fulkerson Method\<close>
 theory FordFulkerson_Algo
 imports 
-  Refine_Monadic_Syntax_Sugar
-  CAVA_Base  
   MaxFlow_MinCut
+  Refine_Add_Fofu
+  Refine_Monadic_Syntax_Sugar
 begin
   text \<open>In this theory, we formalize the abstract Ford-Fulkerson
     method, which is independent of how an augmenting flow is chosen
