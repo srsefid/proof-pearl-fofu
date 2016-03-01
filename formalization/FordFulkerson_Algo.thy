@@ -150,20 +150,23 @@ begin
       private abbreviation "augment \<equiv> NFlow.augment_with_path"
 
       text \<open>A polished version for presentation\<close>
-      definition "ford_fulkerson_algo \<equiv> do {
-        let f = (\<lambda>_. 0);
-  
-        (f,_) \<leftarrow> while\<^sub>T
-          (\<lambda>(f,brk). \<not>brk) 
-          (\<lambda>(f,_). do {
-            p \<leftarrow> find_augmenting_spec f;
-            case p of 
-              None \<Rightarrow> return (f,True)
-            | Some p \<Rightarrow> return (augment c f p, False)
-          })
-          (f,False);
-        return f 
-      }"
+(* FIXME: Indentation unfortunate, but required to extract snippet for latex presentation *)    
+text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       
+definition "ford_fulkerson_algo \<equiv> do {
+  let f = (\<lambda>_. 0);
+
+  (f,_) \<leftarrow> while\<^sub>T
+    (\<lambda>(f,brk). \<not>brk) 
+    (\<lambda>(f,_). do {
+      p \<leftarrow> find_augmenting_spec f;
+      case p of 
+        None \<Rightarrow> return (f,True)
+      | Some p \<Rightarrow> return (augment c f p, False)
+    })
+    (f,False);
+  return f 
+}"
+text_raw \<open>}%EndSnippet\<close>
 
       theorem "ford_fulkerson_algo \<le> (spec f. isMaxFlow c s t f)"
       proof -

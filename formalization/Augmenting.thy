@@ -76,46 +76,7 @@ proof (cases "(u,v)\<in>E"; rule conjI) case True
   finally show "augment f'(u, v) \<le> c(u, v)" .
 qed (auto simp: augment_def cap_positive)
 text_raw \<open>}%EndSnippet\<close>
-      
 
-    (*
-    lemma augment_flow_presv_cap: "Flow cf s t f' \<Longrightarrow> \<forall>e. 0 \<le> augment f' e \<and> augment f' e \<le> c e"
-      proof -
-        assume asm: "Flow cf s t f'"
-        {
-          fix e          
-          have "augment f' e \<le> c e"
-            proof -
-              obtain u v where obt: "e = (u, v)" by (metis nat_gcd.cases)
-              thus ?thesis (is "?L \<le> _")
-                proof (cases "(u, v) \<in> E")
-                  case True
-                    have "f' (v, u) \<ge> 0" using asm Flow_def by simp
-                    then have "?L \<le> f (u, v)  + f' (u, v)" 
-                      unfolding augment_def using True obt by auto
-                    moreover have "f' (u, v) \<le> cf (u, v)" using asm Flow_def by auto
-                    ultimately have fct: "?L \<le> f (u, v) + cf (u, v)" by simp
-                    have "cf (u, v) = c (u, v) - f(u, v)" 
-                      unfolding residualGraph_def using True by auto
-                    thus ?thesis using fct obt by simp
-                next
-                  case False
-                    then have fct: "augment f' (u, v) = 0" unfolding augment_def by simp
-                    thus ?thesis using cap_positive obt by simp
-                qed
-            qed
-          moreover have "0 \<le> augment f' e"
-            proof -
-              obtain u v where obt: "e = (u, v)" by (metis nat_gcd.cases)
-              then have "f' (u, v) \<ge> 0" using asm Flow_def by simp
-              moreover have "f (u, v) \<ge> 0" using capacity_const by simp
-              ultimately show ?thesis unfolding augment_def using reverse_flow[OF asm] obt by auto
-            qed
-          ultimately have "0 \<le> augment f' e \<and> augment f' e \<le> c e" by blast   
-        }
-        thus ?thesis by simp
-      qed       
-      *)
     end  
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
