@@ -8,7 +8,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   type_synonym node = nat 
   type_synonym edge = "node \<times> node"
-  type_synonym capacity = real
+  type_synonym capacity = int
 
   (*
   typedecl capacity 
