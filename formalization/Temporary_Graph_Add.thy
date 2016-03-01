@@ -182,9 +182,9 @@ begin
 
 
     lemma
-      shows connI[intro]: "dist v d v' \<Longrightarrow> connected v v'"
-        and connI_id[intro!, simp]: "connected v v"
-        and connI_succ: "connected v v' \<Longrightarrow> (v',v'') \<in> E \<Longrightarrow> connected v v''"
+      shows connectedI[intro]: "dist v d v' \<Longrightarrow> connected v v'"
+        and connectedI_id[intro!, simp]: "connected v v"
+        and connectedI_succ: "connected v v' \<Longrightarrow> (v',v'') \<in> E \<Longrightarrow> connected v v''"
       by (auto simp: dist_def connected_def intro: isPath_append_edge)
       
   
@@ -254,7 +254,7 @@ begin
       proof cases
         case (dist_suc v'' d') then show ?thesis
           using min_dist_succ[of v v'' v'] min_dist_minD[of v d v'']
-          by (auto simp: connI)
+          by (auto simp: connectedI)
       qed simp
       with c show ?thesis by simp
     qed
@@ -352,7 +352,7 @@ begin
       unfolding dist_def isShortestPath_min_dist_def
       by blast
 
-    lemma isShortestPath_is_simple:
+    lemma shortestPath_is_simple:
       assumes "isShortestPath s p t"
       shows "isSimplePath s p t"
     proof (rule ccontr)
@@ -386,7 +386,7 @@ begin
 
     text \<open>We provide yet another characterization of shortest paths:\<close>
     lemma isShortestPath_alt: "isShortestPath u p v \<longleftrightarrow> isSimplePath u p v \<and> length p = min_dist u v"
-      using isShortestPath_is_simple isShortestPath_min_dist_def
+      using shortestPath_is_simple isShortestPath_min_dist_def
       unfolding isSimplePath_def by auto
 
       
@@ -397,7 +397,7 @@ begin
       assumes PATH: "isShortestPath s p t"
       shows "length p < card V"
       using simplePath_length_less_V[OF FIN SV]
-      using isShortestPath_is_simple[OF PATH] .
+      using shortestPath_is_simple[OF PATH] .
 
     corollary min_dist_less_V:
       assumes FIN: "finite V"
@@ -450,5 +450,10 @@ begin
     qed  
 
   end    
+
+  definition is_pred_succ :: "(node \<Rightarrow> node list) \<Rightarrow> graph \<Rightarrow> bool" 
+    -- \<open>Predicate to characterize function that returns adjacent nodes\<close>
+    where
+    "is_pred_succ ps c \<equiv> (\<forall>u. distinct (ps u) \<and> set (ps u) = (Graph.E c)``{u} \<union> (Graph.E c)\<inverse>``{u})"
 
 end

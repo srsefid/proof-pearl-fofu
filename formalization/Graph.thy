@@ -536,6 +536,12 @@ begin
     lemma connected_refl[simp, intro!]: "connected v v" 
       unfolding connected_def by (force intro: exI[where x="[]"])
 
+    lemma connected_inV_iff: "\<lbrakk>connected u v\<rbrakk> \<Longrightarrow> v\<in>V \<longleftrightarrow> u\<in>V"
+      apply (auto simp: connected_def)
+      apply (case_tac p; auto simp: V_def) []
+      apply (case_tac p rule: rev_cases; auto simp: isPath_append V_def) []
+      done
+
     lemma connected_edgeRtc: "connected u v \<longleftrightarrow> (u, v) \<in> E\<^sup>*"  
     proof
       assume "connected u v"

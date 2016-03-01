@@ -26,7 +26,7 @@ begin
 
     lemma (in NFlow) shortest_is_augmenting: 
       "Graph.isShortestPath cf s p t \<Longrightarrow> isAugmenting p"
-      unfolding isAugmenting_def using Graph.isShortestPath_is_simple
+      unfolding isAugmenting_def using Graph.shortestPath_is_simple
       by (fastforce)
 
     text \<open>We show that our refined procedure is actually a refinement\<close>  
