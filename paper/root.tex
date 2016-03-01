@@ -253,11 +253,11 @@ the algorithm and its specification $P,Q$, and shows \isai{P ==> m_0 <= spec Q}.
 proving \isai{$m_i$ <= \<Down>$R_i$ $m_{i-1}$}. Using transitivity and composability of data refinement, one 
 gets \isai{P ==> $m_i$ <= \<Down>$R_i\ldots R_1$ spec Q}, showing the correctness of the refined algorithm.
 
-xxx, ctd here ...
-Refinement itself can be modular ... sub-chains of refinement to refine one part of algo. Monotonicity to combine.
+Monotonicity of the standard combinators also allows for modular refinement: Replacing part of a program by a refined version
+results in a program that refines the original program.
 
-
-
+In Section~\ref{sec:fofu}, we presented the abstract Ford-Fulkerson algorithm as a program in the Isabelle Refinement Framework.
+In the next sections, we describe its stepwise refinement down to executable code.
 
 
 % Each refinement step is shown to preserve correctness
@@ -309,6 +309,10 @@ Refinement itself can be modular ... sub-chains of refinement to refine one part
   on a shortest path itself.
   On every augmentation, at least one edge that lies on a shortest path is flipped. Thus, either the length of the shortest path increases,
   or the number of edges that lie on a shortest path decreases. As the length of a shortest path is at most $|V|$, there are no more than $O(|E||V|)$ iterations.
+
+  TODO: Relate to Cormen-proof: Critical edge, removed by augmentation, bound on how often an edge can get critical.  
+    Same idea, but yields a more precise bound. On the other hand, we found our proof to be simpler to formalize, and its enough to
+    get the $O(|V||E|)$ bound.
   
   Formalizing the above intuitive argument is more tricky than it seems on first glance. 
   While it easy to prove that, in a \emph{fixed graph}, an edge and its reverse cannot both lie on shortest paths, generalizing the argument
@@ -337,7 +341,7 @@ Refinement itself can be modular ... sub-chains of refinement to refine one part
 
     
 \section{Refinement to Executable Code}
-  GOAL: Same as previous section
+  \subsection{Using Breadth First Search}
 
   In the previous sections, we have described the Ford-Fulkerson and the Edmonds-Karp algorithm abstractly,  
   leaving open how to obtain a (shortest) augmenting path. A standard way to find a shortest path in a graph 
@@ -361,103 +365,128 @@ Refinement itself can be modular ... sub-chains of refinement to refine one part
 %         case p of None ⇒ ¬conn src dst | Some p ⇒ shortestPath src p dst)"
   
   Obviously, the BFS algorithm refines the specification for obtaining a shortest path.
-  Using this to refine the Edmonds-Karp formalization yields an algorithm that algorithmically specifies all major operations.
+  Using this to refine the Edmonds-Karp formalization yields a program that algorithmically specifies all major operations.
     
-  Down to executable code:
-    
+  \subsection{Manipulating Residual Graphs Directly}    
   In a next step, we observe that the algorithm is phrased in terms of a flow which is updated until it is maximal. However,
   in order to update the flow, the residual graph is used, which is a combination of the current flow and the network.
   Obviously, computing the complete residual graph each time before searching for an augmenting path would be a bad idea. 
   One solution to this problem is to compute the edges of the residual graph on demand from the network and the current flow.
   Although this solution seems to be common, it has the disadvantage that for each edge of the residual graph, two (or even three) 
   edges of the network and the flow have to be accessed. As edges of the residual graph are accessed in the inner loop, during 
-  the BFS, these operations are especially time critical.
+  the BFS, these operations are time critical.
   
   Thus, we chose to let the algorithm operate on a representation of the residual graph directly.
   
-      The shortest path specification and bottleneck computation are already 
-      phrased on residual graphs. What remains is the computation of the initial residual graph (which equals the Network),
-      the augmentation of the residual graph, given an augmenting path and its bottleneck capacity, and the computation of the 
-      resulting maximum flow from the residual graph, at the end of the algorithm.
-      
-      In order to refine these operations, we note that the residual graph uniquely determines the flow (and vice versa). 
+  The shortest path specification and bottleneck computation are already 
+  phrased on residual graphs. What remains is the computation of the initial residual graph (which equals the Network),
+  the augmentation of the residual graph, given an augmenting path and its bottleneck capacity, and the computation of the 
+  resulting maximum flow from the residual graph, at the end of the algorithm.
+  
+  In order to refine these operations, we note that the residual graph uniquely determines the flow (and vice versa). 
 %         definition (in Network) "flow_of_cf cf e ≡ (if (e∈E) then c e - cf e else 0)"
 
-      For a valid flow $f$, we have that
+  For a valid flow $f$, we have that
 %         lemma (in NFlow)
 %           "flow_of_cf (residualGraph f) = f"
 %           by (rule fo_rg_inv)
-        
-      Thus, augmentation can be expressed directly on the residual graph:
+    
+  Thus, augmentation can be expressed directly on the residual graph:
 %         "residualGraph (augment (augmentingFlow p)) (u,v) = (
 %           if (u,v)∈set p then (residualGraph f (u,v) - bottleNeck p)
 %           else if (v,u)∈set p then (residualGraph f (u,v) + bottleNeck p)
 %           else residualGraph f (u,v))"
-      
-      Having these characterizations, a straightforward refinement yields an algorithm that operates on residual graphs.
+  
+  Having these characterizations, a straightforward refinement yields an algorithm that operates on residual graphs.
 
-      In a next step, we have to specify iterative implementations for finding the bottleneck capacity and doing the augmentation.
-      This is straightforward by folding over the path, exploiting that an augmenting path is simple, and thus never contains an edge 
-      and its flipped edge at the same time. 
+%   Note: Straightforward, so omitted here!
+%   In a next step, we have to specify iterative implementations for finding the bottleneck capacity and doing the augmentation.
+%   This is straightforward by folding over the path, exploiting that an augmenting path is simple, and thus never contains an edge 
+%   and its flipped edge at the same time. 
       
-      
-      By combination of c and f, and pred-succ. TODO: Directly!
-        All we need is successor function. Implemented by tabulating 
-          adjacent nodes of each node (pred-succ), and using c and f to filter out actual successor nodes. 
-      augpath-spec by BFS/DFS (which work on succ-functions)
-      bottleneck and augment: Give iterative impl.
-      
-    
-      In order to find an augmenting path, the BFS algorithm has to compute the successors of a node. 
-      Although this can be implemented on the capacity matrix by iterating over all nodes, this implementation tends to be inefficient for sparser graphs.
-      A common optimization is to pre-compute a map from nodes to adjacent nodes in the network. As an edge in the residual graph is either parallel or reverse to 
-      a network edge, it is enough to iterate over the adjacent nodes in the network, and check whether they are actually successors in the residual graph.
-      It is straightforward to show that this implementation actually returns the successors in the residual graph:
+  \subsection{Computing Successors}
+  In order to find an augmenting path, the BFS algorithm has to compute the successors of a node in the residual graph. 
+  Although this can be implemented on the capacity matrix by iterating over all nodes, this implementation tends to be inefficient for sparse graphs,
+  where we would have to iterate over many nodes just to find that there is no edge.
+  
+  A common optimization is to pre-compute a map from nodes to adjacent nodes in the network. As an edge in the residual graph is either parallel or reverse to 
+  a network edge, it is enough to iterate over the adjacent nodes in the network, and check whether they are actually successors in the residual graph.
+  It is straightforward to show that this implementation actually returns the successors in the residual graph:
 %         lemma (in RGraph) rg_succ_ref:
 %           assumes A: "is_pred_succ ps c"
 %           assumes B: "u∈V"
 %           shows "rg_succ2 ps cf u ≤ SPEC (λl. (l,cf.E``{u}) ∈ ⟨Id⟩list_set_rel)"
 
-      
-    Use efficient data structures:
-      Now we have an abstract version of the algorithm that only relies on executable concepts.
-      However, to yield an efficient algorithm, we have to choose efficient data structures. 
-      
-      We assume that the nodes are natural numbers less than $N$. 
-      Then we implement the capacity matrix of the residual graph by an array with row-major indexing. 
-      The adjacency map for network nodes is implemented as an array of lists. 
-      In the BFS algorithm, we use two lists, one that holds the nodes of the current level, and another 
-      in which nodes of the next level are collected. The predecessor map is implemented as an array.
-      
-      The input of the algorithm is still a function mapping network edges to capacities, which is tabulated once 
-      to obtain the initial residual graph. This ensures some flexibility in using the algorithm, without preventing 
-      efficient implementations (The function can be based on array lookup itself\footnote{Due to technical limitations of our tools, this function 
-        cannot depend on heap content itself, but it can use the efficient functional and pseudo-functional datastructures provided by the Collection Framework.}).
-      
-      The output of the algorithm is just the residual graph. The user can decide how he computes the maximum flow from it. For example,
-      in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
-      expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
-
-      The last refinement step was performed using the Sepref tool, which supports data refinements from functional to imperative algorithms in Isabelle/HOL.
-      [Few sentences on Sepref]
-      
-      Arrays for c,f, and ps. c and f in row-major indexing.
-      
-      List for augmenting path. [TODO/Future work: Iterator scheme]
+  \subsection{Using Efficient Data Structures}    
+  In a final step, we have to chose efficient data structures for the algorithm. The objects that the algorithm works with are
+  capacities, nodes, edges, the graph of the input network, residual graphs, the adjacency map, paths, and the resulting maximum flow. 
   
-      In BFS, we use lists for the queues (we have split the queue into one for 
-        the current level, and one for the next level), and an array for the predecessor map. 
+  We implement capacities as (arbitrary precision) integer numbers. Note that an implementation as fixed precision numbers would also be possible,
+  but requires additional checks on the network to ensure that no overflows can happen. 
+  % TODO: Can we trick the Java reference implementation on integer overflow?
   
-      The refinement is performed using the Sepref tool.
+  We implement nodes as natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
+  are realized as arrays of size $N*N$ with row-major indexing.
+  The adjacency map of the network is implemented as an array of lists of nodes. 
+  
+  For the BFS algorithm, we implement the sets $C$ and $N$ by lists, and the predecessor map $P$ as an array of \isai{node option}. 
+  The successors of a node are represented as a list with no duplicate elements. The resulting path, which is extracted from $P$ upon termination of
+  the BFS, is represented as a list of edges. 
+  
+  The input network of the algorithm is represented as a function mapping network edges to capacities, which is tabulated into an array
+  to obtain the initial residual graph.
+  
+  This allows flexibility in using the algorithm, as any capacity matrix representation can be converted into a function easily, and 
+  without loosing efficiency for read-access\footnote{Due to technical limitations of our tools, this function 
+  cannot depend on heap content, but it can use the efficient functional and pseudo-functional datastructures provided by the Isabelle Collection Framework.}. 
+      
+  The output flow of the algorithm is represented as the residual graph. The user can decide how he computes the maximum flow from it. For example,
+  in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
+  expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
 
-  NetCheck
-    We also implemented an algorithm that reads a list of edges and a source and target node, 
-    converts it to a capacity matrix and an adjacency map, and checks whether the resulting graph satisfies our network assumptions.
-    We proved that this algorithm returns the corresponding Network and adjacency function iff the input describes a valid network,
-    and returns a failure value otherwise.
+  Note that their is still some optimization potential left: For example, the BFS algorithm computes the predecessor map $P$.
+  Then, it iterates over $P$ to get the shortest path into a list. Then, this list is iterated again to compute the 
+  bottleneck, and, finally, another iteration over the list is done to do the augmentation. This calls for a deforestation optimization,
+  getting rid of the intermediate list altogether, and iterate two times over the predecessor map: A first time to compute the bottleneck, and a second time
+  to do the augmentation. Fortunately, iteration over the shortest path does not significantly contribute to the runtime of the algorithm, so that we leave this
+  optimization for future work.
+  
+
+  Note that we performed the last refinement step using our Sepref tool~\cite{La15}, which provides tool support for data refinements from 
+  purely functional programs of the Isabelle Refinement Framework into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
+  The formalization of this refinement step consists of setting up the mappings between the abstract and concrete data structures,
+  and then using the tools provided by Sepref to synthesize the Imperative/HOL programs and their refinement proofs.
+  
+  Finally, Imperative/HOL provides a heap-exception monad and comes with a setup for the Isabelle code generator to generate efficient imperative programs
+  in OCaml, SML, Scala, and Haskell.
+
+  \subsection{Network Checker}
+  We also implemented an algorithm that takes as input a list of edges, a source node, and a target node.
+  It converts these to a capacity matrix and an adjacency map, and checks whether the resulting graph satisfies our network assumptions.
+  We proved that this algorithm returns the correct capacity matrix and adjacency map iff the input describes a valid network,
+  and returns a failure value otherwise.
     
-  Combining the implementation of the Edmonds-Karp algorithm with the Network checker yields our final algorithm,
-  for which we can export code, and have proved the theorem: [...]. 
+  Combining the implementation of the Edmonds-Karp algorithm with the network checker yields our final algorithm,
+  for which we can export code, and have proved the theorem: [...Snippet! edmonds-karp-correct]. 
+%     theorem edmonds_karp_correct:
+%     "<emp> edmonds_karp el s t <λ
+%         None ⇒ ↑(¬ln_invar el ∨ ¬Network (ln_α el) s t)
+%       | Some (N,fi) ⇒ ∃⇩Af. Network.is_rflow (ln_α el) N f fi * ↑(isMaxFlow (ln_α el) s t f)
+%           * ↑(ln_invar el ∧ Network (ln_α el) s t ∧ Graph.V (ln_α el) ⊆ {0..<N})
+%     >⇩t"
+  Note that this theorem is stated as a Hoare triple, using separation logic assertions. There are no preconditions on the input.
+  If the algorithm returns \isai{None}, then the edge list was malformed or described a graph that does not satisfy the network assumptions.
+  Here, \isai{ln_invar} describes well-formed edge lists, i.e., edge lists that have no duplicate edges and no edges with zero capacity,
+  and \isai{ln_\<alpha>} describes the mapping from (well-formed) edge lists to capacity matrices.
+  If the algorithm returns some number $N$ and residual graph $fi$, then the input was a well-formed edge list that describes a valid network.
+  Moreover, the returned residual graph describes a flow $f$ in the network, which is maximal. TODO: Swap in thm!
+  As there are no other possible return values, this theorem completely describes the correctness of the algorithm. 
+  Note that Isabelle/HOL does not have a notion of execution, thus total correctness of the code finally produced by the code 
+  generator cannot be defined. However, the program is phrased in a heap-exception monad, thus introducing some (coarse grained) notion of
+  computation. On this level, termination can be ensured, and, indeed, the above theorem implies that all the recursions stated by recursion 
+  combinators in the monad must terminate. However, it does not guarantee that we have not injected spurious code equations: E.g. $f~x = f~x$,
+  is provable by reflexivity, but causes the generated program to diverge.
+
     
     
 
