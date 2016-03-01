@@ -1,138 +1,92 @@
-\DefineSnippet{isar-lem}{
+\DefineSnippet{augment_flow_presv_cap}{
 \isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ NFlow{\isacharparenright}\ augment{\isacharunderscore}flow{\isacharunderscore}presv{\isacharunderscore}cap{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ asm{\isacharcolon}\ {\isachardoublequoteopen}Flow\ cf\ s\ t\ f{\isacharprime}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymforall}e{\isachardot}\ {\isadigit{0}}\ {\isasymle}\ {\isacharparenleft}augment\ f{\isacharprime}{\isacharparenright}\ e\ {\isasymand}\ \ {\isacharparenleft}augment\ f{\isacharprime}{\isacharparenright}\ e\ {\isasymle}\ c\ e{\isachardoublequoteclose}\isanewline
+\ augment{\isacharunderscore}flow{\isacharunderscore}presv{\isacharunderscore}cap{\isacharcolon}\ \isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isadigit{0}}\ {\isasymle}\ augment\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isasymand}\ augment\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isasymle}\ c{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\isanewline
+%
+\isadelimproof
+%
+\endisadelimproof
+%
+\isatagproof
 \isacommand{proof}\isamarkupfalse%
-\ {\isacharminus}\isanewline
-\ \ \isacommand{{\isacharbraceleft}}\isamarkupfalse%
-\isanewline
-\ \ \ \ \isacommand{fix}\isamarkupfalse%
-\ e\ {\isacharcolon}{\isacharcolon}\ edge\isanewline
-\ \ \ \ \isacommand{obtain}\isamarkupfalse%
-\ u\ v\ \isakeyword{where}\ obt{\isacharcolon}\ {\isachardoublequoteopen}e\ {\isacharequal}\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{by}\isamarkupfalse%
-\ {\isacharparenleft}metis\ nat{\isacharunderscore}gcd{\isachardot}cases{\isacharparenright}\isanewline
-\ \ \ \ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}augment\ f{\isacharprime}\ e\ {\isasymle}\ c\ e{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{is}\ {\isachardoublequoteopen}{\isacharquery}L\ {\isasymle}\ {\isacharunderscore}{\isachardoublequoteclose}{\isacharparenright}\isanewline
-\ \ \ \ \ \ \isacommand{proof}\isamarkupfalse%
-\ {\isacharparenleft}cases\ {\isachardoublequoteopen}{\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isasymin}\ E{\isachardoublequoteclose}{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \isacommand{case}\isamarkupfalse%
+\ {\isacharparenleft}cases\ {\isachardoublequoteopen}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isasymin}E{\isachardoublequoteclose}{\isacharsemicolon}\ rule\ conjI{\isacharparenright}\ \isacommand{case}\isamarkupfalse%
 \ True\isanewline
-\ \ \ \ \ \ \ \ \isacommand{then}\isamarkupfalse%
-\ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isacharquery}L\ {\isasymle}\ f\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ \ {\isacharplus}\ f{\isacharprime}\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}{\isachardoublequoteclose}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \isacommand{unfolding}\isamarkupfalse%
-\ augment{\isacharunderscore}def\ \isacommand{using}\isamarkupfalse%
-\ obt\ asm\ Flow{\isacharunderscore}def\ \isacommand{by}\isamarkupfalse%
-\ auto\ \ \ \ \ \ \ \ \ \isanewline
-\ \ \ \ \ \ \ \ \isacommand{moreover}\isamarkupfalse%
-\ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}f{\isacharprime}\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isasymle}\ cf\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isacommand{using}\isamarkupfalse%
-\ asm\ Flow{\isacharunderscore}def\ \isacommand{by}\isamarkupfalse%
+\ \ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}\ {\isasymle}\ cf{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{using}\isamarkupfalse%
+\ f{\isacharprime}{\isachardot}capacity{\isacharunderscore}const\ \isacommand{by}\isamarkupfalse%
 \ auto\isanewline
-\ \ \ \ \ \ \ \ \isacommand{moreover}\isamarkupfalse%
+\ \ \isacommand{also}\isamarkupfalse%
+\ \isacommand{from}\isamarkupfalse%
+\ {\isacartoucheopen}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isasymin}E{\isacartoucheclose}\ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}cf{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}\ {\isacharequal}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isacommand{using}\isamarkupfalse%
+\ no{\isacharunderscore}parallel{\isacharunderscore}edge\ \isacommand{by}\isamarkupfalse%
+\ {\isacharparenleft}auto\ simp{\isacharcolon}\ residualGraph{\isacharunderscore}def{\isacharparenright}\isanewline
+\ \ \isacommand{finally}\isamarkupfalse%
 \ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}cf\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isacharequal}\ c\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isacharminus}\ f{\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}{\isachardoublequoteclose}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \isacommand{unfolding}\isamarkupfalse%
-\ residualGraph{\isacharunderscore}def\ \isacommand{using}\isamarkupfalse%
-\ True\ \isacommand{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}\ {\isasymle}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{{\isachardot}}\isamarkupfalse%
+\isanewline
+\ \ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}augment\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharequal}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharminus}\ f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isacommand{using}\isamarkupfalse%
+\ {\isacartoucheopen}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isasymin}E{\isacartoucheclose}\ \isacommand{by}\isamarkupfalse%
+\ {\isacharparenleft}auto\ simp{\isacharcolon}\ augment{\isacharunderscore}def{\isacharparenright}\isanewline
+\ \ \isacommand{also}\isamarkupfalse%
+\ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymge}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharminus}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isacommand{using}\isamarkupfalse%
+\ {\isacartoucheopen}f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}\ {\isasymle}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isacartoucheclose}\ \isacommand{by}\isamarkupfalse%
 \ auto\isanewline
-\ \ \ \ \ \ \ \ \isacommand{ultimately}\isamarkupfalse%
+\ \ \isacommand{also}\isamarkupfalse%
+\ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{by}\isamarkupfalse%
+\ auto\isanewline
+\ \ \isacommand{also}\isamarkupfalse%
+\ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymge}\ {\isadigit{0}}{\isachardoublequoteclose}\ \isacommand{using}\isamarkupfalse%
+\ f{\isacharprime}{\isachardot}capacity{\isacharunderscore}const\ \isacommand{by}\isamarkupfalse%
+\ auto\isanewline
+\ \ \isacommand{finally}\isamarkupfalse%
 \ \isacommand{show}\isamarkupfalse%
-\ {\isacharquery}thesis\ \isacommand{using}\isamarkupfalse%
-\ obt\ \isacommand{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \ \ \ \ \isacommand{next}\isamarkupfalse%
+\ {\isachardoublequoteopen}augment\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isasymge}\ {\isadigit{0}}{\isachardoublequoteclose}\ \isacommand{{\isachardot}}\isamarkupfalse%
 \isanewline
-\ \ \ \ \ \ \ \ \isacommand{case}\isamarkupfalse%
-\ False\isanewline
-\ \ \ \ \ \ \ \ \isacommand{then}\isamarkupfalse%
+\ \ \ \ \ \ \isanewline
+\ \ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}augment\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharequal}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharminus}\ f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isacommand{using}\isamarkupfalse%
+\ {\isacartoucheopen}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isasymin}E{\isacartoucheclose}\ \isacommand{by}\isamarkupfalse%
+\ {\isacharparenleft}auto\ simp{\isacharcolon}\ augment{\isacharunderscore}def{\isacharparenright}\isanewline
+\ \ \isacommand{also}\isamarkupfalse%
 \ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}augment\ f{\isacharprime}\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isacharequal}\ {\isadigit{0}}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isacommand{unfolding}\isamarkupfalse%
-\ augment{\isacharunderscore}def\ \isacommand{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \ \ \ \ \ \ \isacommand{thus}\isamarkupfalse%
-\ {\isacharquery}thesis\ \isacommand{using}\isamarkupfalse%
-\ cap{\isacharunderscore}positive\ obt\ \isacommand{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \ \ \ \ \isacommand{qed}\isamarkupfalse%
-\isanewline
-\ \ \ \ \isacommand{moreover}\isamarkupfalse%
-\ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isadigit{0}}\ {\isasymle}\ augment\ f{\isacharprime}\ e{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isacommand{proof}\isamarkupfalse%
-\ {\isacharminus}\isanewline
-\ \ \ \ \ \ \ \ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}f{\isacharprime}\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isasymge}\ {\isadigit{0}}{\isachardoublequoteclose}\ \isacommand{using}\isamarkupfalse%
-\ asm\ Flow{\isacharunderscore}def\ \isacommand{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \ \ \ \ \ \ \isacommand{moreover}\isamarkupfalse%
-\ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}f\ {\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isasymge}\ {\isadigit{0}}{\isachardoublequoteclose}\ \isacommand{using}\isamarkupfalse%
-\ capacity{\isacharunderscore}const\ \isacommand{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \ \ \ \ \ \ \isacommand{ultimately}\isamarkupfalse%
-\ \isacommand{show}\isamarkupfalse%
-\ {\isacharquery}thesis\ \isacommand{unfolding}\isamarkupfalse%
-\ augment{\isacharunderscore}def\isanewline
-\ \ \ \ \ \ \ \ \ \ \isacommand{using}\isamarkupfalse%
-\ reverse{\isacharunderscore}flow{\isacharbrackleft}OF\ asm{\isacharbrackright}\ obt\ \isacommand{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymle}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{using}\isamarkupfalse%
+\ f{\isacharprime}{\isachardot}capacity{\isacharunderscore}const\ \isacommand{by}\isamarkupfalse%
 \ auto\isanewline
-\ \ \ \ \ \ \isacommand{qed}\isamarkupfalse%
-\isanewline
-\ \ \ \ \isacommand{ultimately}\isamarkupfalse%
+\ \ \isacommand{also}\isamarkupfalse%
 \ \isacommand{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isadigit{0}}\ {\isasymle}\ {\isacharparenleft}augment\ f{\isacharprime}{\isacharparenright}\ e\ {\isasymand}\ \isanewline
-\ \ \ \ \ \ {\isacharparenleft}augment\ f{\isacharprime}{\isacharparenright}\ e\ {\isasymle}\ c\ e{\isachardoublequoteclose}\ \isacommand{by}\isamarkupfalse%
-\ blast\ \ \ \isanewline
-\ \ \isacommand{{\isacharbraceright}}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymle}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ cf{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{using}\isamarkupfalse%
+\ f{\isacharprime}{\isachardot}capacity{\isacharunderscore}const\ \isacommand{by}\isamarkupfalse%
+\ auto\isanewline
+\ \ \isacommand{also}\isamarkupfalse%
+\ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ c{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharminus}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isacommand{using}\isamarkupfalse%
+\ {\isacartoucheopen}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isasymin}E{\isacartoucheclose}\ \isacommand{by}\isamarkupfalse%
+\ {\isacharparenleft}auto\ simp{\isacharcolon}\ residualGraph{\isacharunderscore}def{\isacharparenright}\isanewline
+\ \ \isacommand{also}\isamarkupfalse%
+\ \isacommand{have}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}\ c{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{by}\isamarkupfalse%
+\ auto\isanewline
+\ \ \isacommand{finally}\isamarkupfalse%
+\ \isacommand{show}\isamarkupfalse%
+\ {\isachardoublequoteopen}augment\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}\ {\isasymle}\ c{\isacharparenleft}u{\isacharcomma}\ v{\isacharparenright}{\isachardoublequoteclose}\ \isacommand{{\isachardot}}\isamarkupfalse%
 \isanewline
-\ \ \ \ \isacommand{thus}\isamarkupfalse%
-\ {\isacharquery}thesis\ \isacommand{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \isacommand{qed}\isamarkupfalse%
-}%EndSnippet
-
-
-\DefineSnippet{6.1-1_0}{
-\isacommand{definition}\isamarkupfalse%
-\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\ {\isachardoublequoteopen}zero{\isacharunderscore}flow\ {\isasymequiv}\ {\isacharparenleft}{\isasymlambda}{\isacharunderscore}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isachardoublequoteclose}%
-}%EndSnippet
-
-\DefineSnippet{6.1-1}{
-\isacommand{context}\isamarkupfalse%
-\ Network\isanewline
-\isakeyword{begin}\isanewline
-\ \ \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}find{\isacharunderscore}augmenting{\isacharunderscore}spec\ f\ {\isasymequiv}\ SPEC\ {\isacharparenleft}{\isasymlambda}\isanewline
-\ \ \ \ \ \ None\ {\isasymRightarrow}\ {\isasymforall}p{\isachardot}\ {\isasymnot}NFlow{\isachardot}isAugmenting\ c\ s\ t\ f\ p\ \isanewline
-\ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ NFlow{\isachardot}isAugmenting\ c\ s\ t\ f\ p{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\isanewline
-\ \ \isacommand{abbreviation}\isamarkupfalse%
-\ {\isachardoublequoteopen}fofu{\isacharunderscore}invar\ {\isasymequiv}\ {\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ \isanewline
-\ \ \ \ NFlow\ c\ s\ t\ f\ {\isasymand}\ {\isacharparenleft}brk\ {\isasymlongrightarrow}\ {\isacharparenleft}{\isasymforall}p{\isachardot}\ {\isasymnot}NFlow{\isachardot}isAugmenting\ c\ s\ t\ f\ p{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \isanewline
-\ \ \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}fofu\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
-\ \ \ \ let\ f\ {\isacharequal}\ zero{\isacharunderscore}flow{\isacharsemicolon}\isanewline
-\isanewline
-\ \ \ \ {\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ WHILEIT\ fofu{\isacharunderscore}invar\isanewline
-\ \ \ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ {\isasymnot}brk{\isacharparenright}\ \isanewline
-\ \ \ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}{\isachardot}\ do\ {\isacharbraceleft}\isanewline
-\ \ \ \ \ \ \ \ p\ {\isasymleftarrow}\ find{\isacharunderscore}augmenting{\isacharunderscore}spec\ f{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ case\ p\ of\ \isanewline
-\ \ \ \ \ \ \ \ \ \ None\ {\isasymRightarrow}\ RETURN\ {\isacharparenleft}f{\isacharcomma}True{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ do\ {\isacharbraceleft}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ let\ f{\isacharprime}\ {\isacharequal}\ NFlow{\isachardot}augmentingFlow\ c\ f\ p{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ let\ f\ {\isacharequal}\ NFlow{\isachardot}augment\ c\ f\ f{\isacharprime}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ RETURN\ {\isacharparenleft}f{\isacharcomma}\ False{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isacharbraceright}\ \ \isanewline
-\ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}\isanewline
-\ \ \ \ \ \ {\isacharparenleft}f{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ \ \ RETURN\ f\ \isanewline
-\ \ {\isacharbraceright}{\isachardoublequoteclose}\isanewline
-\isacommand{end}\isamarkupfalse%
+\isacommand{qed}\isamarkupfalse%
+\ {\isacharparenleft}auto\ simp{\isacharcolon}\ augment{\isacharunderscore}def\ cap{\isacharunderscore}positive{\isacharparenright}%
+\endisatagproof
+{\isafoldproof}%
+%
+\isadelimproof
+%
+\endisadelimproof
 %
 }%EndSnippet

@@ -1,0 +1,18 @@
+session Edka_Base = "CAVA_Base" +
+  theories
+    "cava/DFS_Framework/Examples/Reachable_Nodes"
+    "cava/Libs/Refine_Imperative_HOL/Sepref"
+    "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
+    "~~/src/HOL/Library/Rewrite"
+
+session Edka = "Edka_Base" +
+   theories Code
+
+session Snippets = "Edka_Base" +
+   options [
+     document = "pdf",
+     document_output = "generated"]
+   theories
+     Augmenting
+   document_files
+     build

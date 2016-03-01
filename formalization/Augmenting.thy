@@ -36,6 +36,49 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context NFlow
   begin
+
+    context 
+      -- \<open>Let $f'$ be a flow in $cf$\<close>
+      fixes f'
+      assumes f'_flow: "Flow cf s t f'"
+    begin  
+      interpretation f'!: Flow cf s t f' by (rule f'_flow)
+
+(* FIXME: Indentation unfortunate, but required to extract snippet for latex presentation *)    
+text_raw \<open>\DefineSnippet{augment_flow_presv_cap}{\<close>  
+lemma augment_flow_presv_cap: 
+  shows "0 \<le> augment f'(u,v) \<and> augment f'(u,v) \<le> c(u,v)"
+proof (cases "(u,v)\<in>E"; rule conjI) case True
+  have "f'(v,u) \<le> cf(v,u)" using f'.capacity_const by auto
+  also from \<open>(u,v)\<in>E\<close> have "cf(v,u) = f(u,v)"
+    using no_parallel_edge by (auto simp: residualGraph_def)
+  finally have "f'(v,u) \<le> f(u,v)" .
+
+(*<*){
+    note [trans del] = order_trans note [trans] = order_trans[rotated]
+  (*>*)
+  have "augment f'(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
+    using \<open>(u,v)\<in>E\<close> by (auto simp: augment_def)
+  also have "\<dots> \<ge> f(u,v) + f'(u,v) - f(u,v)"
+  (*<*)(is "_ \<ge> \<dots>")(*>*)  using \<open>f'(v,u) \<le> f(u,v)\<close> by auto
+  also have "\<dots> = f'(u,v)" by auto
+  also have "\<dots> \<ge> 0" using f'.capacity_const by auto
+  finally show "augment f'(u,v) \<ge> 0" .
+  (*<*)}(*>*)
+    
+  have "augment f'(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
+    using \<open>(u,v)\<in>E\<close> by (auto simp: augment_def)
+  also have "\<dots> \<le> f(u,v) + f'(u,v)" using f'.capacity_const by auto
+  also have "\<dots> \<le> f(u,v) + cf(u,v)" using f'.capacity_const by auto
+  also have "\<dots> = f(u,v) + c(u,v) - f(u,v)"
+    using \<open>(u,v)\<in>E\<close> by (auto simp: residualGraph_def)
+  also have "\<dots> = c(u,v)" by auto
+  finally show "augment f'(u, v) \<le> c(u, v)" .
+qed (auto simp: augment_def cap_positive)
+text_raw \<open>}%EndSnippet\<close>
+      
+
+    (*
     lemma augment_flow_presv_cap: "Flow cf s t f' \<Longrightarrow> \<forall>e. 0 \<le> augment f' e \<and> augment f' e \<le> c e"
       proof -
         assume asm: "Flow cf s t f'"
@@ -72,6 +115,8 @@ begin
         }
         thus ?thesis by simp
       qed       
+      *)
+    end  
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)

@@ -15,7 +15,7 @@ check:
 	done; true
 #	egrep -o "[[:alpha:]]+-[[:alpha:]-]+" *.tex | tr "[:upper:]" "[:lower:]" | sed -re "s/:/: /g" | sort -k2 -u | egrep -v --file allow_hyphen | sort | egrep --color "[[:alpha:]]+-[[:alpha:]-]+"; true
 
-$(TEX).pdf: *.tex *.bib
+$(TEX).pdf: *.tex snippets/*.tex *.bib
 	latexmk -pdf $(TEX).tex; err=$$?; egrep --color -i 'error|warning|overfull|underfull|undef|^l\.[0-9]' $(TEX).log; grep --color=never "Output written" $(TEX).log; exit $$err
 
 clean:
