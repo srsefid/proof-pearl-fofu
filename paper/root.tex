@@ -205,15 +205,36 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
 %    Oppose our algo to textbook pseudocode.
 %    
 
-A formal proof contains many technical details that are not presented in an informal proof. While dealing with the technical details in a proof causes distraction, leaving out such details makes it hard to follow the proofs. Our formal proof of the Ford-Fulkerson method closely follows the informal proof described by Cormen et al. [cite]. So, readers may use this informal proof as a guide to better understand the relevant thoughts in our formal proof. Moreover using the proof language Isar, we made the formal proof readable even for readers that are not familiar with Isabelle.
+%A formal proof contains many technical details that are not presented in an informal proof. While dealing with the technical details in a proof causes distraction, leaving out such details makes it hard to follow the proofs.  . So, readers may use this informal proof as a guide to better understand the relevant thoughts in our formal proof. Moreover using the proof language Isar, we made the formal proof readable even for readers that are not familiar with Isabelle.
 
-As an example consider the following formal proof. Let $cf$ be the residual graph corresponding to a flow $f$ in an $s$-$t$ network $c$, and let $f'$ be a flow in $cf$. Consider the definition of the augment function that was described in previous section. The following lemma states that the result of augmenting $f$ with $f'$ is another function which satisfies the capacity constraint of a $s$-$t$ flow in $c$. 
+Informal proofs focus on the relevant thoughts by leaving out technical details. However, in a formal proof each step has to be precisely specified as a valid application of some inference rule which makes formal proofs often lengthy and hard to follow. In the case that an interactive theorem prover is used, readers may even need to replay the proof to understand the idea behind it. In Isabelle proof assistant, the Isar proof language bridges the semantic gap between internal notions of proof given by interactive theorem proving systems and an appropriate level of abstraction for user-level work. Isar makes formal proofs readable even for those who are not familiar with Isabelle concepts. We have used such a functionality to present our formal proof of the Ford-Fulkerson method which resembels the informal proof described by Cormen et al. [cite].
+
+As an example consider the following proof obtained form Cormen's algorithm book. Let $cf$ be the residual graph corresponding to a flow $f$ in an $s$-$t$ network $c$, and let $f'$ be a flow in $cf$. Consider the definition of the augment function that was described in previous section. Then, the result of augmenting $f$ with $f'$ is another function which satisfies the capacity constraint of a $s$-$t$ flow in $c$.
+
+\emph{\textbf{Proof.}} first observe that if $(u, v) \in E$, then $c_f(v, u) = f(u, v)$. Therefore, we have $f'(v,u) \leq c_f(v, u) = f(u, v)$, and hence
+	\begin{align*}
+	(f \uparrow f') (u, v) &= f(u, v) + f'(u, v) - f'(v, u)  && \text{(by definition of augment)} \\
+	& \geq f(u, v) + f'(u, v) - f(v, u) && \text{(because $f'(v,u) \leq f(u, v)$)} \\
+	& = f'(u, v) \\
+	& \geq 0.
+	\end{align*}
+In addition,
+	\begin{align*}
+	(f \uparrow f') (u, v) &= f(u, v) + f'(u, v) - f'(v, u)  && \text{(by definition of augment)} \\
+	& \leq f(u, v) + f'(u, v) && \text{(because flows are nonnegative)} \\
+	& \leq f(u, v) + c_f(u, v) &&  \text{(capacity constraint)} \\
+	& = f'(u, v) + c(u, v) - f(u, v) && \text{(definition of $c_f$)} \\
+	& = c (u, v).
+	\end{align*}
+
+Following we present the equivalent Isar proof. Note that we have to additionally consider the case that $(u, v) \notin E$. Moreover in line 6, we have used the assumption that there are no parallel edges in a flow network. This important property is not mentioned in Cormen's proof.
 \Snippet{augment_flow_presv_cap}
 
-Most of the reference books in the field of algorithm provide pseudocodes instead of executable implementations. However, implementing an abstract presentation of 
-an algorithm involves many technical details that are never presented in the books. We also tried to fill in this gap. First, we present the Ford-Fulkerson method using the syntax of Autoref[cite] tool which is quite similar to pseudocode of the algorithm. Next, we refine the abstract representation into an executable implementation. For instance, the following Isabelel definition abstractly presents the Ford-Fulkerson method.
+
+In reference books, it is a convention to use pseudocodes for presenting the algorithms. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm and leaves out the implementation details. We present the Ford-Fulkerson method using the syntax of Autoref[cite] tool which is quite similar to pseudocode of the algorithm:
 \Snippet{ford_fulkerson_algo}
 
+In the pseudocode of the Ford-Fulkerson method, the path found while evaluating the loop condition is later used for augmenting the flow inside the loop body. The best way for implementing such requirement using syntax of the refinement framework is moving the path lookup inside the loop body. To do so, we modified the while-loop by introducing a break flag. The flag is initially off, and is set if no augmenting path is found in the residual graph.
 
 
 \section{Refinement in Isabelle/HOL}
