@@ -112,8 +112,8 @@ begin
       qed
       
     lemma edges_positive: "e \<in> E \<Longrightarrow> c e > 0"
-      unfolding E_def
-      by (smt cap_positive case_prodE mem_Collect_eq)
+      unfolding E_def using cap_positive le_neq_trans by fastforce 
+
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)

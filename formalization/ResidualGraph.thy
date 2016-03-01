@@ -61,7 +61,7 @@ begin
       ("\<lbrace>_,/ _,/ _,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<Rightarrow>\<^sup>A/ _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c, s, t, f \<parallel>\<^sub>N\<^sub>F \<langle>\<Rightarrow>\<^sup>A p\<rangle>\<rbrace> \<equiv> NFlow.isAugmenting c s t f p"
     
-    abbreviation NFlow_bottleNeck :: "graph \<Rightarrow> flow \<Rightarrow> path \<Rightarrow> real"
+    abbreviation NFlow_bottleNeck :: "graph \<Rightarrow> flow \<Rightarrow> path \<Rightarrow> capacity"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<nabla>/ _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<nabla> p\<rangle>\<rbrace> \<equiv> NFlow.bottleNeck c f p"
     
@@ -352,7 +352,7 @@ begin
               }
               moreover have "card ?S_IP = card ?S_OP" 
                 using augFlow_node_card[OF `isAugmenting p`] asm_s by auto
-              ultimately have "?SUM ?IN ?F = bottleNeck p * card ?S_OP" by auto
+              ultimately have "?SUM ?IN ?F = bottleNeck p * of_nat (card ?S_OP)" by auto
               moreover {
                 {
                   fix e
@@ -363,7 +363,7 @@ begin
                 then have f1: "\<forall>x \<in> ?S_OP. ?F_O x = bottleNeck p" by auto
                 have f2: "finite ?S_OP" using resV_netV finite_V by auto
                 note setsumExt.decomp_4[OF f2 f1]
-                then have "bottleNeck p * card ?S_OP = ?SUM ?S_OP ?F_O" by auto
+                then have "bottleNeck p * of_nat (card ?S_OP) = ?SUM ?S_OP ?F_O" by auto
               }
               moreover {
                 {

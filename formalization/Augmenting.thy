@@ -134,7 +134,7 @@ begin
               moreover {
                 {
                   have "?SOE (?FO ?FA) = ?SOE (?FO ?FE)" unfolding augment_def
-                    by (smt mem_Collect_eq prod.case setsum.cong)
+                    by (rule setsum.cong[OF refl]) auto
                   moreover have "\<And>u. u \<in> ?S_OE \<Longrightarrow> ?FO ?FE u = ?FO ?FE u" by auto
                   ultimately have "?SOE (?FO ?FA) = ?SOE (?FO ?FE)" by auto
                 }
@@ -204,7 +204,7 @@ begin
               moreover {
                 {
                   have "?SIE (?FI ?FA) = ?SIE (?FI ?FE)" unfolding augment_def
-                    by (smt mem_Collect_eq prod.case setsum.cong) 
+                    by (rule setsum.cong[OF refl]) auto
                   moreover have "\<And>u. u \<in> ?S_IE \<Longrightarrow> ?FI ?FE u = ?FI ?FE u"
                     using reverse_flow[OF asm] by auto
                   ultimately have "?SIE (?FI ?FA) = ?SIE (?FI ?FE)" by auto
@@ -408,7 +408,7 @@ begin
                 }
                 moreover {
                   have "\<And>u. u \<in> ?S_ON \<Longrightarrow> (?FO f) u = 0" unfolding E_def using capacity_const
-                    by (smt mem_Collect_eq prod.case)
+                    by (metis (mono_tags, lifting) antisym case_prodI2 mem_Collect_eq)
                   then have "?SON (?FO f) = 0" by auto
                 }
                 moreover {
@@ -558,7 +558,7 @@ begin
             }
             moreover {
               have "\<And>u. u \<in> ?S_ON \<Longrightarrow> (?FO f) u = 0" unfolding E_def using capacity_const
-                by (smt case_prodI mem_Collect_eq)
+                 by (metis (mono_tags, lifting) antisym case_prodI2 mem_Collect_eq)
               then have "?SON (?FO f) = 0" by auto
             }
             ultimately have "?SOE (?FO f) = ?SUS (?FO f)" by auto

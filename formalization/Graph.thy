@@ -3,14 +3,19 @@ imports Fofu_Abs_Base
 begin
 
 
-
-
   (* Graph definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   type_synonym node = nat 
   type_synonym edge = "node \<times> node"
   type_synonym capacity = real
+
+  (*
+  typedecl capacity 
+  instance capacity :: linordered_idom sorry
+  *)
+
+
   type_synonym graph = "edge \<Rightarrow> capacity"
   
   locale Graph = 
@@ -240,7 +245,8 @@ begin
                   have "g e = 0"
                     proof (rule ccontr)
                       assume "\<not> g e = 0"
-                      then have "e \<in> E" using asm2 E_def by (smt case_prodI2 mem_Collect_eq)
+                      then have "e \<in> E" using asm2 E_def
+                        by (metis (mono_tags, lifting) antisym case_prodI2 mem_Collect_eq) 
                       then have "e \<notin> {(v, u) | u. u \<in> V \<and> (v, u) \<notin> E}" unfolding E_def by auto
                       thus "False" using asm by blast
                     qed
@@ -297,7 +303,8 @@ begin
                   have "g e = 0"
                     proof (rule ccontr)
                       assume "\<not> g e = 0"
-                      then have "e \<in> E" using asm2 E_def by (smt case_prodI2 mem_Collect_eq)
+                      then have "e \<in> E" using asm2 E_def 
+                         by (metis (mono_tags, lifting) antisym case_prodI2 mem_Collect_eq)
                       then have "e \<notin> {(u, v) | u. u \<in> V \<and> (u, v) \<notin> E}" unfolding E_def by auto
                       thus "False" using asm by blast
                     qed
