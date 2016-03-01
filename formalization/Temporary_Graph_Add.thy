@@ -330,15 +330,16 @@ begin
 
     subsubsection \<open>Shortest Paths\<close>
 
-    definition shortestPath :: "node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
+    (*definition isShortestPath :: "node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
       -- \<open>A shortest path between two nodes\<close> (* TODO: Rename: isShortestPath *)
       where  
-      "shortestPath u p v \<equiv> isPath u p v \<and> (\<forall>p'. isPath u p' v \<longrightarrow> length p \<le> length p')"
+      "isShortestPath u p v \<equiv> isPath u p v \<and> (\<forall>p'. isPath u p' v \<longrightarrow> length p \<le> length p')"
+    *)  
 
 
     -- \<open>Characterization of shortest path in terms of minimum distance\<close>
-    lemma shortestPath_min_dist_def: "shortestPath u p v \<longleftrightarrow> isPath u p v \<and> length p = min_dist u v"  
-      unfolding shortestPath_def min_dist_def dist_def
+    lemma isShortestPath_min_dist_def: "isShortestPath u p v \<longleftrightarrow> isPath u p v \<and> length p = min_dist u v"  
+      unfolding isShortestPath_def min_dist_def dist_def
       apply (rule iffI; clarsimp)
       apply (rule Least_equality[symmetric]; auto; fail)
       apply (rule Least_le; auto; fail)
@@ -346,18 +347,18 @@ begin
 
     lemma obtain_shortest_path: 
       assumes CONN: "connected u v"  
-      obtains p where "shortestPath u p v"
+      obtains p where "isShortestPath u p v"
       using min_dist_is_dist[OF CONN]
-      unfolding dist_def shortestPath_min_dist_def
+      unfolding dist_def isShortestPath_min_dist_def
       by blast
 
-    lemma shortestPath_is_simple:
-      assumes "shortestPath s p t"
+    lemma isShortestPath_is_simple:
+      assumes "isShortestPath s p t"
       shows "isSimplePath s p t"
     proof (rule ccontr)
       from assms have PATH: "isPath s p t" 
         and SHORTEST: "\<forall>p'. isPath s p' t \<longrightarrow> length p \<le> length p'"
-        by (auto simp: shortestPath_def)
+        by (auto simp: isShortestPath_def)
 
       assume "\<not>isSimplePath s p t"  
       with PATH have "\<not>distinct (pathVertices s p)" by (auto simp: isSimplePath_def)
@@ -384,19 +385,19 @@ begin
     qed    
 
     text \<open>We provide yet another characterization of shortest paths:\<close>
-    lemma shortestPath_alt: "shortestPath u p v \<longleftrightarrow> isSimplePath u p v \<and> length p = min_dist u v"
-      using shortestPath_is_simple shortestPath_min_dist_def
+    lemma isShortestPath_alt: "isShortestPath u p v \<longleftrightarrow> isSimplePath u p v \<and> length p = min_dist u v"
+      using isShortestPath_is_simple isShortestPath_min_dist_def
       unfolding isSimplePath_def by auto
 
       
     text \<open>In a finite graph, the length of a shortest path is less 
       than the number of nodes\<close>  
-    lemma shortestPath_length_less_V:   
+    lemma isShortestPath_length_less_V:   
       assumes FIN: "finite V" and SV: "s\<in>V"
-      assumes PATH: "shortestPath s p t"
+      assumes PATH: "isShortestPath s p t"
       shows "length p < card V"
       using simplePath_length_less_V[OF FIN SV]
-      using shortestPath_is_simple[OF PATH] .
+      using isShortestPath_is_simple[OF PATH] .
 
     corollary min_dist_less_V:
       assumes FIN: "finite V"
@@ -404,12 +405,12 @@ begin
       assumes CONN: "connected s t"
       shows "min_dist s t < card V"
       apply (rule obtain_shortest_path[OF CONN])
-      apply (frule shortestPath_length_less_V[OF FIN SV])
-      unfolding shortestPath_min_dist_def by auto
+      apply (frule isShortestPath_length_less_V[OF FIN SV])
+      unfolding isShortestPath_min_dist_def by auto
 
-    lemma split_shortest_path: "shortestPath u (p1@p2) v 
-      \<Longrightarrow> (\<exists>w. shortestPath u p1 w \<and> shortestPath w p2 v)"
-      apply (auto simp: shortestPath_min_dist_def isPath_append)
+    lemma split_shortest_path: "isShortestPath u (p1@p2) v 
+      \<Longrightarrow> (\<exists>w. isShortestPath u p1 w \<and> isShortestPath w p2 v)"
+      apply (auto simp: isShortestPath_min_dist_def isPath_append)
       apply (rule exI; intro conjI; assumption?)
       apply (drule isPath_distD)+ using min_dist_split apply auto []
       apply (drule isPath_distD)+ using min_dist_split apply auto []
@@ -417,8 +418,8 @@ begin
 
     text \<open>Edges in a shortest path connect nodes with increasing 
       minimum distance from the source\<close>
-    lemma shortestPath_level_edge:  
-      assumes SP: "shortestPath s p t" 
+    lemma isShortestPath_level_edge:  
+      assumes SP: "isShortestPath s p t" 
       assumes EIP: "(u,v)\<in>set p"
       shows 
         "connected s u" "connected u v" "connected v t" and
@@ -429,9 +430,9 @@ begin
       -- \<open>Split the original path at the edge\<close>
       from EIP obtain p1 p2 where [simp]: "p=p1@(u,v)#p2"
         by (auto simp: in_set_conv_decomp)
-      from \<open>shortestPath s p t\<close> have 
+      from \<open>isShortestPath s p t\<close> have 
         MIN: "min_dist s t = length p" and P: "isPath s p t" and DV: "distinct (pathVertices s p)"
-        by (auto simp: shortestPath_alt isSimplePath_def)
+        by (auto simp: isShortestPath_alt isSimplePath_def)
       from P have DISTS: "dist s (length p1) u" "dist u 1 v" "dist v (length p2) t"
         by (auto simp: isPath_append dist_def intro: exI[where x="[(u,v)]"])
         

@@ -355,7 +355,7 @@ begin
     lemma isPath_tail2: "isPath u (p@[e]) v \<Longrightarrow> (p = [] \<or> (p \<noteq> [] \<and> snd (last p) = fst e))"
       by (metis Graph.isPath_tail append_butlast_last_id)
       
-    lemma isPath_edgeset: "\<lbrakk>isPath u p v; (x, y) \<in> set p\<rbrakk> \<Longrightarrow> (x, y) \<in> E"
+    lemma isPath_edgeset: "\<lbrakk>isPath u p v; e \<in> set p\<rbrakk> \<Longrightarrow> e \<in> E"
       using E_def 
       by (metis (mono_tags, lifting) isPath_head isPath_append in_set_conv_decomp_first)
       

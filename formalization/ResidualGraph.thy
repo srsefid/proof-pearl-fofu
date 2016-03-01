@@ -235,7 +235,7 @@ begin
                     ultimately obtain x where "(x, v) \<in> set p"
                       using asm_s Graph.isPath_ex_edge1[of cf s p t v u] by auto
                     moreover have "(x, v) \<in> Graph.E cf" using `Graph.isPath cf s p t` 
-                      Graph.isPath_edgeset[of cf s p t x v] `(x, v) \<in> set p` by auto
+                      Graph.isPath_edgeset[of cf s p t "(x,v)"] `(x, v) \<in> set p` by auto
                     ultimately have "x \<in> ?S_IP" using Graph.V_def by auto
                     thus "False" using True by auto
                   qed
@@ -520,7 +520,7 @@ begin
               moreover {
                 have "Graph.isPath cf s p t" 
                   using `Graph.isSimplePath cf s p t` Graph.isSimplePath_def by auto
-                then have f2: "v \<in> Graph.V cf" using Graph.isPath_edgeset[of cf s p t s v] 
+                then have f2: "v \<in> Graph.V cf" using Graph.isPath_edgeset[of cf s p t "(s,v)"] 
                   Graph.V_def[of cf] `(s, v) \<in> set p` by auto
                 then have "v \<in> ?S_OP" using `(s, v) \<in> set p` by auto
               }
