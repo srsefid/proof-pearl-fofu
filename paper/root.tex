@@ -158,7 +158,7 @@ There are two kinds of edges in the residual graph: 1) those of the residual gra
 Then the residual graph corresponding to $f$ and $G$ is indicated by $G_f = (V, E_f)$, where the residual edge set $E_f$ is defined as following:
 \[ E_f = \{(u,v) \in V \times V \colon c_f (u, v) > 0\}\]
 
-After each flow update, the algorithm considers the residual graph corresponding to the new flow. Then the algorithm looks for an augmenting path--- a simple path from source to the sink--- in the residual graph. If such a path could be found, it will be used to construct a flow in the residual graph. Let $p$ be such a path. The residual capacity of $p$ is defined as $c_f(p) = min \{c_f(u, v): \text{$(u, v)$ is on  $p$}\}$. Then an augmenting flow $f_p \colon V \times V \rightarrow \mathbb{N}$  in the residual graph can be defined using $p$ as following:
+After each flow update, the algorithm considers the residual graph corresponding to the new flow. Then the algorithm looks for an augmenting path--- a simple path from source to the sink--- in the residual graph. If such a path could be found, it will be used to construct a flow in the residual graph. Let $p$ be such a path. The residual capacity of $p$ is defined as $c_f(p) = min \{c_f(u, v): \text{$(u, v)$ is on  $p$}\}$. Then an augmenting flow $f_p \colon V \times V \rightarrow \mathbb{R}$  in the residual graph can be defined using $p$ as following:
 \[ f_p (u, v) = 
 	\begin{cases}
 	c_f(p) \hfill & \text{ if $(u, v)$ is on $p$} \\	
