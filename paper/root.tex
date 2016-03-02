@@ -69,13 +69,20 @@
 
 \maketitle
 \begin{abstract}
-We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network. 
-The formal proofs are done in Isabelle/HOL. They closely follow a standard textbook proof and are relatively easy 
-to read, even without being an Isabelle expert.
+We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network.
+Our formal proof closely follows a standard textbook proof, so it is easy to read even for those who 
+are not expert in Isabelle/HOL--- the interactive theorem prover used for the formalization.
 
-We then use stepwise refinement to obtain the Edmonds-Karp algorithm and prove its upper complexity bound of $O(|V||E|^2)$.
-Further refinement yields a verified implementation, which is almost as fast as an unverified  
-reference implementation in Java. 
+We then use stepwise refinement to obtain the Edmonds-Karp algorithm and we formally prove its termination.
+Further refinement yields a verified implementation, which is almost as fast as an unverified reference implementation in Java.
+
+%We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network. 
+%The formal proofs are done in Isabelle/HOL. They closely follow a standard textbook proof and are relatively easy 
+%to read, even without being an Isabelle expert.
+
+%We then use stepwise refinement to obtain the Edmonds-Karp algorithm and prove its upper complexity bound of $O(|V||E|^2)$.
+%Further refinement yields a verified implementation, which is almost as fast as an unverified  
+%reference implementation in Java. 
 
 % 
 % and a verified imperative implementation of it. Our implementation is roughly 2.5 times slower than an unverified  
@@ -89,7 +96,9 @@ The Ford-Fulkerson algorithm~\cite{FF56} is one of the important results of the 
 
 Despite its importance, no formalization of the Ford-Fulkerson algorithm has been developed in modern proof assistants. The only similar work that the authors are aware of is formalization of the Ford-Fulkerson algorithm in Mizar~\cite{Lee05}. This formalization defines and proves correctness of the algorithm at the level of graph manipulations without providing concrete implementation of the algorithm. Providing such an implementation is specially important, as it could provide the basis for many verfied programs with practical importance.
 
-This paper present a formalization of the correctness proof of the Ford-Fulkerson algorithm in Isabelle/HOL~\cite{NPW02}. Our proof is based on the informal proof of the algorithm which is presented in the book \emph{Introduction to algorithms}~\cite{CLRS09}. Due to practical importance of the algorithm, we also present a verified implementation of the algorithm. Isabelle/HOL provides some automation for generating the code corresponding to a verified algorithm, however, in order to use the code generating features, one needs to do the formalization with executability in mind. Being limited only to executable concepts in the formalization has the disadvantage of cluttering the proofs with implementation details. Such approach makes the proofs more complicated, and may even render proofs of medium complex algorithms unmanageable.
+This paper present a formalization of the correctness proof of the Ford-Fulkerson method in Isabelle/HOL~\cite{NPW02}. Our formalization is based on the informal proof presented in the book \emph{Introduction to algorithms}~\cite{CLRS09}. We then provide a verified implementation of the Edmons-Karp's algorithm~\cite{EK72}. This algorithm instantiates the Ford-Fulkerson method with breadth-first-search and provides a polynomial algorithm for solving the maximum flow problem in generic case--- maximum flow on networks with real edge capacities.
+
+Isabelle/HOL provides some automation for generating the code corresponding to a verified algorithm, however, in order to use the code generating features, one needs to do the formalization with executability in mind. Being limited only to executable concepts in the formalization has the disadvantage of cluttering the proofs with implementation details. Such approach makes the proofs more complicated, and may even render proofs of medium complex algorithms unmanageable.
 
 One solution for the aforementioned problem is refinement~\cite{Morr87}. In order to generate executable code of an algorithm using refinement, we first formulate the algorithm on an abstract level. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm. Next, we refine the abstract definition of the algorithm towards an executable implementation in possibly multiple refinement steps. During each step, we only need to prove the correctness of the implementation of a particular abstract concept. Hence, we can be sure about the correctness of the resulting executable program as each refinement step preserves the correctness.
 
