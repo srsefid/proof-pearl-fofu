@@ -70,11 +70,15 @@
 \maketitle
 \begin{abstract}
 We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network.
-Our formal proof closely follows a standard textbook proof, so it is easy to read even for those who 
-are not expert in Isabelle/HOL--- the interactive theorem prover used for the formalization.
+Our formal proof closely follows a standard textbook proof, and is easy to read even without being
+an expert in Isabelle/HOL--- the interactive theorem prover used for the formalization.
+% 
+% 
+% so it is easy to read even for those who 
+% are not expert in Isabelle/HOL--- the interactive theorem prover used for the formalization.
 
-We then use stepwise refinement to obtain the Edmonds-Karp algorithm and we formally prove its termination.
-Further refinement yields a verified implementation, which is almost as fast as an unverified reference implementation in Java.
+We then use stepwise refinement to obtain the Edmonds-Karp algorithm, and formally prove a bound on its complexity.
+Further refinement yields a verified implementation, which compares well to an unverified reference implementation in Java.
 
 %We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network. 
 %The formal proofs are done in Isabelle/HOL. They closely follow a standard textbook proof and are relatively easy 
@@ -100,9 +104,9 @@ This paper present a formalization of the correctness proof of the Ford-Fulkerso
 
 Isabelle/HOL provides some automation for generating the code corresponding to a verified algorithm, however, in order to use the code generating features, one needs to do the formalization with executability in mind. Being limited only to executable concepts in the formalization has the disadvantage of cluttering the proofs with implementation details. Such approach makes the proofs more complicated, and may even render proofs of medium complex algorithms unmanageable.
 
-One solution for the aforementioned problem is refinement~\cite{Morr87}. In order to generate executable code of an algorithm using refinement, we first formulate the algorithm on an abstract level. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm. Next, we refine the abstract definition of the algorithm towards an executable implementation in possibly multiple refinement steps. During each step, we only need to prove the correctness of the implementation of a particular abstract concept. Hence, we can be sure about the correctness of the resulting executable program as each refinement step preserves the correctness.
+One solution for the aforementioned problem is refinement~\cite{Wirth71}. In order to generate executable code of an algorithm using refinement, we first formulate the algorithm on an abstract level. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm. Next, we refine the abstract definition of the algorithm towards an executable implementation in possibly multiple refinement steps. During each step, we only need to prove the correctness of the implementation of a particular abstract concept. Hence, we can be sure about the correctness of the resulting executable program as each refinement step preserves the correctness.
 
-There are several approaches to data refinement in Isabelle/HOL. We will be using the Autoref tool~\cite{La13}, which has been used for proving more complex results such as formalized implementation of Hopcroft’s DFA-minimization algorithm~\cite{LaTu12}. Given an algorithm phrased over abstract concepts like sets and maps, it automatically synthesizes a concrete, executable algorithm and the corresponding refinement theorem. To make it applicable for the development of actual algorithms, Autoref is integrated with the Isabelle Refinement Framework~\cite{La12} and the Isabelle Collection Framework~\cite{LL10}.
+There are several approaches to data refinement in Isabelle/HOL. We will be using the Isabelle Refinement Framework~\cite{LaTu12,La12}, which has been used for proving more complex results such as formalized implementation of Hopcroft’s DFA-minimization algorithm~\cite{LaTu12}. Given an algorithm phrased over abstract concepts like sets and maps, it automatically synthesizes a concrete, executable algorithm and the corresponding refinement theorem. To make it applicable for the development of actual algorithms, Autoref is integrated with the Isabelle Refinement Framework~\cite{La12} and the Isabelle Collection Framework~\cite{LL10}.
 
 
 \section{A short background on the Ford-Fulkerson method}
@@ -612,6 +616,12 @@ In the next sections, we describe its stepwise refinement down to executable cod
   only new data structure we had to implement where the adjacency matrices. The other data structures where readily available in the growing library 
   of the Sepref tool~\cite{La15} and the Isabelle Collection Framework~\cite{LaTu12}.
 
+  The formalization consists of roughly 8000 lines of proof text, where the graph theory up to the Ford-Fulkerson theorem required 2500 lines.
+  The abstract Edmonds-Karp algorithm and its complexity analysis contributes 900 lines, and its implementation (including BFS) another 1500 lines.
+  The remaining lines are contributed by the network checker and some auxiliary theories. The development of the theories required roughly 3 men month, a significant amount of this time going into a first, purely functional version of the implementation, which was later dropped in favor of the significantly faster imperative version.
+  TODO: Reza, is this estimate OK?
+  
+  
   \subsection{Related Work}
   We are only aware of one other formalization of the Ford-Fulkerson method conducted in Mizar~\cite{}. 
   It formalizes a fixed instance of the Ford Fulkerson method on a rather abstract level. No code has been generated, 
@@ -620,52 +630,71 @@ In the next sections, we describe its stepwise refinement down to executable cod
   Apart from our own work~\cite{La14,NoLa12}, there are several other verifications of graph algorithms, using different techniques. 
   Top-Down
   Bottom-Up: Noschinski verifies a checker for (non-) planarity certificates using a bottom-up approach. Starting at a C implementation,
-  the AutoCorres tool generates a monadic representation of the program in Isabelle. 
-  XXX, ctd here
-  
-  Unfortunately, it
+  the AutoCorres tool~\cite{AutoCorres. What's the standard paper on it?} generates a monadic representation of the program in Isabelle. Further abstractions are applied
+  to this representation to hide low-level details like pointer manipulations and fixed size integers~\cite{AutoCorres-Mind-the-Gap}. Finally, a verification condition
+  generator is used to prove the abstracted program correct. Note that approach is the opposite direction of ours: While they start at a concrete version of the algorithm and use abstraction steps to eliminate implementation details, we start at an abstract version, and use concretization steps to introduce implementation details.
 
-  ... and related work
-    Mizar-Formalization: What did they do.
-    
-    History of the formalization: 
-      Impl: From first impl that was hardly able to compute a 100 nodes graph, to current efficient one.
-    
-    Future Work: Dinic. (Actually, our abstract scheme [almost] covers Dinic's algorithm!)
-    
-
-
+  Chargu\'eraud also uses a bottom-up approach~\cite{char11} to verify imperative programs written in a subset of OCaml, amongst them a version of Dijkstra's algorithm:
+  A verification condition generator generates a \emph{characteristic formula}, which reflects the semantics of the program in the logic of the proof assistant~\cite{}.
   
-Contributions
-
-  Formal proof of mincut maxflow
-  fofo-scheme
-  inst to edmonds karp
-  complexity analysis of edmonds karp
-  refinement down to executable code. Roughly 2.5 times slower than Java. (What about OCaml)
-    + NetCheck
-    
-What shines (its a Pearl)
-  Min-Cut Max-Flow: Textboook like formal reasoning: Comprehensible proof, BUT machine checked
-    (Present one (carefully worked) example in paperI. We could use lemma \isai{augment_flow_presv_cap})
-    
-  Refinement based approach: Fofu-Scheme, instantiation to EdsKa. 
-    +1: Abstract Algo looks almost like pseudo-code you would expect in textbook.
-    +2: Fofu-Scheme proved correct for all aug-path finders. EdsKa is instantiation of it.
-    +3: Modularity: Fofu-scheme and pathfinder developed+proved independently of each other.
+  \subsection{Future Work}
+  Future work includes the formalization of more advanced maximum flow algorithms, like Dinic's algorithm~\cite{Di06} or push-relabel algorithms~\cite{GoTa88}.
+  Both, formalizing the abstract theory, and developing efficient implementations will pose some challenges.
   
-  Down to executable code, plugging in efficient data structures.
-  
-Some minor contributions:
-  Reusable BFS algorithm
-  Imperative matrix data structure (really minor).
-  
-  
-  
-    
-
-
-
+%   
+%   can be performed in two directions. First of all, the abstract theory can be extended to also support more advanced 
+%   maximum flow algorithms like push-relabel algorithms~\cite{GoTa88}
+%   
+%   
+%   
+%   What do the Coq-Guys have: CFML? Others?
+%   
+%   
+%   XXX, ctd here
+%   
+%   Unfortunately, it
+% 
+%   ... and related work
+%     Mizar-Formalization: What did they do.
+%     
+%     History of the formalization: 
+%       Impl: From first impl that was hardly able to compute a 100 nodes graph, to current efficient one.
+%     
+%     Future Work: Dinic. (Actually, our abstract scheme [almost] covers Dinic's algorithm!)
+%     
+% 
+% 
+%   
+% Contributions
+% 
+%   Formal proof of mincut maxflow
+%   fofo-scheme
+%   inst to edmonds karp
+%   complexity analysis of edmonds karp
+%   refinement down to executable code. Roughly 2.5 times slower than Java. (What about OCaml)
+%     + NetCheck
+%     
+% What shines (its a Pearl)
+%   Min-Cut Max-Flow: Textboook like formal reasoning: Comprehensible proof, BUT machine checked
+%     (Present one (carefully worked) example in paperI. We could use lemma \isai{augment_flow_presv_cap})
+%     
+%   Refinement based approach: Fofu-Scheme, instantiation to EdsKa. 
+%     +1: Abstract Algo looks almost like pseudo-code you would expect in textbook.
+%     +2: Fofu-Scheme proved correct for all aug-path finders. EdsKa is instantiation of it.
+%     +3: Modularity: Fofu-scheme and pathfinder developed+proved independently of each other.
+%   
+%   Down to executable code, plugging in efficient data structures.
+%   
+% Some minor contributions:
+%   Reusable BFS algorithm
+%   Imperative matrix data structure (really minor).
+%   
+%   
+%   
+%     
+% 
+% 
+% 
 
 
 
