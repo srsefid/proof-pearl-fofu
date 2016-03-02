@@ -1,2 +1,2 @@
 #!/bin/sh
-java -cp . fofu "../data/samples/g-100.txt" $@
+java -cp . fofu "../data/samples/g-100-dense.txt" $@
