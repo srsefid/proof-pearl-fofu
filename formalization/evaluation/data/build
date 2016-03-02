@@ -1,0 +1,21 @@
+#!/bin/sh
+gcc data-gen.c -o data-gen
+
+mkdir -p samples
+cd samples
+
+test -f g-100-dense.txt || ../data-gen 100 .25 dense 1.4
+
+test -f g-1000-dense.txt || ../data-gen 1000 .25 dense 1.4
+test -f g-1100-dense.txt || ../data-gen 1100 .25 dense 1.4
+test -f g-1200-dense.txt || ../data-gen 1200 .25 dense 1.4
+test -f g-1300-dense.txt || ../data-gen 1300 .25 dense 1.4
+test -f g-1400-dense.txt || ../data-gen 1400 .25 dense 1.4
+
+test -f g-1000-sparse.txt || ../data-gen 1000 .02 sparse 1
+test -f g-2000-sparse.txt || ../data-gen 2000 .02 sparse 1
+test -f g-3000-sparse.txt || ../data-gen 3000 .02 sparse 1
+test -f g-4000-sparse.txt || ../data-gen 4000 .02 sparse 1
+test -f g-5000-sparse.txt || ../data-gen 5000 .02 sparse 1
+
+cd ..

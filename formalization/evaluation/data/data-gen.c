@@ -44,7 +44,7 @@ void dfs (int** graph, bool* visited, int start, int size, bool reverse) {
 
 /* This function produces a random network which has no self loops. Also, there
  * will be no parallel edges in the output network.*/
-void net_init (int** graph, int size, int try_count, int max_capacity) {
+void net_init (int** graph, int size, int try_count, float ss_factor, int max_capacity) {
 	srand(341546752);
 
 	/* We assume the source is in index 0, and sink is in index size - 1. We put
@@ -61,10 +61,14 @@ void net_init (int** graph, int size, int try_count, int max_capacity) {
 
 	/* compute the number of vertices that are connected to source and sink, we
 	 *	have assumed this number is at most half of the size of  the vertex set */
-	int sout_count = 1 + (rand() % (size / 2));
-	int tin_count = 1 + (rand() % (size / 2));
+// 	int sout_count = 1 + (rand() % (size / 2));
+// 	int tin_count = 1 + (rand() % (size / 2));
 
-	// onnecting source to some of the vertices
+  int sout_count = (int)(ss_factor * size);
+  int tin_count = (int)(ss_factor * size);
+  
+  
+	// connecting source to some of the vertices
 	for (i = 0; i < sout_count; i++) {
 		int u = 1 + (rand() % (size - 2));
 		int c = 1 + (rand() % max_capacity);
@@ -100,14 +104,17 @@ void net_clean (int** graph, int size, bool* acc_nodes) {
 }
 
 int main (int argc, char** argv) {
-	if (argc < 2) {
-		printf("Usage: <V_SIZE>\n");
+	if (argc != 5) {
+		printf("Usage: <V_SIZE> <target-density> <name-suffix> <correction>\n");
 	}
 	else {
 		int v_count = atoi(argv[1]);
+    float target_density = atof(argv[2]);
+    char *name_suffix = argv[3];
+    float correction = atof(argv[4]);
 
-		if (v_count > 0) {
-			int e_tries = v_count * (v_count / 5);
+		if (v_count > 0 && 0<target_density && target_density <= 1) {
+			int e_tries = (int)(target_density * v_count * (v_count - 1) * correction);
 			int max_c = v_count;
 
 			char buffer[20];
@@ -117,7 +124,7 @@ int main (int argc, char** argv) {
 			bool* acc_nodes = calloc(v_count, sizeof(bool));
 			int* index_chg = calloc(v_count, sizeof(int));
 
-			net_init(G, v_count, e_tries, max_c);
+			net_init(G, v_count, e_tries, target_density, max_c);
 			net_clean(G, v_count, acc_nodes);
 
 			/* For every node i we compute the count of vertices that have an
@@ -149,9 +156,11 @@ int main (int argc, char** argv) {
 				//printf("\n");
 			}
 
-			char* out_path = malloc(strlen(buffer) + 6);
+			char* out_path = malloc(strlen(buffer) + strlen(name_suffix) + 9);
 			strcpy(out_path, "g-");
 			strcat(out_path, buffer);
+      strcat(out_path, "-");
+      strcat(out_path, name_suffix);
 			strcat(out_path, ".txt");
 
 			FILE* fw = fopen(out_path, "w");
@@ -171,10 +180,12 @@ int main (int argc, char** argv) {
 			free(acc_nodes);
 			graph_free(G, v_count);
 
-			printf("Successfully generated a graph with %d nodes.\n", v_count);
+      float density = (float)edge_count / (v_count * (v_count - 1));
+      
+			printf("Successfully generated a graph with %d nodes and %d edges. Density is %.2f\n", v_count, edge_count, density);
 		}
 		else {
-			printf("Number of vertices must be a value greater that zero.\n");
+			printf("Number of vertices must be positive integer, target density must be in ]0..1].\n");
 		}
 	}
 
