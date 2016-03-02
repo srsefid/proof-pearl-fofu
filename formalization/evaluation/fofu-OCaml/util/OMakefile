@@ -1,0 +1,24 @@
+.PHONY: all clean install
+
+FILES[] =
+  utilPervasives
+  utilList
+  utilArray
+  util
+
+LIB = util
+OCAMLLINK = $(OCAMLC)
+OCAMLOPTLINK = $(OCAMLOPT)
+NATIVE_ENABLED = true
+
+.DEFAULT: all
+
+all: $(OCamlLibrary $(LIB), $(FILES))
+
+install: all
+	ocamlfind install $(LIB) META $(LIB).a $(LIB).cma $(LIB).cmi $(LIB).cmx $(LIB).cmxa
+
+clean:
+	rm -rf *.cm[iox] *.o *~ *.omc .omakedb .omakedb.lock *.cmxa *.a *.annot
+
+

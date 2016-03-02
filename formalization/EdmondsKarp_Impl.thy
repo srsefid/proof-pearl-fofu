@@ -725,6 +725,26 @@ begin
     lemma [def_pat_rules]: "Network.compute_rflow$c$s$t \<equiv> UNPROTECT compute_rflow" by simp
     sepref_register "PR_CONST compute_rflow" "capacity i_mtx \<Rightarrow> i_rflow nres"
 
+    (*(* TODO: Move *)
+    lemma param_integer[param]:
+      "(0, 0::integer) \<in> Id"
+      "(1, 1::integer) \<in> Id"
+      "(numeral n::integer,numeral n::integer) \<in> Id"
+      "(op <, op <::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
+      "(op \<le>, op \<le>::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
+      "(op =, op =::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
+      "(op +::integer\<Rightarrow>_,op +)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+      "(op -::integer\<Rightarrow>_,op -)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+      "(op *::integer\<Rightarrow>_,op * )\<in>Id\<rightarrow>Id\<rightarrow>Id"
+      "(op div::integer\<Rightarrow>_,op div)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+      "(op mod::integer\<Rightarrow>_,op mod)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+      by auto
+
+    lemmas [sepref_import_param] = param_integer  
+
+    lemmas [id_rules] = 
+      itypeI[Pure.of 0 "TYPE (integer)"]
+    *)  
 
     schematic_lemma rg_succ2_impl:
       fixes ps :: "node \<Rightarrow> node list" and cf :: graph

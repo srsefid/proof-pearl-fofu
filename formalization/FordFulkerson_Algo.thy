@@ -64,6 +64,17 @@ begin
         by intro_locales
     qed    
 
+    lemma int_of_integer_less_iff: "int_of_integer x < int_of_integer y \<longleftrightarrow> x<y"
+      by (simp add: less_integer_def)
+
+    lemma nat_of_integer_less_iff: "x\<ge>0 \<Longrightarrow> y\<ge>0 \<Longrightarrow> nat_of_integer x < nat_of_integer y \<longleftrightarrow> x<y"
+      unfolding nat_of_integer.rep_eq
+      by (auto simp: int_of_integer_less_iff nat_less_eq_zless int_of_integer_less_iff[of 0, simplified])
+      
+      
+      
+
+
     text \<open>Correctness of the algorithm is a consequence from the 
       Ford-Fulkerson theorem. Note that we use the verification 
       condition generator of the refinement framework, and then discharge
@@ -116,7 +127,7 @@ begin
           ultimately show "((NFlow.augment c f
              (NFlow.augmentingFlow c f p), False),
             (f,False)) \<in> ?S"
-            by simp   
+            by (simp)
         }
       }
       {
