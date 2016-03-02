@@ -246,7 +246,7 @@ Following we present the equivalent Isar proof. Note that we have to additionall
 \Snippet{augment_flow_presv_cap}
 
 
-In reference books, it is a convention to use pseudocodes for presenting the algorithms. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm and leaves out the implementation details. We present the Ford-Fulkerson method using the syntax of Autoref~\cite{La13} tool which is quite similar to pseudocode of the algorithm:
+In reference books, it is a convention to use pseudocodes for presenting the algorithms. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm and leaves out the implementation details. We present the Ford-Fulkerson method using the syntax of (TODO: here I mention autoref again, I was not aware that we are not using it anymore. So please correct all the references that I made to autoref tool) Autoref~\cite{La13} tool which is quite similar to pseudocode of the algorithm:
 \Snippet{ford_fulkerson_algo}
 
 In the pseudocode of the Ford-Fulkerson method, the path found while evaluating the loop condition is later used for augmenting the flow inside the loop body. The best way for implementing such requirement using syntax of the refinement framework is moving the path lookup inside the loop body. To do so, we modified the while-loop by introducing a break flag. The flag is initially off, and is set if no augmenting path is found in the residual graph.
