@@ -4,6 +4,15 @@ structure Profile = MLton.Profile
 
 val profData = Profile.Data.malloc ()
 
+exception FAILED
+
+fun fail msg = (print (msg ^ "\n"); raise FAILED)
+
+fun 
+  the_fail NONE msg = fail msg
+| the_fail (SOME x) msg = x
+
+
 
 fun readList (infile : string) = let
   val ins = TextIO.openIn infile
@@ -13,8 +22,41 @@ fun readList (infile : string) = let
     | SOME line => line :: loop ins
 in
   let 
-    val lines = (loop ins before TextIO.closeIn ins)
+    fun parse_integer s = case Int.fromString s of
+      SOME i => i
+    | NONE => fail ("Expected integer, but got '" ^ s ^"'")  
+
+    val parse_int = Int_of_integer o parse_integer
+    val parse_nat = nat_of_integer o parse_integer
+
+    val tokenize = String.tokens (fn c => c = #" ")
     
+    fun parse_edge s = let
+      val l = tokenize s
+    in
+      case l of 
+        [u,v,c] => (parse_nat u, (parse_nat v, parse_int c))
+      | _ => fail ("Expected edge in format 'u v c', but got " ^ s)
+    end
+    
+    fun parse_counts s = let 
+      val l = tokenize s
+    in
+      case l of 
+        [numV,numE] => (parse_integer numV, parse_integer numE)
+      | _ => fail ("Expected counts in format 'numV numE', but got " ^ s)
+    end    
+
+
+    fun parse_graph (counts :: edges) = (parse_counts counts, map parse_edge edges)
+      | parse_graph _ = fail "Empty graph file"
+    
+
+    val lines = (loop ins before TextIO.closeIn ins)
+    val ((numV,numE),edges) = parse_graph lines
+    
+    
+    (*  
     fun rem_opt i = 
     case i of
       NONE   => nat_of_integer (0)
@@ -34,17 +76,13 @@ in
            (rem_opt (Int.fromString(hd (tl toks))),
            rem_opti (Int.fromString(hd (tl (tl toks)))))) :: line_parse ls 
         end 
+    *)      
   in
-    line_parse (tl lines)
+    (numV,edges)
   end
 end
 
 
-exception FAILED
-
-fun 
-  the_fail NONE msg = (print (msg ^ "\n"); raise FAILED)
-| the_fail (SOME x) msg = x
 
 
 
@@ -83,8 +121,8 @@ in
     val t = Time.fromNanoseconds (Time.toNanoseconds t div n)
     val res = compres res
     val _ = print ("\n");
-    val _ = print ("Result: " ^ res ^ "\n");
-    val _ = print ("@@@ Execution time: " ^ IntInf.toString (Time.toMilliseconds t) ^ "ms\n")
+    val _ = print ("@@@max-flow: " ^ res ^ "\n");
+    val _ = print ("@@@time: " ^ IntInf.toString (Time.toMilliseconds t) ^ " ms\n")
     
   in () end
 
@@ -110,25 +148,32 @@ end
 
 fun main () = let
   val args = CommandLine.arguments ();
+  
+  fun perform s t G = (
+    measure 1 (fofu_fun s t G);
+    print ("stat_outer_c = " ^ IntInf.toString (!stat.outer_c) ^ "\n");
+    print ("stat_inner_c = " ^ IntInf.toString (!stat.inner_c) ^ "\n");
+    Profile.Data.write(profData,"mlmon.prof.out");
+    Profile.Data.free(profData)
+  )
+  
 in 
   case args of 
-    [s,t,gname] => 
-      let
-        val s = the (Int.fromString s)
-        val t = the (Int.fromString t)
-        val G = readList gname
-      in  
-        measure 1 (fofu_fun s t G);
-        print ("stat_outer_c = " ^ IntInf.toString (!stat.outer_c) ^ "\n");
-        print ("stat_inner_c = " ^ IntInf.toString (!stat.inner_c) ^ "\n");
-        Profile.Data.write(profData,"mlmon.prof.out");
-        Profile.Data.free(profData)
-      end
-    | _ => print "Usage: Fofu <s> <t> <file-name>\n"
+    [s,t,gname] => let
+      val s = the (Int.fromString s)
+      val t = the (Int.fromString t)
+      val (_,G) = readList gname
+    in  
+      perform s t G
+    end
+  | [gname] => let
+      val (N,G) = readList gname
+      val s = 0
+      val t = N - 1
+    in    
+      perform s t G
+    end
+    | _ => print "Usage: Fofu [<s> <t>] <file-name>\n  If s and t not specified, nodes 0 and |V|-1 are taken."
 end
 
 val _ = if MLton.isMLton then main() else ()
-
-
-
-

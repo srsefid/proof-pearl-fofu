@@ -138,9 +138,9 @@ int main(int argc, char** argv) {
 			clock_t tStart = clock();
 			int maxFlow = edmondsKarp(0, V_size -1);
 
-			printf("@@@ Execution Time: %.4f milliseconds\n", ((double)(clock() - tStart)/CLOCKS_PER_SEC) * 1000);
-			printf("\t[Input (V E): %d %d]\n", V_size, E_size);
-			printf("\t=> Maximum flow value: %d\n", maxFlow);
+			printf("@@@time: %.0f ms\n", ((double)(clock() - tStart)/CLOCKS_PER_SEC) * 1000);
+			printf("[Input (V E): %d %d]\n", V_size, E_size);
+			printf("@@@max-flow: %d\n", maxFlow);
       printf("stat_outer_c: %d\n", stat_outer_c);
       printf("stat_counter_ga: %d\n", stat_counter_ga);
       printf("stat_counter_mget: %d\n", stat_counter_mget);

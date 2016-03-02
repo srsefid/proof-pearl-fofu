@@ -45,7 +45,7 @@ void dfs (int** graph, bool* visited, int start, int size, bool reverse) {
 /* This function produces a random network which has no self loops. Also, there
  * will be no parallel edges in the output network.*/
 void net_init (int** graph, int size, int try_count, int max_capacity) {
-	srand(time(NULL));
+	srand(341546752);
 
 	/* We assume the source is in index 0, and sink is in index size - 1. We put
 	 * random edges between any vertex except these two. and we connect them later */
