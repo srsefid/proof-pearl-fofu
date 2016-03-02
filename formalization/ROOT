@@ -14,5 +14,6 @@ session Snippets = "Edka_Base" +
      document_output = "generated"]
    theories
      Augmenting
+     FordFulkerson_Algo
    document_files
      build

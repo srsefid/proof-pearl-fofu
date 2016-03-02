@@ -34,7 +34,7 @@
 \ \ \isacommand{also}\isamarkupfalse%
 \ \isacommand{have}\isamarkupfalse%
 \ {\isachardoublequoteopen}{\isasymdots}\ {\isasymge}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharminus}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isacommand{using}\isamarkupfalse%
+\ \ \ \ \isacommand{using}\isamarkupfalse%
 \ {\isacartoucheopen}f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}\ {\isasymle}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isacartoucheclose}\ \isacommand{by}\isamarkupfalse%
 \ auto\isanewline
 \ \ \isacommand{also}\isamarkupfalse%
@@ -89,4 +89,21 @@
 %
 \endisadelimproof
 %
+}%EndSnippet
+\DefineSnippet{ford_fulkerson_algo}{
+\isacommand{definition}\isamarkupfalse%
+\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
+\ \ let\ f\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharunderscore}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
+\isanewline
+\ \ {\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ while\isactrlsub T\isanewline
+\ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ {\isasymnot}brk{\isacharparenright}\ \isanewline
+\ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}{\isachardot}\ do\ {\isacharbraceleft}\isanewline
+\ \ \ \ \ \ p\ {\isasymleftarrow}\ find{\isacharunderscore}augmenting{\isacharunderscore}spec\ f{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ case\ p\ of\ \isanewline
+\ \ \ \ \ \ \ \ None\ {\isasymRightarrow}\ return\ {\isacharparenleft}f{\isacharcomma}True{\isacharparenright}\isanewline
+\ \ \ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ return\ {\isacharparenleft}augment\ c\ f\ p{\isacharcomma}\ False{\isacharparenright}\isanewline
+\ \ \ \ {\isacharbraceright}{\isacharparenright}\isanewline
+\ \ \ \ {\isacharparenleft}f{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ return\ f\ \isanewline
+{\isacharbraceright}{\isachardoublequoteclose}%
 }%EndSnippet

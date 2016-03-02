@@ -96,7 +96,7 @@ One solution for the aforementioned problem is refinement [cite]. In order to ge
 There are several approaches to data refinement in Isabelle/HOL. We will be using the Autoref tool [cite], which has been used for proving more complex results such as formalized implementation of Hopcroft’s DFA-minimization algorithm [cite]. Given an algorithm phrased over abstract concepts like sets and maps, it automatically synthesizes a concrete, executable algorithm and the corresponding refinement theorem. To make it applicable for the development of actual algorithms, Autoref is integrated with the Isabelle Refinement Framework [cite] and the Isabelle Collection Framework [cite].
 
 
-\section{Short Background on MinCutMaxFlow and FoFu}
+\section{A short background on the Ford-Fulkerson method}
 % \begin{comment}
 %   GOAL: 
 %     1) Remind the reader of FoFu. The educated reader should have the feeling:
@@ -144,9 +144,29 @@ The Ford-Fulkerson algorithm is the direct consequence of the Ford-Fulkerson the
 
 The total flow value is increased by manipulating the flow values along different edges. However, the flow along specific edges might decrease during this process. In order to perform these operations, the Ford-Fulkerson algorithm defines the residual graph of the flow network. Intuitively, the residual graph corresponding to a flow in a given flow network, has the same vertices as the flow network. It also and consists of edges with capacities representing how flow can be changed along the edges of the flow network.
 
-Assume a flow $f$ in an $s$-$t$ network with capacity function $c$. An edge $(u, v)$ of the network can admit an additional amount of flow equal to the edge’s capacity minus the flow along that edge. If this value is positive, then a $(u, v)$ edge is added to the residual graph with a residual capacity $c_f (u, v) = c (u, v) - f (u, v)$. So, the residual graph only contains those edges of the original flow network that have left-over capacities. The residual graph may also contain some edges that do not exist in the original flow network. For each edge $(u, v)$ in the flow network which has a positive flow value, a $(v, u)$ edge is added to the residual graph with the residual capacity $c_f (v, u) = f (u, v)$. The edge $(v, u)$ indicates the possibility for pushing the flow backward along the edge $(u, v)$ in the original flow network.
+%Assume a flow $f$ in an $s$-$t$ network with capacity function $c$. An edge $(u, v)$ of the network can admit an additional amount of flow equal to the edge’s capacity minus the flow along that edge. If this value is positive, then a $(u, v)$ edge is added to the residual graph with a residual capacity $c_f (u, v) = c (u, v) - f (u, v)$. So, the residual graph only contains those edges of the original flow network that have left-over capacities. The residual graph may also contain some edges that do not exist in the original flow network. For each edge $(u, v)$ in the flow network which has a positive flow value, a $(v, u)$ edge is added to the residual graph with the residual capacity $c_f (v, u) = f (u, v)$. The edge $(v, u)$ indicates the possibility for pushing the flow backward along the edge $(u, v)$ in the original flow network.
 
-After each update of the flow $f$, the algorithm considers the new residual graph $G_f$ corresponding to that flow. Then the algorithm looks for an augmenting path--- a simple path from source to the sink--- in the residual graph. If such a path could be found, it will be used to construct a flow in the residual graph. This flow provides a road map for modifying the current flow in the flow network. The process of increasing the current flow using an augmenting flow is called augmentation. Let $f$ be the current flow in an $s$-$t$ network $G = (V, E)$ with capacity function $c$, and $f$ be a flow in the corresponding residual graph. The augmentation of $f$ using $f'$ is a function from $V \times V$ to $\mathbb{R}$, defined as following:
+There are two kinds of edges in the residual graph: 1) those of the residual graph that present the edges of the flow network with left-over capacities; and 2) those of the residual graph that do not occur in the flow network, and indicate the possibility for pushing the flow backward. Formally speaking, consider a flow $f$ on an $s$-$t$ network $G = (V, E)$ with the capacity function $c$. A residual capacity function $c_f \colon V \times V \rightarrow \mathbb{R}$ is defined as following:
+\[ c_f (u, v) = 
+	\begin{cases}
+	c (u, v) - f(u, v) \hfill & \text{ if $(u, v) \in E$} \\
+	f (v, u) \hfill & \text{ if $(v, u) \in E$} \\	
+	0 \hfill & \text{ otherwise} \\
+	\end{cases} 
+\]
+
+Then the residual graph corresponding to $f$ and $G$ is indicated by $G_f = (V, E_f)$, where the residual edge set $E_f$ is defined as following:
+\[ E_f = \{(u,v) \in V \times V \colon c_f (u, v) > 0\}\]
+
+After each flow update, the algorithm considers the residual graph corresponding to the new flow. Then the algorithm looks for an augmenting path--- a simple path from source to the sink--- in the residual graph. If such a path could be found, it will be used to construct a flow in the residual graph. Let $p$ be such a path. The residual capacity of $p$ is defined as $c_f(p) = min \{c_f(u, v): \text{$(u, v)$ is on  $p$}\}$. Then an augmenting flow $f_p \colon V \times V \rightarrow \mathbb{R}$  in the residual graph can be defined using $p$ as following:
+\[ f_p (u, v) = 
+	\begin{cases}
+	c_f(p) \hfill & \text{ if $(u, v)$ is on $p$} \\	
+	0 \hfill & \text{ otherwise} \\
+	\end{cases} 
+\]
+
+This flow provides a road map for modifying the current flow in the flow network. The process of increasing the current flow using an augmenting flow is called augmentation. Let $f$ be the current flow in an $s$-$t$ network $G = (V, E)$ with capacity function $c$, and $f'$ be a flow in the corresponding residual graph. The augmentation of $f$ using $f'$ is a function from $V \times V$ to $\mathbb{R}$, defined as following:
 \[ (f \uparrow f') (u, v) = 
 	\begin{cases}
 	f (u, v) + f'(u, v) - f'(v, u) \hfill & \text{ if $(u, v) \in E$} \\	
@@ -167,7 +187,7 @@ The termination of the Ford-Fulkerson algorithm depends on how the augmenting pa
 The Ford-Fulkerson algorithm is sometimes called a method instead of an algorithm because it does not fully specify the procedure for finding the augmenting path in the residual graph. There are several implementations with different execution times. For instance, the Edmond-Karp algorithm uses breadth-first-search (BFS) for finding augmenting paths and has $O (VE^2)$ running-time. The augmentings paths that are computed using BFS are also shortest paths connecting source to the sink in the residual graph. Edmond and Karp showed that in the Ford-Fulkerson algorithm, if each augmenting path is the shortest one, the length of the augmenting paths is non-decreasing and it always terminates. Which finally gave the polynomial algorithm for solving the maximum flow problem in generic case of real edge capacities.
 
 
-\section{Formalizing MinCutMaxFlow and Fofu}
+\section{Formalizing the Ford-Fulkerson method}
 %  GOAL: Present highlights of our formalization, persuade the reader that we have done something substantial.
 %    Reader should think: Yeah, they did cool stuff!
 %
@@ -185,15 +205,36 @@ The Ford-Fulkerson algorithm is sometimes called a method instead of an algorith
 %    Oppose our algo to textbook pseudocode.
 %    
 
-A formal proof contains many technical details that are not presented in an informal proof. While dealing with the technical details in a proof causes distraction, leaving out such details makes it hard to follow the proofs. Our formal proof of the Ford-Fulkerson method closely follows the informal proof described by Cormen et al. [cite]. So, readers may use this informal proof as a guide to better understand the relevant thoughts in our formal proof. Moreover using the proof language Isar, we made the formal proof readable even for readers that are not familiar with Isabelle.
+%A formal proof contains many technical details that are not presented in an informal proof. While dealing with the technical details in a proof causes distraction, leaving out such details makes it hard to follow the proofs.  . So, readers may use this informal proof as a guide to better understand the relevant thoughts in our formal proof. Moreover using the proof language Isar, we made the formal proof readable even for readers that are not familiar with Isabelle.
 
-As an example consider the following formal proof. Let $cf$ be the residual graph corresponding to a flow $f$ in an $s$-$t$ network $c$, and let $f'$ be a flow in $cf$. Consider the definition of the augment function that was described in previous section. The following lemma states that the result of augmenting $f$ with $f'$ is another function which satisfies the capacity constraint of a $s$-$t$ flow in $c$. 
+Informal proofs focus on the relevant thoughts by leaving out technical details. However, in a formal proof each step has to be precisely specified as a valid application of some inference rule which makes formal proofs often lengthy and hard to follow. In the case that an interactive theorem prover is used, readers may even need to replay the proof to understand the idea behind it. In Isabelle proof assistant, the Isar proof language bridges the semantic gap between internal notions of proof given by interactive theorem proving systems and an appropriate level of abstraction for user-level work. Isar makes formal proofs readable even for those who are not familiar with Isabelle concepts. We have used such a functionality to present our formal proof of the Ford-Fulkerson method which resembels the informal proof described by Cormen et al. [cite].
+
+As an example consider the following proof obtained form Cormen's algorithm book. Let $cf$ be the residual graph corresponding to a flow $f$ in an $s$-$t$ network $c$, and let $f'$ be a flow in $cf$. Consider the definition of the augment function that was described in previous section. Then, the result of augmenting $f$ with $f'$ is another function which satisfies the capacity constraint of a $s$-$t$ flow in $c$.
+
+\emph{\textbf{Proof.}} first observe that if $(u, v) \in E$, then $c_f(v, u) = f(u, v)$. Therefore, we have $f'(v,u) \leq c_f(v, u) = f(u, v)$, and hence
+	\begin{align*}
+	(f \uparrow f') (u, v) &= f(u, v) + f'(u, v) - f'(v, u)  && \text{(by definition of augment)} \\
+	& \geq f(u, v) + f'(u, v) - f(v, u) && \text{(because $f'(v,u) \leq f(u, v)$)} \\
+	& = f'(u, v) \\
+	& \geq 0.
+	\end{align*}
+In addition,
+	\begin{align*}
+	(f \uparrow f') (u, v) &= f(u, v) + f'(u, v) - f'(v, u)  && \text{(by definition of augment)} \\
+	& \leq f(u, v) + f'(u, v) && \text{(because flows are nonnegative)} \\
+	& \leq f(u, v) + c_f(u, v) &&  \text{(capacity constraint)} \\
+	& = f(u, v) + c(u, v) - f(u, v) && \text{(definition of $c_f$)} \\
+	& = c (u, v).
+	\end{align*}
+
+Following we present the equivalent Isar proof. Note that we have to additionally consider the case that $(u, v) \notin E$. Moreover in line 6, we have used the assumption that there are no parallel edges in a flow network. This important property is not mentioned in Cormen's proof.
 \Snippet{augment_flow_presv_cap}
 
-Most of the reference books in the field of algorithm provide pseudocodes instead of executable implementations. However, implementing an abstract presentation of 
-an algorithm involves many technical details that are never presented in the books. We also tried to fill in this gap. First, we present the Ford-Fulkerson method using the syntax of Autoref[cite] tool which is quite similar to pseudocode of the algorithm. Next, we refine the abstract representation into an executable implementation. For instance, the following Isabelel definition abstractly presents the Ford-Fulkerson method.
-% \Snippet{6.1-1_0}
-% \Snippet{6.1-1}
+
+In reference books, it is a convention to use pseudocodes for presenting the algorithms. The abstract version of the algorithm has a clean correctness proof as it only captures the idea behind the algorithm and leaves out the implementation details. We present the Ford-Fulkerson method using the syntax of Autoref[cite] tool which is quite similar to pseudocode of the algorithm:
+\Snippet{ford_fulkerson_algo}
+
+In the pseudocode of the Ford-Fulkerson method, the path found while evaluating the loop condition is later used for augmenting the flow inside the loop body. The best way for implementing such requirement using syntax of the refinement framework is moving the path lookup inside the loop body. To do so, we modified the while-loop by introducing a break flag. The flag is initially off, and is set if no augmenting path is found in the residual graph.
 
 
 \section{Refinement in Isabelle/HOL}
