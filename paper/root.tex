@@ -1,6 +1,7 @@
 % Markierungen: TODO
 \documentclass{llncs}
 
+\usepackage{etex}
 \pagestyle{plain} % turn on page numbers
 \usepackage[utf8]{inputenc}
 \usepackage{microtype} % Better typesetting for PDFs -- is enabling this ok?
@@ -22,8 +23,9 @@
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{wrapfig}
-
 \usepackage{multirow}
+\usepackage{pgfplots}
+
 
 \usepackage{packages/isabelle}
 \usepackage{packages/isabelletags}
@@ -543,11 +545,70 @@ In the next sections, we describe its stepwise refinement down to executable cod
   combinators in the monad must terminate. However, it does not guarantee that we have not injected spurious code equations: E.g. $f~x = f~x$,
   is provable by reflexivity, but causes the generated program to diverge.
 
-    
-    
-
 \section{Benchmarking}
   We have compared the running time of our algorithm against an unverified reference implementation in Java, taken from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}.
+  
+\begin{figure}[!h]
+\centering    
+\begin{tikzpicture}[thick,scale=1, every node/.style={scale=1}] %change the scales if you like to reduce the size
+	\begin{axis}[
+		%title={Benchmark of the Edmonds-Karp algorithm},
+	    axis x line*= bottom,
+	    axis y line*= left,
+	    xmode = log,
+	    ymode = log,
+	    xlabel = Number of vertices in the network,
+	    ylabel = Execution time in milliseconds,
+    	smooth,
+	    cycle list name = black white,
+	    legend style = { 
+	    	at={(0.59,0.4)}, 
+    	    anchor=north west,
+	        draw=black, 
+	        fill= white,
+        	align=left
+    	}
+	]
+	
+	%start data for plotting
+		\addplot table {
+			1000 204
+			2000 1430
+			3000 4928
+			4000 9299
+			5000 23625
+		}; \addlegendentry{SML, Sparse};
+
+		\addplot table {
+			1000 15
+			2000 231
+			3000 828
+			4000 2145
+			5000 4868
+		}; \addlegendentry{Java, Sparse};
+
+		\addplot table {
+			1000 6575
+			1100 8067
+			1200 10892
+			1300 14070
+			1400 17317
+		}; \addlegendentry{SML, Dense};
+
+		\addplot table {
+			1000 4011
+			1100 5487
+			1200 7011
+			1300 9815
+			1400 12156
+		}; \addlegendentry{Java, Dense};
+	%end data for plotting
+
+	\end{axis}
+\end{tikzpicture}
+%\caption{Edmonds-Karp benchmark}\label{fig:benchmark}
+\end{figure}
+
   We have done the comparison on randomly generated sparse and dense networks, the sparse networks having a \emph{density} ($\frac{|E|}{|V|(|V| - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. For sparse networks, we varied the number of nodes between $1000$ and $5000$, for dense networks between $1000$ and $1400$.
   The results are shown in Table~\ref{tab:benchmark}. 
   \begin{wrapfigure}{o}{.4\textwidth}
