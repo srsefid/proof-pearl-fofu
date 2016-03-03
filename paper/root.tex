@@ -522,97 +522,97 @@ results in a program that refines the original program. This gives us a natural 
 
 \section{Benchmarking}\label{sec:benchmark}
   We have compared the running time of our algorithm against an unverified reference implementation in Java, taken from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}.
-  
-\begin{figure}[!h]
-\centering    
-\begin{tikzpicture}[thick,scale=1, every node/.style={scale=1}] %change the scales if you like to reduce the size
-	\begin{axis}[
-		%title={Benchmark of the Edmonds-Karp algorithm},
-	    axis x line*= bottom,
-	    axis y line*= left,
-	    xmode = log,
-	    ymode = log,
-	    xlabel = Number of vertices in the network,
-	    ylabel = Execution time in milliseconds,
-		xticklabels={$0$, $1000$,$2000$,$3000$,$4000$},
-    	smooth,
-	    cycle list name = black white,
-	    legend style = { 
-	    	at={(0.59,0.4)}, 
-    	    anchor=north west,
-	        draw=black, 
-	        fill= white,
-        	align=left
-    	}
-	]
-	
-	%start data for plotting
-		\addplot table {
-			1000 204
-			2000 1430
-			3000 4928
-			4000 9299
-			5000 23625
-		}; \addlegendentry{SML, Sparse};
+  We have done the comparison on randomly generated sparse and dense networks, the sparse networks having a \emph{density} ($\frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
+  For sparse networks, we varied the number of nodes between $1000$ and $5000$, for dense networks between $1000$ and $1400$.
+  The results are shown in Figure~\ref{fig:benchmark}, in a double-logarithmic scale. 
+%   \begin{wrapfigure}{o}{.4\textwidth}
+%   \vspace{-20pt}
+%   \begin{center}
+%   \begin{tabular}{|c|c|c|}
+%   \hline
+%   Name        & SML       & Java   \\
+%   \hline\hline
+%   1000-sparse & 204       & 15     \\
+%   2000-sparse & 1430      & 231    \\
+%   3000-sparse & 4928      & 828    \\
+%   4000-sparse & 9299      & 2145   \\
+%   5000-sparse & 23625     & 4868   \\
+%   1000-dense  & 6575      & 4011   \\
+%   1100-dense  & 8067      & 5487   \\
+%   1200-dense  & 10892     & 7011   \\
+%   1300-dense  & 14070     & 9815   \\
+%   1400-dense  & 17317     & 12156  \\
+%   \hline
+%   \end{tabular}
+%   \end{center}
+%   \vspace{-15pt}
+%   \caption{Dijkstra benchmark}\label{tab:benchmark}
+%   \vspace{-20pt}
+%   \end{wrapfigure}
+ 
+  \begin{figure}[!h]
+  \centering    
+  \begin{tikzpicture}[thick,scale=1, every node/.style={scale=1}] %change the scales if you like to reduce the size
+    \begin{axis}[
+      %title={Benchmark of the Edmonds-Karp algorithm},
+        axis x line*= bottom,
+        axis y line*= left,
+        xmode = log,
+        ymode = log,
+        xlabel = Number of vertices in the network,
+        ylabel = Execution time in milliseconds,
+      xticklabels={$0$, $1000$,$2000$,$3000$,$4000$},
+        smooth,
+        cycle list name = black white,
+        legend style = { 
+          at={(0.59,0.4)}, 
+            anchor=north west,
+            draw=black, 
+            fill= white,
+            align=left
+        }
+    ]
+    
+    %start data for plotting
+      \addplot table {
+        1000 204
+        2000 1430
+        3000 4928
+        4000 9299
+        5000 23625
+      }; \addlegendentry{SML, Sparse};
 
-		\addplot table {
-			1000 15
-			2000 231
-			3000 828
-			4000 2145
-			5000 4868
-		}; \addlegendentry{Java, Sparse};
+      \addplot table {
+        1000 15
+        2000 231
+        3000 828
+        4000 2145
+        5000 4868
+      }; \addlegendentry{Java, Sparse};
 
-		\addplot table {
-			1000 6575
-			1100 8067
-			1200 10892
-			1300 14070
-			1400 17317
-		}; \addlegendentry{SML, Dense};
+      \addplot table {
+        1000 6575
+        1100 8067
+        1200 10892
+        1300 14070
+        1400 17317
+      }; \addlegendentry{SML, Dense};
 
-		\addplot table {
-			1000 4011
-			1100 5487
-			1200 7011
-			1300 9815
-			1400 12156
-		}; \addlegendentry{Java, Dense};
-	%end data for plotting
+      \addplot table {
+        1000 4011
+        1100 5487
+        1200 7011
+        1300 9815
+        1400 12156
+      }; \addlegendentry{Java, Dense};
+    %end data for plotting
 
-	\end{axis}
-\end{tikzpicture}
-%\caption{Edmonds-Karp benchmark}\label{fig:benchmark}
-\end{figure}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Edmonds-Karp benchmark}\label{fig:benchmark}
+  \end{figure}
 
-  We have done the comparison on randomly generated sparse and dense networks, the sparse networks having a \emph{density} ($\frac{|E|}{|V|(|V| - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. For sparse networks, we varied the number of nodes between $1000$ and $5000$, for dense networks between $1000$ and $1400$.
-  The results are shown in Table~\ref{tab:benchmark}. 
-  \begin{wrapfigure}{o}{.4\textwidth}
-  \vspace{-20pt}
-  \begin{center}
-  \begin{tabular}{|c|c|c|}
-  \hline
-  Name        & SML       & Java   \\
-  \hline\hline
-  1000-sparse & 204       & 15     \\
-  2000-sparse & 1430      & 231    \\
-  3000-sparse & 4928      & 828    \\
-  4000-sparse & 9299      & 2145   \\
-  5000-sparse & 23625     & 4868   \\
-  1000-dense  & 6575      & 4011   \\
-  1100-dense  & 8067      & 5487   \\
-  1200-dense  & 10892     & 7011   \\
-  1300-dense  & 14070     & 9815   \\
-  1400-dense  & 17317     & 12156  \\
-  \hline
-  \end{tabular}
-  \end{center}
-  \vspace{-15pt}
-  \caption{Dijkstra benchmark}\label{tab:benchmark}
-  \vspace{-20pt}
-  \end{wrapfigure}
-  
-  (TODO: Table's caption is incorrect, I think we have enough space to print the whole table with SML, Java as rows and graph size as columns. Also, single lines for separating table looks nicer. I have seen it in your Hopcroft's paper) We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of 6, while for dense graphs, our implementation comes quite close 
+  We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of 6, while for dense graphs, our implementation comes quite close 
   to the Java implementation. We have no full explanation for this phenomenon. Note that the Java implementation operates on flows, while our implementation 
   operates on residual graphs (\cf Section~\ref{sec:impl_res_graph}). Moreover, the Java implementation does not store the augmenting 
   path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_datastructures}).
@@ -637,46 +637,46 @@ results in a program that refines the original program. This gives us a natural 
 \section{Conclusion}\label{sec:concl}
   In this paper, we have presented a verification of the Ford-Fulkerson method, using a stepwise refinement approach.
   Starting with a proof of the Ford-Fulkerson theorem, we have verified the generic Ford-Fulkerson method, then 
-  specialized it to the Edmonds-Karp algorithm and proved the upper bound $O(|E||V|)$ for the number of outer loop iterations.
-  We then used several refinement steps to derive an efficiently executable implementation of the algorithm, 
-  involving a verified breadth first search to obtain shortest augmenting paths. 
+  specialized it to the Edmonds-Karp algorithm and proved the upper bound $O(VE)$ for the number of outer loop iterations.
+  We then conducted several refinement steps to derive an efficiently executable implementation of the algorithm, 
+  including a verified breadth first search algorithm to obtain shortest augmenting paths. 
   Finally, we added a verified algorithm to check whether the input is a valid network, and generated executable code in SML.
   Our implementation compares well to a reference implementation in Java.
   
-  Our formalization has combined several techniques to achieve an elegant and accessible formalization: The Isar-proof language~\cite{}
-  allows us to write formal proofs that closely follow informal proofs found in textbooks. This way, we have created a completely rigorous, but 
-  still accessible, proof of the Ford-Fulkerson theorem. The Isabelle Refinement Framework allows us to first formalize an algorithm abstractly, 
-  and then refine it, in a modular fashion, towards an efficient implementation. This allowed us to present the Ford-Fulkerson method on a level 
+  Our formalization has combined several techniques to achieve an elegant and accessible formalization: The Isar-proof language~\cite{Wenzel99}
+  supports writing formal proofs that closely resemble informal proofs found in textbooks. This way we have created a completely rigorous but 
+  still accessible proof of the Ford-Fulkerson theorem. The Isabelle Refinement Framework~\cite{LaTu12,La12} and the Sepref tool~\cite{La15,La16} 
+  provide stepwise refinement techniques to formalize an algorithm abstractly, and then refine it, in a modular fashion, towards an efficient implementation. 
+  This allowed us to present the Ford-Fulkerson method on a level 
   of abstraction that closely resembles pseudocode presentations found in textbooks, and then formally link this presentation to an efficient
   implementation. Moreover, modularity of refinement allowed us to develop the breadth first search algorithm independently, and later link it to the 
-  main algorithm. The BFS algorithm can be reused as building block for other algorithms. Also the data structures are re-usable, and in fact, the 
-  only new data structure we had to implement where the adjacency matrices. The other data structures where readily available in the growing library 
-  of the Sepref tool~\cite{La15} and the Isabelle Collection Framework~\cite{LaTu12}.
-
+  main algorithm. The BFS algorithm can be reused as building block for other algorithms. Also the data structures are re-usable. 
+  Although we had to implement the array representation of (capacity) matrices for this project, it will be added to the growing library of data structures 
+  supported by the Sepref tool, such that it can be re-used for future formalizations.
+  
+  We conclude with some statistics:
   The formalization consists of roughly 8000 lines of proof text, where the graph theory up to the Ford-Fulkerson theorem required 2500 lines.
   The abstract Edmonds-Karp algorithm and its complexity analysis contributes 900 lines, and its implementation (including BFS) another 1500 lines.
-  The remaining lines are contributed by the network checker and some auxiliary theories. The development of the theories required roughly 3 men month, a significant amount of this time going into a first, purely functional version of the implementation, which was later dropped in favor of the significantly faster imperative version.
+  The remaining lines are contributed by the network checker and some auxiliary theories. The development of the theories required roughly 3 man month, a significant amount of this time going into a first, purely functional version of the implementation, which was later dropped in favor of the faster imperative version.
   TODO: Reza, is this estimate OK?
   
   
   \subsection{Related Work}
-  We are only aware of one other formalization of the Ford-Fulkerson method conducted in Mizar~\cite{}. 
-  It formalizes a fixed instance of the Ford Fulkerson method on a rather abstract level. No code has been generated, 
-  nor does it contain a complexity analysis.
+  We are only aware of one other formalization of the Ford-Fulkerson method conducted in Mizar~\cite{MaRu05} by Lee. Unfortunately, there seems to be no publication
+  on this formalization except~\cite{Lee05}, which provides a Mizar proof script without any additional comments except that it ``defines and proves correctness of Ford/Fulkerson's Maximum Network-Flow algorithm at the level of graph manipulations.''. Moreover, in Lee et al.~\cite{LeRu07}, which is about graph representation in Mizar, the formalization is shortly mentioned, and it is clarified that it does not provide any implementation or data structure formalization.
+  As far as we could understand the Mizar proof scripts, it provides an abstract formalization of the Edmonds/Karp algorithm, including breadth first search. Termination is only proved for the case of integer valued capacities, and no implementation is provided.
   
-  Apart from our own work~\cite{La14,NoLa12}, there are several other verifications of graph algorithms, using different techniques. 
-  Top-Down
-  Bottom-Up: Noschinski verifies a checker for (non-) planarity certificates using a bottom-up approach. Starting at a C implementation,
-  the AutoCorres tool~\cite{AutoCorres. What's the standard paper on it?} generates a monadic representation of the program in Isabelle. Further abstractions are applied
-  to this representation to hide low-level details like pointer manipulations and fixed size integers~\cite{AutoCorres-Mind-the-Gap}. Finally, a verification condition
-  generator is used to prove the abstracted program correct. Note that approach is the opposite direction of ours: While they start at a concrete version of the algorithm and use abstraction steps to eliminate implementation details, we start at an abstract version, and use concretization steps to introduce implementation details.
+  Apart from our own work~\cite{La14,NoLa12}, there are several other verifications of graph algorithms and their implementations, using different techniques and proof assistants. Noschinski~\cite{Nosch15} verifies a checker for (non-)planarity certificates using a bottom-up approach. Starting at a C implementation,
+  the AutoCorres tool~\cite{Greenaway15,GAK12} generates a monadic representation of the program in Isabelle. Further abstractions are applied
+  to this representation to hide low-level details like pointer manipulations and fixed size integers. Finally, a verification condition
+  generator is used to prove the abstracted program correct. Note that their approach takes the opposite direction than ours: While they start at a concrete version of the algorithm and use abstraction steps to eliminate implementation details, we start at an abstract version, and use concretization steps to introduce implementation details.
 
-  Chargu\'eraud also uses a bottom-up approach~\cite{char11} to verify imperative programs written in a subset of OCaml, amongst them a version of Dijkstra's algorithm:
-  A verification condition generator generates a \emph{characteristic formula}, which reflects the semantics of the program in the logic of the proof assistant~\cite{}.
+  Chargu\'eraud~\cite{char11} also uses a bottom-up approach to verify imperative programs written in a subset of OCaml, amongst them a version of Dijkstra's algorithm:
+  A verification condition generator generates a \emph{characteristic formula}, which reflects the semantics of the program in the logic of the proof assistant.
   
   \subsection{Future Work}
-  Future work includes the formalization of more advanced maximum flow algorithms, like Dinic's algorithm~\cite{Di06} or push-relabel algorithms~\cite{GoTa88}.
-  Both, formalizing the abstract theory, and developing efficient implementations will pose some challenges.
+  Future work includes the optimization of our implementation, and the formalization of more advanced maximum flow algorithms, like Dinic's algorithm~\cite{Di06} or push-relabel algorithms~\cite{GoTa88}.
+  We expect both, formalizing the abstract theory and developing efficient implementations, to be challenging but realistic tasks.
   
 %   
 %   can be performed in two directions. First of all, the abstract theory can be extended to also support more advanced 
