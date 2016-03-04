@@ -165,6 +165,9 @@ begin
 
     text \<open>We rephrase the specification of shortest augmenting path to
       take a residual graph as parameter\<close>
+    (* TODO: This actually rephrases the spec to make it look more similar to 
+      what BFS does later. This rephrasing does not belong here, but where we 
+      implement it with BFS. *)
     definition "find_shortest_augmenting_spec_cf cf \<equiv> 
       ASSERT (RGraph c s t cf) \<guillemotright>
       SPEC (\<lambda>None \<Rightarrow> \<not>Graph.connected cf s t | Some p \<Rightarrow> Graph.isShortestPath cf s p t)"
@@ -176,7 +179,8 @@ begin
       by (auto 
         simp: pw_le_iff refine_pw_simps 
         simp: this_loc rg_is_cf
-        simp: f.isAugmenting_def Graph.connected_def Graph.isSimplePath_def
+        simp: f.isAugmenting_def Graph.connected_def Graph.isSimplePath_def 
+        dest: cf.shortestPath_is_path
         split: option.split)
       
     text \<open>This leads to the following refined algorithm\<close>  

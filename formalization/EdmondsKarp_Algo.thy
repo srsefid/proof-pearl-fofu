@@ -67,8 +67,7 @@ begin
 
     text \<open>First, we specify the refined procedure for finding augmenting paths\<close>
     definition "find_shortest_augmenting_spec f \<equiv> ASSERT (NFlow c s t f) \<guillemotright> 
-      SPEC (\<lambda> Some p \<Rightarrow> Graph.isShortestPath (residualGraph c f) s p t
-            | None \<Rightarrow> \<forall>p. \<not>NFlow.isAugmenting c s t f p)"
+      SELECTp (\<lambda>p. Graph.isShortestPath (residualGraph c f) s p t)"
 
     text \<open>Note, if there is an augmenting path, there is always a shortest one\<close>
     lemma (in NFlow) augmenting_path_imp_shortest: 
@@ -86,8 +85,8 @@ begin
       "(f',f)\<in>Id \<Longrightarrow> find_shortest_augmenting_spec f' \<le> \<Down>Id (find_augmenting_spec f)"  
       unfolding find_shortest_augmenting_spec_def find_augmenting_spec_def
       apply (refine_vcg)
-      using NFlow.augmenting_path_imp_shortest NFlow.shortest_is_augmenting
-      by (auto split: option.split)
+      apply (auto simp: NFlow.shortest_is_augmenting dest: NFlow.augmenting_path_imp_shortest)
+      done
 
     text \<open>Next, we specify the Edmonds-Karp algorithm. 
       Our first specification still uses partial correctness, 
