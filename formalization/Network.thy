@@ -7,7 +7,7 @@ begin
   (* Network definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  locale Network = Graph +
+  locale Network = Graph c for c :: "'capacity::linordered_idom graph" +
     fixes s t :: node
     assumes s_node: "s \<in> V"
     assumes t_node: "t \<in> V"
@@ -29,9 +29,9 @@ begin
   (* s-t Flow definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  locale NFlow = Network + Flow
+  locale NFlow = Network c s t + Flow c s t f for c :: "'capacity::linordered_idom graph" and s t f
     
-  definition isMaxFlow :: "graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> flow \<Rightarrow> bool" 
+  definition isMaxFlow :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _ flow \<Rightarrow> bool" 
   where "isMaxFlow c s t f \<equiv> NFlow c s t f \<and> 
     (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -44,19 +44,19 @@ begin
   (* s-t Cut definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  locale NCut = Network + Cut +
+  locale NCut = Network c s t + Cut c k for c :: "'capacity::linordered_idom graph" and s t k +
     assumes s_in_cut: "s \<in> k"
     assumes t_ni_cut: "t \<notin> k"
   begin
-    definition cap :: "capacity"
+    definition cap :: "'capacity"
     where "cap \<equiv> (\<Sum>e \<in> outgoing' k. c e)"
   end
  
-  abbreviation (in Graph_Syntax) NCut_cap :: "graph \<Rightarrow> node set \<Rightarrow> capacity"
+  abbreviation (in Graph_Syntax) NCut_cap :: "'capacity::linordered_idom graph \<Rightarrow> node set \<Rightarrow> 'capacity"
     ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ Cap/ (_)\<rbrace>" 1000) 
   where "\<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k\<rbrace> \<equiv> NCut.cap c k"
   
-  definition isMinCut :: "graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> cut \<Rightarrow> bool" 
+  definition isMinCut :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> cut \<Rightarrow> bool" 
   where "isMinCut c s t k \<equiv> NCut c s t k \<and>
     (\<forall>k'. NCut c s t k' \<longrightarrow> NCut.cap c k \<le> NCut.cap c k')"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -69,13 +69,13 @@ begin
   (* FoFu definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  locale FoFu = NCut + NFlow
+  locale FoFu = NCut c s t k + NFlow c s t f for c :: "'capacity::linordered_idom graph" and s t k f 
   begin  
-    definition netFlow :: "capacity"
+    definition netFlow :: "'capacity"
     where "netFlow \<equiv> (\<Sum>e \<in> outgoing' k. f e) - (\<Sum>e \<in> incoming' k. f e)"
   end
   
-  abbreviation (in Graph_Syntax) FoFu_netFlow :: "graph \<Rightarrow> cut \<Rightarrow> flow \<Rightarrow> capacity"
+  abbreviation (in Graph_Syntax) FoFu_netFlow :: "_ graph \<Rightarrow> cut \<Rightarrow> _ flow \<Rightarrow> _"
     ("\<lbrace>_/ \<parallel>\<^sub>F\<^sub>F/ _/ \<Join>/ _\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>F\<^sub>F k \<Join> f\<rbrace> \<equiv> FoFu.netFlow c k f"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)

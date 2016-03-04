@@ -42,19 +42,24 @@ begin
   }"
   export_code edmonds_karp checking SML
 
+  lemma network_is_impl: "Network c s t \<Longrightarrow> Network_Impl c s t" by intro_locales
+
   theorem edmonds_karp_correct:
     "<emp> edmonds_karp el s t <\<lambda>
         None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
-      | Some (N,fi) \<Rightarrow> \<exists>\<^sub>Af. Network.is_rflow (ln_\<alpha> el) N f fi * \<up>(isMaxFlow (ln_\<alpha> el) s t f)
+      | Some (N,fi) \<Rightarrow> \<exists>\<^sub>Af. Network_Impl.is_rflow (ln_\<alpha> el) N f fi * \<up>(isMaxFlow (ln_\<alpha> el) s t f)
           * \<up>(ln_invar el \<and> Network (ln_\<alpha> el) s t \<and> Graph.V (ln_\<alpha> el) \<subseteq> {0..<N})
     >\<^sub>t"
     unfolding edmonds_karp_def
     using prepareNet_correct[of el s t]
-    by (sep_auto split: option.splits heap: Network.edka_imp_correct simp: ln_rel_def br_def)
+    by (sep_auto 
+      split: option.splits 
+      heap: Network_Impl.edka_imp_correct 
+      simp: ln_rel_def br_def network_is_impl)
 
 
   (* TODO: Justify this by abstract definition + refinement *)  
-  definition get_flow :: "graph \<Rightarrow> nat \<Rightarrow> Graph.node \<Rightarrow> capacity mtx \<Rightarrow> capacity Heap" where
+  definition get_flow :: "capacity_impl graph \<Rightarrow> nat \<Rightarrow> Graph.node \<Rightarrow> capacity_impl mtx \<Rightarrow> capacity_impl Heap" where
     "get_flow c N s fi \<equiv> do {
       imp_nfoldli ([0..<N]) (\<lambda>_. return True) (\<lambda>v cap. do {
         let csv = c (s,v);

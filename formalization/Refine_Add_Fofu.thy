@@ -2,10 +2,6 @@ theory Refine_Add_Fofu
 imports Fofu_Impl_Base
 begin
 
-
-
-
-
   (* TODO: Integrate into Refinement Framework! *)
 
   lemma LFO_pre_refine: (* TODO: Move and generalize! *)

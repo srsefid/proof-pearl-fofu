@@ -10,7 +10,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context NFlow
   begin
-    definition augment :: "flow \<Rightarrow> flow"
+    definition augment :: "'capacity flow \<Rightarrow> 'capacity flow"
     where "augment f' \<equiv> \<lambda>(u, v).
       if (u, v) \<in> E then
         f (u, v) + f' (u, v) - f' (v, u)
@@ -21,7 +21,7 @@ begin
   notation (in NFlow_Loc_Syntax) augment ("\<langle>\<up>/ _\<rangle>" 1000)
     
 
-  abbreviation (in Graph_Syntax) NFlow_augment :: "graph \<Rightarrow> flow \<Rightarrow> flow \<Rightarrow> flow"
+  abbreviation (in Graph_Syntax) NFlow_augment :: "_ graph \<Rightarrow> _ flow \<Rightarrow> _ flow \<Rightarrow> _ flow"
     ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>F/ \<langle>_/ \<up>/ _\<rangle>\<rbrace>" 1000)
   where "\<lbrace>c \<parallel>\<^sub>N\<^sub>F \<langle>f \<up> f'\<rangle>\<rbrace> \<equiv> NFlow.augment c f f'"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -445,7 +445,7 @@ text_raw \<open>}%EndSnippet\<close>
                 }
                 moreover {
                   have f1: "finite (Graph.V cf)" using resV_netV finite_V by auto
-                  have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm Flow_def by auto
+                  have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm[unfolded Flow_def] by auto
                   {  
                     note Graph.sum_incoming_alt[OF f1 f2]
                     then have "?SUM (Graph.incoming cf v) f' = ?SUS (?FI f')" 
@@ -457,7 +457,7 @@ text_raw \<open>}%EndSnippet\<close>
                       using asm_s resV_netV by auto
                   }
                   moreover have "?SUM (Graph.incoming cf v) f' = ?SUM (Graph.outgoing cf v) f'"
-                    using resV_netV asm_s asm Flow_def by auto
+                    using resV_netV asm_s asm[unfolded Flow_def] by auto
                   ultimately have "?SUS (?FO f') = ?SUS (?FI f')" by auto
                 }
                 ultimately have "?SOE (?FO f') = ?SUS (?FI f') - ?SON (?FO f')" by auto
@@ -504,7 +504,7 @@ text_raw \<open>}%EndSnippet\<close>
   context NFlow
   begin
     corollary augment_flow_presv: "Flow cf s t f' \<Longrightarrow> Flow c s t (augment f')"
-      using augment_flow_presv_cap augment_flow_presv_con Flow_def by auto
+      using augment_flow_presv_cap augment_flow_presv_con unfolding Flow_def by auto
        
     lemma augment_flow_value: "Flow cf s t f' \<Longrightarrow> Flow.val c s (augment f') = val + Flow.val cf s f'"
       proof -
@@ -605,14 +605,14 @@ text_raw \<open>}%EndSnippet\<close>
           moreover {
             {
               have f1: "finite (Graph.V cf)" using finite_V resV_netV by auto
-              have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm1 Flow_def by auto
+              have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm1 unfolding Flow_def by auto
               note Graph.sum_outgoing_alt[OF f1 f2]
               then have "?SUM (Graph.outgoing cf s) f' = ?SUS (?FO f')" 
                 using asm1 Flow_def s_node resV_netV by auto
             }
             moreover {
               have f1: "finite (Graph.V cf)" using finite_V resV_netV by auto
-              have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm1 Flow_def by auto
+              have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm1 unfolding Flow_def by auto
               note Graph.sum_incoming_alt[OF f1 f2]
               then have "?SUM (Graph.incoming cf s) f' = ?SUS (?FI f')" 
                 using asm1 Flow_def s_node resV_netV by auto

@@ -451,7 +451,7 @@ begin
 
   end    
 
-  definition is_pred_succ :: "(node \<Rightarrow> node list) \<Rightarrow> graph \<Rightarrow> bool" 
+  definition is_pred_succ :: "(node \<Rightarrow> node list) \<Rightarrow> _ graph \<Rightarrow> bool" 
     -- \<open>Predicate to characterize function that returns adjacent nodes\<close>
     where
     "is_pred_succ ps c \<equiv> (\<forall>u. distinct (ps u) \<and> set (ps u) = (Graph.E c)``{u} \<union> (Graph.E c)\<inverse>``{u})"

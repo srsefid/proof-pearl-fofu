@@ -18,9 +18,9 @@ begin
         then obtain p where obt: "isAugmenting p" by blast
         have fct1: "Flow cf s t (augmentingFlow p)" using obt augFlow_resFlow by auto
         have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
-          bottleNeck_gzero isAugmenting_def Graph.isSimplePath_def by auto
+          bottleNeck_gzero isAugmenting_def cf.isSimplePath_def by auto
         have "NFlow c s t (augment (augmentingFlow p))" 
-          using fct1 augment_flow_presv Network_axioms NFlow_def by auto
+          using fct1 augment_flow_presv Network_axioms unfolding NFlow_def by auto
         moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 
           using fct1 fct2 augment_flow_value by auto
         ultimately show "False" using asm by auto
@@ -43,7 +43,7 @@ begin
         then have "FoFu c s t (Graph.reachableNodes cf s) f" (is "FoFu c s t ?K' f")
           unfolding FoFu_def using NFlow_axioms by auto
         then have "val = (\<Sum>e \<in> outgoing' ?K'. f e) - (\<Sum>e \<in> incoming' ?K'. f e)" 
-          using FoFu.flow_value FoFu.netFlow_def by auto
+          using FoFu.flow_value FoFu.netFlow_def by fastforce
         moreover {
           {
             fix e
@@ -61,10 +61,10 @@ begin
                 then have "Graph.isPath cf u [(u, v)] v"
                   by (metis (poly_guards_query) Graph.isPath.simps(1) Graph.isPath.simps(2))
                 moreover obtain p where "Graph.isPath cf s p u" 
-                  using fct_s Graph.reachableNodes_def Graph.connected_def by auto
+                  using fct_s cf.reachableNodes_def cf.connected_def by auto
                 ultimately have "Graph.isPath cf s (p @ [(u, v)]) v" 
-                  using Graph.isPath_append by auto
-                thus "False" using fct_s Graph.reachableNodes_def Graph.connected_def by auto
+                  using cf.isPath_append by auto
+                thus "False" using fct_s cf.reachableNodes_def cf.connected_def by auto
               qed
           }
           then have "(\<Sum>e \<in> outgoing' ?K'. f e) = NCut.cap c ?K'"
@@ -88,10 +88,10 @@ begin
                 then have "Graph.isPath cf u [(u, v)] v"
                   by (metis Graph.isPath.simps(1) Graph.isPath.simps(2))
                 moreover obtain p where "Graph.isPath cf s p u" 
-                  using fct_s Graph.reachableNodes_def Graph.connected_def by auto
+                  using fct_s cf.reachableNodes_def cf.connected_def by auto
                 ultimately have "Graph.isPath cf s (p @ [(u, v)]) v" 
-                  using Graph.isPath_append by auto
-                thus "False" using fct_s Graph.reachableNodes_def Graph.connected_def by auto   
+                  using cf.isPath_append by auto
+                thus "False" using fct_s cf.reachableNodes_def cf.connected_def by auto   
               qed
           }
           then have "(\<Sum>e \<in> incoming' ?K'. f e) = 0" using NCut.cap_def[OF fct2] by auto
@@ -108,7 +108,7 @@ begin
           fix f'
           assume "NFlow c s t f'"
           then have "FoFu c s t k f'" unfolding FoFu_def using NCut_axioms by auto
-          then have "Flow.val c s f' \<le> cap" using FoFu.weak_duality by auto
+          then have "Flow.val c s f' \<le> cap" using FoFu.weak_duality by fastforce
           then have "Flow.val c s f' \<le> val" using asm by auto
         }
         moreover have "NFlow c s t f" using FoFu_def FoFu_axioms by blast
@@ -171,13 +171,13 @@ begin
         {
           fix k''
           assume asm3: "NCut c s t k''"
-          then interpret ff_k''!: FoFu c s t k'' f using FoFu_axioms FoFu_def by simp
-          interpret ff_k'!: FoFu c s t k' f using obt1 FoFu_axioms FoFu_def by simp
+          then interpret ff_k''!: FoFu c s t k'' f using FoFu_axioms unfolding FoFu_def by simp
+          interpret ff_k'!: FoFu c s t k' f using obt1 FoFu_axioms unfolding FoFu_def by simp
           have "val \<le> ff_k''.cap" using ff_k''.weak_duality by simp
           then have "ff_k'.cap \<le> ff_k''.cap" using obt2 by simp 
         }
         then have "isMinCut c s t k'" unfolding isMinCut_def using obt1 by simp
-        then have "NCut.cap c k' = cap" using asm2 isMinCut_def by force
+        then have "NCut.cap c k' = cap" using asm2 unfolding isMinCut_def by force
         thus ?thesis using obt2 by simp
       qed
   end

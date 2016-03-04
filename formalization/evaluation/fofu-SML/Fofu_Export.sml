@@ -383,13 +383,22 @@ structure Fofu : sig
       nat -> nat -> (unit -> ((nat * int array) option))
 end = struct
 
+datatype int = Int_of_integer of IntInf.int;
+
+fun integer_of_int (Int_of_integer k) = k;
+
+fun equal_inta k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
+
+type 'a equal = {equal : 'a -> 'a -> bool};
+val equal = #equal : 'a equal -> 'a -> 'a -> bool;
+
+val equal_int = {equal = equal_inta} : int equal;
+
 datatype typerepa = Typerep of string * typerepa list;
 
 datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
   Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
   | NibbleE | NibbleF;
-
-datatype int = Int_of_integer of IntInf.int;
 
 datatype 'a itself = Type;
 
@@ -411,14 +420,587 @@ val typerep_int = {typerep = typerep_inta} : int typerep;
 val heap_int = {countable_heap = countable_int, typerep_heap = typerep_int} :
   int heap;
 
+fun times_inta k l =
+  Int_of_integer (IntInf.* (integer_of_int k, integer_of_int l));
+
+type 'a times = {times : 'a -> 'a -> 'a};
+val times = #times : 'a times -> 'a -> 'a -> 'a;
+
+type 'a dvd = {times_dvd : 'a times};
+val times_dvd = #times_dvd : 'a dvd -> 'a times;
+
+val times_int = {times = times_inta} : int times;
+
+val dvd_int = {times_dvd = times_int} : int dvd;
+
+fun uminus_inta k = Int_of_integer (IntInf.~ (integer_of_int k));
+
 val zero_inta : int = Int_of_integer (0 : IntInf.int);
+
+fun less_int k l = IntInf.< (integer_of_int k, integer_of_int l);
+
+fun abs_inta i = (if less_int i zero_inta then uminus_inta i else i);
+
+type 'a abs = {abs : 'a -> 'a};
+val abs = #abs : 'a abs -> 'a -> 'a;
+
+val abs_int = {abs = abs_inta} : int abs;
+
+datatype num = One | Bit0 of num | Bit1 of num;
+
+val one_inta : int = Int_of_integer (1 : IntInf.int);
+
+type 'a one = {one : 'a};
+val one = #one : 'a one -> 'a;
+
+val one_int = {one = one_inta} : int one;
+
+fun sgn_inta i =
+  (if equal_inta i zero_inta then zero_inta
+    else (if less_int zero_inta i then Int_of_integer (1 : IntInf.int)
+           else uminus_inta (Int_of_integer (1 : IntInf.int))));
+
+type 'a sgn = {sgn : 'a -> 'a};
+val sgn = #sgn : 'a sgn -> 'a -> 'a;
+
+val sgn_int = {sgn = sgn_inta} : int sgn;
+
+fun minus_inta k l =
+  Int_of_integer (IntInf.- (integer_of_int k, integer_of_int l));
+
+fun plus_inta k l =
+  Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
+
+type 'a uminus = {uminus : 'a -> 'a};
+val uminus = #uminus : 'a uminus -> 'a -> 'a;
+
+type 'a minus = {minus : 'a -> 'a -> 'a};
+val minus = #minus : 'a minus -> 'a -> 'a -> 'a;
 
 type 'a zero = {zero : 'a};
 val zero = #zero : 'a zero -> 'a;
 
+type 'a plus = {plus : 'a -> 'a -> 'a};
+val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
+
+type 'a semigroup_add = {plus_semigroup_add : 'a plus};
+val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
+
+type 'a cancel_semigroup_add =
+  {semigroup_add_cancel_semigroup_add : 'a semigroup_add};
+val semigroup_add_cancel_semigroup_add = #semigroup_add_cancel_semigroup_add :
+  'a cancel_semigroup_add -> 'a semigroup_add;
+
+type 'a ab_semigroup_add = {semigroup_add_ab_semigroup_add : 'a semigroup_add};
+val semigroup_add_ab_semigroup_add = #semigroup_add_ab_semigroup_add :
+  'a ab_semigroup_add -> 'a semigroup_add;
+
+type 'a cancel_ab_semigroup_add =
+  {ab_semigroup_add_cancel_ab_semigroup_add : 'a ab_semigroup_add,
+    cancel_semigroup_add_cancel_ab_semigroup_add : 'a cancel_semigroup_add,
+    minus_cancel_ab_semigroup_add : 'a minus};
+val ab_semigroup_add_cancel_ab_semigroup_add =
+  #ab_semigroup_add_cancel_ab_semigroup_add :
+  'a cancel_ab_semigroup_add -> 'a ab_semigroup_add;
+val cancel_semigroup_add_cancel_ab_semigroup_add =
+  #cancel_semigroup_add_cancel_ab_semigroup_add :
+  'a cancel_ab_semigroup_add -> 'a cancel_semigroup_add;
+val minus_cancel_ab_semigroup_add = #minus_cancel_ab_semigroup_add :
+  'a cancel_ab_semigroup_add -> 'a minus;
+
+type 'a monoid_add =
+  {semigroup_add_monoid_add : 'a semigroup_add, zero_monoid_add : 'a zero};
+val semigroup_add_monoid_add = #semigroup_add_monoid_add :
+  'a monoid_add -> 'a semigroup_add;
+val zero_monoid_add = #zero_monoid_add : 'a monoid_add -> 'a zero;
+
+type 'a comm_monoid_add =
+  {ab_semigroup_add_comm_monoid_add : 'a ab_semigroup_add,
+    monoid_add_comm_monoid_add : 'a monoid_add};
+val ab_semigroup_add_comm_monoid_add = #ab_semigroup_add_comm_monoid_add :
+  'a comm_monoid_add -> 'a ab_semigroup_add;
+val monoid_add_comm_monoid_add = #monoid_add_comm_monoid_add :
+  'a comm_monoid_add -> 'a monoid_add;
+
+type 'a cancel_comm_monoid_add =
+  {cancel_ab_semigroup_add_cancel_comm_monoid_add : 'a cancel_ab_semigroup_add,
+    comm_monoid_add_cancel_comm_monoid_add : 'a comm_monoid_add};
+val cancel_ab_semigroup_add_cancel_comm_monoid_add =
+  #cancel_ab_semigroup_add_cancel_comm_monoid_add :
+  'a cancel_comm_monoid_add -> 'a cancel_ab_semigroup_add;
+val comm_monoid_add_cancel_comm_monoid_add =
+  #comm_monoid_add_cancel_comm_monoid_add :
+  'a cancel_comm_monoid_add -> 'a comm_monoid_add;
+
+type 'a mult_zero = {times_mult_zero : 'a times, zero_mult_zero : 'a zero};
+val times_mult_zero = #times_mult_zero : 'a mult_zero -> 'a times;
+val zero_mult_zero = #zero_mult_zero : 'a mult_zero -> 'a zero;
+
+type 'a semigroup_mult = {times_semigroup_mult : 'a times};
+val times_semigroup_mult = #times_semigroup_mult :
+  'a semigroup_mult -> 'a times;
+
+type 'a semiring =
+  {ab_semigroup_add_semiring : 'a ab_semigroup_add,
+    semigroup_mult_semiring : 'a semigroup_mult};
+val ab_semigroup_add_semiring = #ab_semigroup_add_semiring :
+  'a semiring -> 'a ab_semigroup_add;
+val semigroup_mult_semiring = #semigroup_mult_semiring :
+  'a semiring -> 'a semigroup_mult;
+
+type 'a semiring_0 =
+  {comm_monoid_add_semiring_0 : 'a comm_monoid_add,
+    mult_zero_semiring_0 : 'a mult_zero, semiring_semiring_0 : 'a semiring};
+val comm_monoid_add_semiring_0 = #comm_monoid_add_semiring_0 :
+  'a semiring_0 -> 'a comm_monoid_add;
+val mult_zero_semiring_0 = #mult_zero_semiring_0 :
+  'a semiring_0 -> 'a mult_zero;
+val semiring_semiring_0 = #semiring_semiring_0 : 'a semiring_0 -> 'a semiring;
+
+type 'a semiring_0_cancel =
+  {cancel_comm_monoid_add_semiring_0_cancel : 'a cancel_comm_monoid_add,
+    semiring_0_semiring_0_cancel : 'a semiring_0};
+val cancel_comm_monoid_add_semiring_0_cancel =
+  #cancel_comm_monoid_add_semiring_0_cancel :
+  'a semiring_0_cancel -> 'a cancel_comm_monoid_add;
+val semiring_0_semiring_0_cancel = #semiring_0_semiring_0_cancel :
+  'a semiring_0_cancel -> 'a semiring_0;
+
+type 'a ab_semigroup_mult =
+  {semigroup_mult_ab_semigroup_mult : 'a semigroup_mult};
+val semigroup_mult_ab_semigroup_mult = #semigroup_mult_ab_semigroup_mult :
+  'a ab_semigroup_mult -> 'a semigroup_mult;
+
+type 'a comm_semiring =
+  {ab_semigroup_mult_comm_semiring : 'a ab_semigroup_mult,
+    semiring_comm_semiring : 'a semiring};
+val ab_semigroup_mult_comm_semiring = #ab_semigroup_mult_comm_semiring :
+  'a comm_semiring -> 'a ab_semigroup_mult;
+val semiring_comm_semiring = #semiring_comm_semiring :
+  'a comm_semiring -> 'a semiring;
+
+type 'a comm_semiring_0 =
+  {comm_semiring_comm_semiring_0 : 'a comm_semiring,
+    semiring_0_comm_semiring_0 : 'a semiring_0};
+val comm_semiring_comm_semiring_0 = #comm_semiring_comm_semiring_0 :
+  'a comm_semiring_0 -> 'a comm_semiring;
+val semiring_0_comm_semiring_0 = #semiring_0_comm_semiring_0 :
+  'a comm_semiring_0 -> 'a semiring_0;
+
+type 'a comm_semiring_0_cancel =
+  {comm_semiring_0_comm_semiring_0_cancel : 'a comm_semiring_0,
+    semiring_0_cancel_comm_semiring_0_cancel : 'a semiring_0_cancel};
+val comm_semiring_0_comm_semiring_0_cancel =
+  #comm_semiring_0_comm_semiring_0_cancel :
+  'a comm_semiring_0_cancel -> 'a comm_semiring_0;
+val semiring_0_cancel_comm_semiring_0_cancel =
+  #semiring_0_cancel_comm_semiring_0_cancel :
+  'a comm_semiring_0_cancel -> 'a semiring_0_cancel;
+
+type 'a power = {one_power : 'a one, times_power : 'a times};
+val one_power = #one_power : 'a power -> 'a one;
+val times_power = #times_power : 'a power -> 'a times;
+
+type 'a monoid_mult =
+  {semigroup_mult_monoid_mult : 'a semigroup_mult,
+    power_monoid_mult : 'a power};
+val semigroup_mult_monoid_mult = #semigroup_mult_monoid_mult :
+  'a monoid_mult -> 'a semigroup_mult;
+val power_monoid_mult = #power_monoid_mult : 'a monoid_mult -> 'a power;
+
+type 'a numeral =
+  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
+val one_numeral = #one_numeral : 'a numeral -> 'a one;
+val semigroup_add_numeral = #semigroup_add_numeral :
+  'a numeral -> 'a semigroup_add;
+
+type 'a semiring_numeral =
+  {monoid_mult_semiring_numeral : 'a monoid_mult,
+    numeral_semiring_numeral : 'a numeral,
+    semiring_semiring_numeral : 'a semiring};
+val monoid_mult_semiring_numeral = #monoid_mult_semiring_numeral :
+  'a semiring_numeral -> 'a monoid_mult;
+val numeral_semiring_numeral = #numeral_semiring_numeral :
+  'a semiring_numeral -> 'a numeral;
+val semiring_semiring_numeral = #semiring_semiring_numeral :
+  'a semiring_numeral -> 'a semiring;
+
+type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
+val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
+val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
+
+type 'a semiring_1 =
+  {semiring_numeral_semiring_1 : 'a semiring_numeral,
+    semiring_0_semiring_1 : 'a semiring_0,
+    zero_neq_one_semiring_1 : 'a zero_neq_one};
+val semiring_numeral_semiring_1 = #semiring_numeral_semiring_1 :
+  'a semiring_1 -> 'a semiring_numeral;
+val semiring_0_semiring_1 = #semiring_0_semiring_1 :
+  'a semiring_1 -> 'a semiring_0;
+val zero_neq_one_semiring_1 = #zero_neq_one_semiring_1 :
+  'a semiring_1 -> 'a zero_neq_one;
+
+type 'a semiring_1_cancel =
+  {semiring_0_cancel_semiring_1_cancel : 'a semiring_0_cancel,
+    semiring_1_semiring_1_cancel : 'a semiring_1};
+val semiring_0_cancel_semiring_1_cancel = #semiring_0_cancel_semiring_1_cancel :
+  'a semiring_1_cancel -> 'a semiring_0_cancel;
+val semiring_1_semiring_1_cancel = #semiring_1_semiring_1_cancel :
+  'a semiring_1_cancel -> 'a semiring_1;
+
+type 'a comm_monoid_mult =
+  {ab_semigroup_mult_comm_monoid_mult : 'a ab_semigroup_mult,
+    monoid_mult_comm_monoid_mult : 'a monoid_mult,
+    dvd_comm_monoid_mult : 'a dvd};
+val ab_semigroup_mult_comm_monoid_mult = #ab_semigroup_mult_comm_monoid_mult :
+  'a comm_monoid_mult -> 'a ab_semigroup_mult;
+val monoid_mult_comm_monoid_mult = #monoid_mult_comm_monoid_mult :
+  'a comm_monoid_mult -> 'a monoid_mult;
+val dvd_comm_monoid_mult = #dvd_comm_monoid_mult :
+  'a comm_monoid_mult -> 'a dvd;
+
+type 'a comm_semiring_1 =
+  {comm_monoid_mult_comm_semiring_1 : 'a comm_monoid_mult,
+    comm_semiring_0_comm_semiring_1 : 'a comm_semiring_0,
+    semiring_1_comm_semiring_1 : 'a semiring_1};
+val comm_monoid_mult_comm_semiring_1 = #comm_monoid_mult_comm_semiring_1 :
+  'a comm_semiring_1 -> 'a comm_monoid_mult;
+val comm_semiring_0_comm_semiring_1 = #comm_semiring_0_comm_semiring_1 :
+  'a comm_semiring_1 -> 'a comm_semiring_0;
+val semiring_1_comm_semiring_1 = #semiring_1_comm_semiring_1 :
+  'a comm_semiring_1 -> 'a semiring_1;
+
+type 'a comm_semiring_1_cancel =
+  {comm_semiring_0_cancel_comm_semiring_1_cancel : 'a comm_semiring_0_cancel,
+    comm_semiring_1_comm_semiring_1_cancel : 'a comm_semiring_1,
+    semiring_1_cancel_comm_semiring_1_cancel : 'a semiring_1_cancel};
+val comm_semiring_0_cancel_comm_semiring_1_cancel =
+  #comm_semiring_0_cancel_comm_semiring_1_cancel :
+  'a comm_semiring_1_cancel -> 'a comm_semiring_0_cancel;
+val comm_semiring_1_comm_semiring_1_cancel =
+  #comm_semiring_1_comm_semiring_1_cancel :
+  'a comm_semiring_1_cancel -> 'a comm_semiring_1;
+val semiring_1_cancel_comm_semiring_1_cancel =
+  #semiring_1_cancel_comm_semiring_1_cancel :
+  'a comm_semiring_1_cancel -> 'a semiring_1_cancel;
+
+type 'a comm_semiring_1_cancel_crossproduct =
+  {comm_semiring_1_cancel_comm_semiring_1_cancel_crossproduct :
+     'a comm_semiring_1_cancel};
+val comm_semiring_1_cancel_comm_semiring_1_cancel_crossproduct =
+  #comm_semiring_1_cancel_comm_semiring_1_cancel_crossproduct :
+  'a comm_semiring_1_cancel_crossproduct -> 'a comm_semiring_1_cancel;
+
+type 'a semiring_no_zero_divisors =
+  {semiring_0_semiring_no_zero_divisors : 'a semiring_0};
+val semiring_0_semiring_no_zero_divisors = #semiring_0_semiring_no_zero_divisors
+  : 'a semiring_no_zero_divisors -> 'a semiring_0;
+
+type 'a group_add =
+  {cancel_semigroup_add_group_add : 'a cancel_semigroup_add,
+    minus_group_add : 'a minus, monoid_add_group_add : 'a monoid_add,
+    uminus_group_add : 'a uminus};
+val cancel_semigroup_add_group_add = #cancel_semigroup_add_group_add :
+  'a group_add -> 'a cancel_semigroup_add;
+val minus_group_add = #minus_group_add : 'a group_add -> 'a minus;
+val monoid_add_group_add = #monoid_add_group_add :
+  'a group_add -> 'a monoid_add;
+val uminus_group_add = #uminus_group_add : 'a group_add -> 'a uminus;
+
+type 'a ab_group_add =
+  {cancel_comm_monoid_add_ab_group_add : 'a cancel_comm_monoid_add,
+    group_add_ab_group_add : 'a group_add};
+val cancel_comm_monoid_add_ab_group_add = #cancel_comm_monoid_add_ab_group_add :
+  'a ab_group_add -> 'a cancel_comm_monoid_add;
+val group_add_ab_group_add = #group_add_ab_group_add :
+  'a ab_group_add -> 'a group_add;
+
+type 'a ring =
+  {ab_group_add_ring : 'a ab_group_add,
+    semiring_0_cancel_ring : 'a semiring_0_cancel};
+val ab_group_add_ring = #ab_group_add_ring : 'a ring -> 'a ab_group_add;
+val semiring_0_cancel_ring = #semiring_0_cancel_ring :
+  'a ring -> 'a semiring_0_cancel;
+
+type 'a ring_no_zero_divisors =
+  {ring_ring_no_zero_divisors : 'a ring,
+    semiring_no_zero_divisors_ring_no_zero_divisors :
+      'a semiring_no_zero_divisors};
+val ring_ring_no_zero_divisors = #ring_ring_no_zero_divisors :
+  'a ring_no_zero_divisors -> 'a ring;
+val semiring_no_zero_divisors_ring_no_zero_divisors =
+  #semiring_no_zero_divisors_ring_no_zero_divisors :
+  'a ring_no_zero_divisors -> 'a semiring_no_zero_divisors;
+
+type 'a neg_numeral =
+  {group_add_neg_numeral : 'a group_add, numeral_neg_numeral : 'a numeral};
+val group_add_neg_numeral = #group_add_neg_numeral :
+  'a neg_numeral -> 'a group_add;
+val numeral_neg_numeral = #numeral_neg_numeral : 'a neg_numeral -> 'a numeral;
+
+type 'a ring_1 =
+  {neg_numeral_ring_1 : 'a neg_numeral, ring_ring_1 : 'a ring,
+    semiring_1_cancel_ring_1 : 'a semiring_1_cancel};
+val neg_numeral_ring_1 = #neg_numeral_ring_1 : 'a ring_1 -> 'a neg_numeral;
+val ring_ring_1 = #ring_ring_1 : 'a ring_1 -> 'a ring;
+val semiring_1_cancel_ring_1 = #semiring_1_cancel_ring_1 :
+  'a ring_1 -> 'a semiring_1_cancel;
+
+type 'a ring_1_no_zero_divisors =
+  {ring_1_ring_1_no_zero_divisors : 'a ring_1,
+    ring_no_zero_divisors_ring_1_no_zero_divisors : 'a ring_no_zero_divisors};
+val ring_1_ring_1_no_zero_divisors = #ring_1_ring_1_no_zero_divisors :
+  'a ring_1_no_zero_divisors -> 'a ring_1;
+val ring_no_zero_divisors_ring_1_no_zero_divisors =
+  #ring_no_zero_divisors_ring_1_no_zero_divisors :
+  'a ring_1_no_zero_divisors -> 'a ring_no_zero_divisors;
+
+type 'a comm_semiring_1_diff_distrib =
+  {comm_semiring_1_cancel_comm_semiring_1_diff_distrib :
+     'a comm_semiring_1_cancel};
+val comm_semiring_1_cancel_comm_semiring_1_diff_distrib =
+  #comm_semiring_1_cancel_comm_semiring_1_diff_distrib :
+  'a comm_semiring_1_diff_distrib -> 'a comm_semiring_1_cancel;
+
+type 'a comm_ring =
+  {comm_semiring_0_cancel_comm_ring : 'a comm_semiring_0_cancel,
+    ring_comm_ring : 'a ring};
+val comm_semiring_0_cancel_comm_ring = #comm_semiring_0_cancel_comm_ring :
+  'a comm_ring -> 'a comm_semiring_0_cancel;
+val ring_comm_ring = #ring_comm_ring : 'a comm_ring -> 'a ring;
+
+type 'a comm_ring_1 =
+  {comm_ring_comm_ring_1 : 'a comm_ring,
+    comm_semiring_1_diff_distrib_comm_ring_1 : 'a comm_semiring_1_diff_distrib,
+    ring_1_comm_ring_1 : 'a ring_1};
+val comm_ring_comm_ring_1 = #comm_ring_comm_ring_1 :
+  'a comm_ring_1 -> 'a comm_ring;
+val comm_semiring_1_diff_distrib_comm_ring_1 =
+  #comm_semiring_1_diff_distrib_comm_ring_1 :
+  'a comm_ring_1 -> 'a comm_semiring_1_diff_distrib;
+val ring_1_comm_ring_1 = #ring_1_comm_ring_1 : 'a comm_ring_1 -> 'a ring_1;
+
+type 'a semidom =
+  {comm_semiring_1_diff_distrib_semidom : 'a comm_semiring_1_diff_distrib,
+    semiring_no_zero_divisors_semidom : 'a semiring_no_zero_divisors};
+val comm_semiring_1_diff_distrib_semidom = #comm_semiring_1_diff_distrib_semidom
+  : 'a semidom -> 'a comm_semiring_1_diff_distrib;
+val semiring_no_zero_divisors_semidom = #semiring_no_zero_divisors_semidom :
+  'a semidom -> 'a semiring_no_zero_divisors;
+
+type 'a idom =
+  {comm_ring_1_idom : 'a comm_ring_1,
+    ring_1_no_zero_divisors_idom : 'a ring_1_no_zero_divisors,
+    semidom_idom : 'a semidom,
+    comm_semiring_1_cancel_crossproduct_idom :
+      'a comm_semiring_1_cancel_crossproduct};
+val comm_ring_1_idom = #comm_ring_1_idom : 'a idom -> 'a comm_ring_1;
+val ring_1_no_zero_divisors_idom = #ring_1_no_zero_divisors_idom :
+  'a idom -> 'a ring_1_no_zero_divisors;
+val semidom_idom = #semidom_idom : 'a idom -> 'a semidom;
+val comm_semiring_1_cancel_crossproduct_idom =
+  #comm_semiring_1_cancel_crossproduct_idom :
+  'a idom -> 'a comm_semiring_1_cancel_crossproduct;
+
+val plus_int = {plus = plus_inta} : int plus;
+
+val semigroup_add_int = {plus_semigroup_add = plus_int} : int semigroup_add;
+
+val cancel_semigroup_add_int =
+  {semigroup_add_cancel_semigroup_add = semigroup_add_int} :
+  int cancel_semigroup_add;
+
+val ab_semigroup_add_int = {semigroup_add_ab_semigroup_add = semigroup_add_int}
+  : int ab_semigroup_add;
+
+val minus_int = {minus = minus_inta} : int minus;
+
+val cancel_ab_semigroup_add_int =
+  {ab_semigroup_add_cancel_ab_semigroup_add = ab_semigroup_add_int,
+    cancel_semigroup_add_cancel_ab_semigroup_add = cancel_semigroup_add_int,
+    minus_cancel_ab_semigroup_add = minus_int}
+  : int cancel_ab_semigroup_add;
+
 val zero_int = {zero = zero_inta} : int zero;
 
-fun integer_of_int (Int_of_integer k) = k;
+val monoid_add_int =
+  {semigroup_add_monoid_add = semigroup_add_int, zero_monoid_add = zero_int} :
+  int monoid_add;
+
+val comm_monoid_add_int =
+  {ab_semigroup_add_comm_monoid_add = ab_semigroup_add_int,
+    monoid_add_comm_monoid_add = monoid_add_int}
+  : int comm_monoid_add;
+
+val cancel_comm_monoid_add_int =
+  {cancel_ab_semigroup_add_cancel_comm_monoid_add = cancel_ab_semigroup_add_int,
+    comm_monoid_add_cancel_comm_monoid_add = comm_monoid_add_int}
+  : int cancel_comm_monoid_add;
+
+val mult_zero_int = {times_mult_zero = times_int, zero_mult_zero = zero_int} :
+  int mult_zero;
+
+val semigroup_mult_int = {times_semigroup_mult = times_int} :
+  int semigroup_mult;
+
+val semiring_int =
+  {ab_semigroup_add_semiring = ab_semigroup_add_int,
+    semigroup_mult_semiring = semigroup_mult_int}
+  : int semiring;
+
+val semiring_0_int =
+  {comm_monoid_add_semiring_0 = comm_monoid_add_int,
+    mult_zero_semiring_0 = mult_zero_int, semiring_semiring_0 = semiring_int}
+  : int semiring_0;
+
+val semiring_0_cancel_int =
+  {cancel_comm_monoid_add_semiring_0_cancel = cancel_comm_monoid_add_int,
+    semiring_0_semiring_0_cancel = semiring_0_int}
+  : int semiring_0_cancel;
+
+val ab_semigroup_mult_int =
+  {semigroup_mult_ab_semigroup_mult = semigroup_mult_int} :
+  int ab_semigroup_mult;
+
+val comm_semiring_int =
+  {ab_semigroup_mult_comm_semiring = ab_semigroup_mult_int,
+    semiring_comm_semiring = semiring_int}
+  : int comm_semiring;
+
+val comm_semiring_0_int =
+  {comm_semiring_comm_semiring_0 = comm_semiring_int,
+    semiring_0_comm_semiring_0 = semiring_0_int}
+  : int comm_semiring_0;
+
+val comm_semiring_0_cancel_int =
+  {comm_semiring_0_comm_semiring_0_cancel = comm_semiring_0_int,
+    semiring_0_cancel_comm_semiring_0_cancel = semiring_0_cancel_int}
+  : int comm_semiring_0_cancel;
+
+val power_int = {one_power = one_int, times_power = times_int} : int power;
+
+val monoid_mult_int =
+  {semigroup_mult_monoid_mult = semigroup_mult_int,
+    power_monoid_mult = power_int}
+  : int monoid_mult;
+
+val numeral_int =
+  {one_numeral = one_int, semigroup_add_numeral = semigroup_add_int} :
+  int numeral;
+
+val semiring_numeral_int =
+  {monoid_mult_semiring_numeral = monoid_mult_int,
+    numeral_semiring_numeral = numeral_int,
+    semiring_semiring_numeral = semiring_int}
+  : int semiring_numeral;
+
+val zero_neq_one_int =
+  {one_zero_neq_one = one_int, zero_zero_neq_one = zero_int} : int zero_neq_one;
+
+val semiring_1_int =
+  {semiring_numeral_semiring_1 = semiring_numeral_int,
+    semiring_0_semiring_1 = semiring_0_int,
+    zero_neq_one_semiring_1 = zero_neq_one_int}
+  : int semiring_1;
+
+val semiring_1_cancel_int =
+  {semiring_0_cancel_semiring_1_cancel = semiring_0_cancel_int,
+    semiring_1_semiring_1_cancel = semiring_1_int}
+  : int semiring_1_cancel;
+
+val comm_monoid_mult_int =
+  {ab_semigroup_mult_comm_monoid_mult = ab_semigroup_mult_int,
+    monoid_mult_comm_monoid_mult = monoid_mult_int,
+    dvd_comm_monoid_mult = dvd_int}
+  : int comm_monoid_mult;
+
+val comm_semiring_1_int =
+  {comm_monoid_mult_comm_semiring_1 = comm_monoid_mult_int,
+    comm_semiring_0_comm_semiring_1 = comm_semiring_0_int,
+    semiring_1_comm_semiring_1 = semiring_1_int}
+  : int comm_semiring_1;
+
+val comm_semiring_1_cancel_int =
+  {comm_semiring_0_cancel_comm_semiring_1_cancel = comm_semiring_0_cancel_int,
+    comm_semiring_1_comm_semiring_1_cancel = comm_semiring_1_int,
+    semiring_1_cancel_comm_semiring_1_cancel = semiring_1_cancel_int}
+  : int comm_semiring_1_cancel;
+
+val comm_semiring_1_cancel_crossproduct_int =
+  {comm_semiring_1_cancel_comm_semiring_1_cancel_crossproduct =
+     comm_semiring_1_cancel_int}
+  : int comm_semiring_1_cancel_crossproduct;
+
+val semiring_no_zero_divisors_int =
+  {semiring_0_semiring_no_zero_divisors = semiring_0_int} :
+  int semiring_no_zero_divisors;
+
+val uminus_int = {uminus = uminus_inta} : int uminus;
+
+val group_add_int =
+  {cancel_semigroup_add_group_add = cancel_semigroup_add_int,
+    minus_group_add = minus_int, monoid_add_group_add = monoid_add_int,
+    uminus_group_add = uminus_int}
+  : int group_add;
+
+val ab_group_add_int =
+  {cancel_comm_monoid_add_ab_group_add = cancel_comm_monoid_add_int,
+    group_add_ab_group_add = group_add_int}
+  : int ab_group_add;
+
+val ring_int =
+  {ab_group_add_ring = ab_group_add_int,
+    semiring_0_cancel_ring = semiring_0_cancel_int}
+  : int ring;
+
+val ring_no_zero_divisors_int =
+  {ring_ring_no_zero_divisors = ring_int,
+    semiring_no_zero_divisors_ring_no_zero_divisors =
+      semiring_no_zero_divisors_int}
+  : int ring_no_zero_divisors;
+
+val neg_numeral_int =
+  {group_add_neg_numeral = group_add_int, numeral_neg_numeral = numeral_int} :
+  int neg_numeral;
+
+val ring_1_int =
+  {neg_numeral_ring_1 = neg_numeral_int, ring_ring_1 = ring_int,
+    semiring_1_cancel_ring_1 = semiring_1_cancel_int}
+  : int ring_1;
+
+val ring_1_no_zero_divisors_int =
+  {ring_1_ring_1_no_zero_divisors = ring_1_int,
+    ring_no_zero_divisors_ring_1_no_zero_divisors = ring_no_zero_divisors_int}
+  : int ring_1_no_zero_divisors;
+
+val comm_semiring_1_diff_distrib_int =
+  {comm_semiring_1_cancel_comm_semiring_1_diff_distrib =
+     comm_semiring_1_cancel_int}
+  : int comm_semiring_1_diff_distrib;
+
+val comm_ring_int =
+  {comm_semiring_0_cancel_comm_ring = comm_semiring_0_cancel_int,
+    ring_comm_ring = ring_int}
+  : int comm_ring;
+
+val comm_ring_1_int =
+  {comm_ring_comm_ring_1 = comm_ring_int,
+    comm_semiring_1_diff_distrib_comm_ring_1 = comm_semiring_1_diff_distrib_int,
+    ring_1_comm_ring_1 = ring_1_int}
+  : int comm_ring_1;
+
+val semidom_int =
+  {comm_semiring_1_diff_distrib_semidom = comm_semiring_1_diff_distrib_int,
+    semiring_no_zero_divisors_semidom = semiring_no_zero_divisors_int}
+  : int semidom;
+
+val idom_int =
+  {comm_ring_1_idom = comm_ring_1_int,
+    ring_1_no_zero_divisors_idom = ring_1_no_zero_divisors_int,
+    semidom_idom = semidom_int,
+    comm_semiring_1_cancel_crossproduct_idom =
+      comm_semiring_1_cancel_crossproduct_int}
+  : int idom;
 
 fun less_eq_int k l = IntInf.<= (integer_of_int k, integer_of_int l);
 
@@ -426,18 +1008,543 @@ type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
 val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
 val less = #less : 'a ord -> 'a -> 'a -> bool;
 
-fun less_int k l = IntInf.< (integer_of_int k, integer_of_int l);
+type 'a abs_if =
+  {abs_abs_if : 'a abs, minus_abs_if : 'a minus, uminus_abs_if : 'a uminus,
+    zero_abs_if : 'a zero, ord_abs_if : 'a ord};
+val abs_abs_if = #abs_abs_if : 'a abs_if -> 'a abs;
+val minus_abs_if = #minus_abs_if : 'a abs_if -> 'a minus;
+val uminus_abs_if = #uminus_abs_if : 'a abs_if -> 'a uminus;
+val zero_abs_if = #zero_abs_if : 'a abs_if -> 'a zero;
+val ord_abs_if = #ord_abs_if : 'a abs_if -> 'a ord;
 
 val ord_int = {less_eq = less_eq_int, less = less_int} : int ord;
+
+val abs_if_int =
+  {abs_abs_if = abs_int, minus_abs_if = minus_int, uminus_abs_if = uminus_int,
+    zero_abs_if = zero_int, ord_abs_if = ord_int}
+  : int abs_if;
+
+type 'a sgn_if =
+  {minus_sgn_if : 'a minus, one_sgn_if : 'a one, sgn_sgn_if : 'a sgn,
+    uminus_sgn_if : 'a uminus, zero_sgn_if : 'a zero, ord_sgn_if : 'a ord};
+val minus_sgn_if = #minus_sgn_if : 'a sgn_if -> 'a minus;
+val one_sgn_if = #one_sgn_if : 'a sgn_if -> 'a one;
+val sgn_sgn_if = #sgn_sgn_if : 'a sgn_if -> 'a sgn;
+val uminus_sgn_if = #uminus_sgn_if : 'a sgn_if -> 'a uminus;
+val zero_sgn_if = #zero_sgn_if : 'a sgn_if -> 'a zero;
+val ord_sgn_if = #ord_sgn_if : 'a sgn_if -> 'a ord;
+
+val sgn_if_int =
+  {minus_sgn_if = minus_int, one_sgn_if = one_int, sgn_sgn_if = sgn_int,
+    uminus_sgn_if = uminus_int, zero_sgn_if = zero_int, ord_sgn_if = ord_int}
+  : int sgn_if;
+
+type 'a semiring_char_0 = {semiring_1_semiring_char_0 : 'a semiring_1};
+val semiring_1_semiring_char_0 = #semiring_1_semiring_char_0 :
+  'a semiring_char_0 -> 'a semiring_1;
+
+type 'a ring_char_0 =
+  {semiring_char_0_ring_char_0 : 'a semiring_char_0,
+    ring_1_ring_char_0 : 'a ring_1};
+val semiring_char_0_ring_char_0 = #semiring_char_0_ring_char_0 :
+  'a ring_char_0 -> 'a semiring_char_0;
+val ring_1_ring_char_0 = #ring_1_ring_char_0 : 'a ring_char_0 -> 'a ring_1;
+
+val semiring_char_0_int = {semiring_1_semiring_char_0 = semiring_1_int} :
+  int semiring_char_0;
+
+val ring_char_0_int =
+  {semiring_char_0_ring_char_0 = semiring_char_0_int,
+    ring_1_ring_char_0 = ring_1_int}
+  : int ring_char_0;
+
+type 'a preorder = {ord_preorder : 'a ord};
+val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
+
+type 'a order = {preorder_order : 'a preorder};
+val preorder_order = #preorder_order : 'a order -> 'a preorder;
+
+val preorder_int = {ord_preorder = ord_int} : int preorder;
+
+val order_int = {preorder_order = preorder_int} : int order;
+
+type 'a linorder = {order_linorder : 'a order};
+val order_linorder = #order_linorder : 'a linorder -> 'a order;
+
+val linorder_int = {order_linorder = order_int} : int linorder;
+
+type 'a ordered_ab_semigroup_add =
+  {ab_semigroup_add_ordered_ab_semigroup_add : 'a ab_semigroup_add,
+    order_ordered_ab_semigroup_add : 'a order};
+val ab_semigroup_add_ordered_ab_semigroup_add =
+  #ab_semigroup_add_ordered_ab_semigroup_add :
+  'a ordered_ab_semigroup_add -> 'a ab_semigroup_add;
+val order_ordered_ab_semigroup_add = #order_ordered_ab_semigroup_add :
+  'a ordered_ab_semigroup_add -> 'a order;
+
+type 'a ordered_semiring =
+  {comm_monoid_add_ordered_semiring : 'a comm_monoid_add,
+    ordered_ab_semigroup_add_ordered_semiring : 'a ordered_ab_semigroup_add,
+    semiring_ordered_semiring : 'a semiring};
+val comm_monoid_add_ordered_semiring = #comm_monoid_add_ordered_semiring :
+  'a ordered_semiring -> 'a comm_monoid_add;
+val ordered_ab_semigroup_add_ordered_semiring =
+  #ordered_ab_semigroup_add_ordered_semiring :
+  'a ordered_semiring -> 'a ordered_ab_semigroup_add;
+val semiring_ordered_semiring = #semiring_ordered_semiring :
+  'a ordered_semiring -> 'a semiring;
+
+type 'a ordered_cancel_semiring =
+  {ordered_semiring_ordered_cancel_semiring : 'a ordered_semiring,
+    semiring_0_cancel_ordered_cancel_semiring : 'a semiring_0_cancel};
+val ordered_semiring_ordered_cancel_semiring =
+  #ordered_semiring_ordered_cancel_semiring :
+  'a ordered_cancel_semiring -> 'a ordered_semiring;
+val semiring_0_cancel_ordered_cancel_semiring =
+  #semiring_0_cancel_ordered_cancel_semiring :
+  'a ordered_cancel_semiring -> 'a semiring_0_cancel;
+
+type 'a ordered_cancel_ab_semigroup_add =
+  {cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
+     'a cancel_ab_semigroup_add,
+    ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
+      'a ordered_ab_semigroup_add};
+val cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
+  #cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
+  'a ordered_cancel_ab_semigroup_add -> 'a cancel_ab_semigroup_add;
+val ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
+  #ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
+  'a ordered_cancel_ab_semigroup_add -> 'a ordered_ab_semigroup_add;
+
+type 'a ordered_ab_semigroup_add_imp_le =
+  {ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le :
+     'a ordered_cancel_ab_semigroup_add};
+val ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le =
+  #ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le :
+  'a ordered_ab_semigroup_add_imp_le -> 'a ordered_cancel_ab_semigroup_add;
+
+type 'a ordered_comm_monoid_add =
+  {comm_monoid_add_ordered_comm_monoid_add : 'a comm_monoid_add,
+    ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add :
+      'a ordered_cancel_ab_semigroup_add};
+val comm_monoid_add_ordered_comm_monoid_add =
+  #comm_monoid_add_ordered_comm_monoid_add :
+  'a ordered_comm_monoid_add -> 'a comm_monoid_add;
+val ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add =
+  #ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add :
+  'a ordered_comm_monoid_add -> 'a ordered_cancel_ab_semigroup_add;
+
+type 'a ordered_ab_group_add =
+  {ab_group_add_ordered_ab_group_add : 'a ab_group_add,
+    ordered_ab_semigroup_add_imp_le_ordered_ab_group_add :
+      'a ordered_ab_semigroup_add_imp_le,
+    ordered_comm_monoid_add_ordered_ab_group_add : 'a ordered_comm_monoid_add};
+val ab_group_add_ordered_ab_group_add = #ab_group_add_ordered_ab_group_add :
+  'a ordered_ab_group_add -> 'a ab_group_add;
+val ordered_ab_semigroup_add_imp_le_ordered_ab_group_add =
+  #ordered_ab_semigroup_add_imp_le_ordered_ab_group_add :
+  'a ordered_ab_group_add -> 'a ordered_ab_semigroup_add_imp_le;
+val ordered_comm_monoid_add_ordered_ab_group_add =
+  #ordered_comm_monoid_add_ordered_ab_group_add :
+  'a ordered_ab_group_add -> 'a ordered_comm_monoid_add;
+
+type 'a ordered_ring =
+  {ordered_ab_group_add_ordered_ring : 'a ordered_ab_group_add,
+    ordered_cancel_semiring_ordered_ring : 'a ordered_cancel_semiring,
+    ring_ordered_ring : 'a ring};
+val ordered_ab_group_add_ordered_ring = #ordered_ab_group_add_ordered_ring :
+  'a ordered_ring -> 'a ordered_ab_group_add;
+val ordered_cancel_semiring_ordered_ring = #ordered_cancel_semiring_ordered_ring
+  : 'a ordered_ring -> 'a ordered_cancel_semiring;
+val ring_ordered_ring = #ring_ordered_ring : 'a ordered_ring -> 'a ring;
+
+val ordered_ab_semigroup_add_int =
+  {ab_semigroup_add_ordered_ab_semigroup_add = ab_semigroup_add_int,
+    order_ordered_ab_semigroup_add = order_int}
+  : int ordered_ab_semigroup_add;
+
+val ordered_semiring_int =
+  {comm_monoid_add_ordered_semiring = comm_monoid_add_int,
+    ordered_ab_semigroup_add_ordered_semiring = ordered_ab_semigroup_add_int,
+    semiring_ordered_semiring = semiring_int}
+  : int ordered_semiring;
+
+val ordered_cancel_semiring_int =
+  {ordered_semiring_ordered_cancel_semiring = ordered_semiring_int,
+    semiring_0_cancel_ordered_cancel_semiring = semiring_0_cancel_int}
+  : int ordered_cancel_semiring;
+
+val ordered_cancel_ab_semigroup_add_int =
+  {cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
+     cancel_ab_semigroup_add_int,
+    ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
+      ordered_ab_semigroup_add_int}
+  : int ordered_cancel_ab_semigroup_add;
+
+val ordered_ab_semigroup_add_imp_le_int =
+  {ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le =
+     ordered_cancel_ab_semigroup_add_int}
+  : int ordered_ab_semigroup_add_imp_le;
+
+val ordered_comm_monoid_add_int =
+  {comm_monoid_add_ordered_comm_monoid_add = comm_monoid_add_int,
+    ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add =
+      ordered_cancel_ab_semigroup_add_int}
+  : int ordered_comm_monoid_add;
+
+val ordered_ab_group_add_int =
+  {ab_group_add_ordered_ab_group_add = ab_group_add_int,
+    ordered_ab_semigroup_add_imp_le_ordered_ab_group_add =
+      ordered_ab_semigroup_add_imp_le_int,
+    ordered_comm_monoid_add_ordered_ab_group_add = ordered_comm_monoid_add_int}
+  : int ordered_ab_group_add;
+
+val ordered_ring_int =
+  {ordered_ab_group_add_ordered_ring = ordered_ab_group_add_int,
+    ordered_cancel_semiring_ordered_ring = ordered_cancel_semiring_int,
+    ring_ordered_ring = ring_int}
+  : int ordered_ring;
+
+type 'a linordered_ab_semigroup_add =
+  {ordered_ab_semigroup_add_linordered_ab_semigroup_add :
+     'a ordered_ab_semigroup_add,
+    linorder_linordered_ab_semigroup_add : 'a linorder};
+val ordered_ab_semigroup_add_linordered_ab_semigroup_add =
+  #ordered_ab_semigroup_add_linordered_ab_semigroup_add :
+  'a linordered_ab_semigroup_add -> 'a ordered_ab_semigroup_add;
+val linorder_linordered_ab_semigroup_add = #linorder_linordered_ab_semigroup_add
+  : 'a linordered_ab_semigroup_add -> 'a linorder;
+
+type 'a linordered_cancel_ab_semigroup_add =
+  {linordered_ab_semigroup_add_linordered_cancel_ab_semigroup_add :
+     'a linordered_ab_semigroup_add,
+    ordered_ab_semigroup_add_imp_le_linordered_cancel_ab_semigroup_add :
+      'a ordered_ab_semigroup_add_imp_le};
+val linordered_ab_semigroup_add_linordered_cancel_ab_semigroup_add =
+  #linordered_ab_semigroup_add_linordered_cancel_ab_semigroup_add :
+  'a linordered_cancel_ab_semigroup_add -> 'a linordered_ab_semigroup_add;
+val ordered_ab_semigroup_add_imp_le_linordered_cancel_ab_semigroup_add =
+  #ordered_ab_semigroup_add_imp_le_linordered_cancel_ab_semigroup_add :
+  'a linordered_cancel_ab_semigroup_add -> 'a ordered_ab_semigroup_add_imp_le;
+
+type 'a linordered_semiring =
+  {linordered_cancel_ab_semigroup_add_linordered_semiring :
+     'a linordered_cancel_ab_semigroup_add,
+    ordered_comm_monoid_add_linordered_semiring : 'a ordered_comm_monoid_add,
+    ordered_cancel_semiring_linordered_semiring : 'a ordered_cancel_semiring};
+val linordered_cancel_ab_semigroup_add_linordered_semiring =
+  #linordered_cancel_ab_semigroup_add_linordered_semiring :
+  'a linordered_semiring -> 'a linordered_cancel_ab_semigroup_add;
+val ordered_comm_monoid_add_linordered_semiring =
+  #ordered_comm_monoid_add_linordered_semiring :
+  'a linordered_semiring -> 'a ordered_comm_monoid_add;
+val ordered_cancel_semiring_linordered_semiring =
+  #ordered_cancel_semiring_linordered_semiring :
+  'a linordered_semiring -> 'a ordered_cancel_semiring;
+
+type 'a linordered_semiring_strict =
+  {linordered_semiring_linordered_semiring_strict : 'a linordered_semiring};
+val linordered_semiring_linordered_semiring_strict =
+  #linordered_semiring_linordered_semiring_strict :
+  'a linordered_semiring_strict -> 'a linordered_semiring;
+
+type 'a linordered_semiring_1 =
+  {linordered_semiring_linordered_semiring_1 : 'a linordered_semiring,
+    semiring_1_linordered_semiring_1 : 'a semiring_1};
+val linordered_semiring_linordered_semiring_1 =
+  #linordered_semiring_linordered_semiring_1 :
+  'a linordered_semiring_1 -> 'a linordered_semiring;
+val semiring_1_linordered_semiring_1 = #semiring_1_linordered_semiring_1 :
+  'a linordered_semiring_1 -> 'a semiring_1;
+
+type 'a linordered_semiring_1_strict =
+  {linordered_semiring_1_linordered_semiring_1_strict :
+     'a linordered_semiring_1,
+    linordered_semiring_strict_linordered_semiring_1_strict :
+      'a linordered_semiring_strict};
+val linordered_semiring_1_linordered_semiring_1_strict =
+  #linordered_semiring_1_linordered_semiring_1_strict :
+  'a linordered_semiring_1_strict -> 'a linordered_semiring_1;
+val linordered_semiring_strict_linordered_semiring_1_strict =
+  #linordered_semiring_strict_linordered_semiring_1_strict :
+  'a linordered_semiring_1_strict -> 'a linordered_semiring_strict;
+
+type 'a ordered_ab_group_add_abs =
+  {abs_ordered_ab_group_add_abs : 'a abs,
+    ordered_ab_group_add_ordered_ab_group_add_abs : 'a ordered_ab_group_add};
+val abs_ordered_ab_group_add_abs = #abs_ordered_ab_group_add_abs :
+  'a ordered_ab_group_add_abs -> 'a abs;
+val ordered_ab_group_add_ordered_ab_group_add_abs =
+  #ordered_ab_group_add_ordered_ab_group_add_abs :
+  'a ordered_ab_group_add_abs -> 'a ordered_ab_group_add;
+
+type 'a linordered_ab_group_add =
+  {linordered_cancel_ab_semigroup_add_linordered_ab_group_add :
+     'a linordered_cancel_ab_semigroup_add,
+    ordered_ab_group_add_linordered_ab_group_add : 'a ordered_ab_group_add};
+val linordered_cancel_ab_semigroup_add_linordered_ab_group_add =
+  #linordered_cancel_ab_semigroup_add_linordered_ab_group_add :
+  'a linordered_ab_group_add -> 'a linordered_cancel_ab_semigroup_add;
+val ordered_ab_group_add_linordered_ab_group_add =
+  #ordered_ab_group_add_linordered_ab_group_add :
+  'a linordered_ab_group_add -> 'a ordered_ab_group_add;
+
+type 'a linordered_ring =
+  {abs_if_linordered_ring : 'a abs_if,
+    linordered_ab_group_add_linordered_ring : 'a linordered_ab_group_add,
+    ordered_ab_group_add_abs_linordered_ring : 'a ordered_ab_group_add_abs,
+    linordered_semiring_linordered_ring : 'a linordered_semiring,
+    ordered_ring_linordered_ring : 'a ordered_ring};
+val abs_if_linordered_ring = #abs_if_linordered_ring :
+  'a linordered_ring -> 'a abs_if;
+val linordered_ab_group_add_linordered_ring =
+  #linordered_ab_group_add_linordered_ring :
+  'a linordered_ring -> 'a linordered_ab_group_add;
+val ordered_ab_group_add_abs_linordered_ring =
+  #ordered_ab_group_add_abs_linordered_ring :
+  'a linordered_ring -> 'a ordered_ab_group_add_abs;
+val linordered_semiring_linordered_ring = #linordered_semiring_linordered_ring :
+  'a linordered_ring -> 'a linordered_semiring;
+val ordered_ring_linordered_ring = #ordered_ring_linordered_ring :
+  'a linordered_ring -> 'a ordered_ring;
+
+type 'a linordered_ring_strict =
+  {linordered_ring_linordered_ring_strict : 'a linordered_ring,
+    linordered_semiring_strict_linordered_ring_strict :
+      'a linordered_semiring_strict,
+    ring_no_zero_divisors_linordered_ring_strict : 'a ring_no_zero_divisors};
+val linordered_ring_linordered_ring_strict =
+  #linordered_ring_linordered_ring_strict :
+  'a linordered_ring_strict -> 'a linordered_ring;
+val linordered_semiring_strict_linordered_ring_strict =
+  #linordered_semiring_strict_linordered_ring_strict :
+  'a linordered_ring_strict -> 'a linordered_semiring_strict;
+val ring_no_zero_divisors_linordered_ring_strict =
+  #ring_no_zero_divisors_linordered_ring_strict :
+  'a linordered_ring_strict -> 'a ring_no_zero_divisors;
+
+type 'a ordered_comm_semiring =
+  {comm_semiring_0_ordered_comm_semiring : 'a comm_semiring_0,
+    ordered_semiring_ordered_comm_semiring : 'a ordered_semiring};
+val comm_semiring_0_ordered_comm_semiring =
+  #comm_semiring_0_ordered_comm_semiring :
+  'a ordered_comm_semiring -> 'a comm_semiring_0;
+val ordered_semiring_ordered_comm_semiring =
+  #ordered_semiring_ordered_comm_semiring :
+  'a ordered_comm_semiring -> 'a ordered_semiring;
+
+type 'a ordered_cancel_comm_semiring =
+  {comm_semiring_0_cancel_ordered_cancel_comm_semiring :
+     'a comm_semiring_0_cancel,
+    ordered_cancel_semiring_ordered_cancel_comm_semiring :
+      'a ordered_cancel_semiring,
+    ordered_comm_semiring_ordered_cancel_comm_semiring :
+      'a ordered_comm_semiring};
+val comm_semiring_0_cancel_ordered_cancel_comm_semiring =
+  #comm_semiring_0_cancel_ordered_cancel_comm_semiring :
+  'a ordered_cancel_comm_semiring -> 'a comm_semiring_0_cancel;
+val ordered_cancel_semiring_ordered_cancel_comm_semiring =
+  #ordered_cancel_semiring_ordered_cancel_comm_semiring :
+  'a ordered_cancel_comm_semiring -> 'a ordered_cancel_semiring;
+val ordered_comm_semiring_ordered_cancel_comm_semiring =
+  #ordered_comm_semiring_ordered_cancel_comm_semiring :
+  'a ordered_cancel_comm_semiring -> 'a ordered_comm_semiring;
+
+type 'a linordered_comm_semiring_strict =
+  {linordered_semiring_strict_linordered_comm_semiring_strict :
+     'a linordered_semiring_strict,
+    ordered_cancel_comm_semiring_linordered_comm_semiring_strict :
+      'a ordered_cancel_comm_semiring};
+val linordered_semiring_strict_linordered_comm_semiring_strict =
+  #linordered_semiring_strict_linordered_comm_semiring_strict :
+  'a linordered_comm_semiring_strict -> 'a linordered_semiring_strict;
+val ordered_cancel_comm_semiring_linordered_comm_semiring_strict =
+  #ordered_cancel_comm_semiring_linordered_comm_semiring_strict :
+  'a linordered_comm_semiring_strict -> 'a ordered_cancel_comm_semiring;
+
+type 'a linordered_semidom =
+  {semiring_char_0_linordered_semidom : 'a semiring_char_0,
+    linordered_comm_semiring_strict_linordered_semidom :
+      'a linordered_comm_semiring_strict,
+    semidom_linordered_semidom : 'a semidom};
+val semiring_char_0_linordered_semidom = #semiring_char_0_linordered_semidom :
+  'a linordered_semidom -> 'a semiring_char_0;
+val linordered_comm_semiring_strict_linordered_semidom =
+  #linordered_comm_semiring_strict_linordered_semidom :
+  'a linordered_semidom -> 'a linordered_comm_semiring_strict;
+val semidom_linordered_semidom = #semidom_linordered_semidom :
+  'a linordered_semidom -> 'a semidom;
+
+type 'a ordered_comm_ring =
+  {comm_ring_ordered_comm_ring : 'a comm_ring,
+    ordered_cancel_comm_semiring_ordered_comm_ring :
+      'a ordered_cancel_comm_semiring,
+    ordered_ring_ordered_comm_ring : 'a ordered_ring};
+val comm_ring_ordered_comm_ring = #comm_ring_ordered_comm_ring :
+  'a ordered_comm_ring -> 'a comm_ring;
+val ordered_cancel_comm_semiring_ordered_comm_ring =
+  #ordered_cancel_comm_semiring_ordered_comm_ring :
+  'a ordered_comm_ring -> 'a ordered_cancel_comm_semiring;
+val ordered_ring_ordered_comm_ring = #ordered_ring_ordered_comm_ring :
+  'a ordered_comm_ring -> 'a ordered_ring;
+
+type 'a ordered_ring_abs =
+  {ordered_ab_group_add_abs_ordered_ring_abs : 'a ordered_ab_group_add_abs,
+    ordered_ring_ordered_ring_abs : 'a ordered_ring};
+val ordered_ab_group_add_abs_ordered_ring_abs =
+  #ordered_ab_group_add_abs_ordered_ring_abs :
+  'a ordered_ring_abs -> 'a ordered_ab_group_add_abs;
+val ordered_ring_ordered_ring_abs = #ordered_ring_ordered_ring_abs :
+  'a ordered_ring_abs -> 'a ordered_ring;
+
+type 'a linordered_idom =
+  {sgn_if_linordered_idom : 'a sgn_if,
+    ring_char_0_linordered_idom : 'a ring_char_0,
+    idom_linordered_idom : 'a idom,
+    linordered_ring_strict_linordered_idom : 'a linordered_ring_strict,
+    linordered_semidom_linordered_idom : 'a linordered_semidom,
+    linordered_semiring_1_strict_linordered_idom :
+      'a linordered_semiring_1_strict,
+    ordered_comm_ring_linordered_idom : 'a ordered_comm_ring,
+    ordered_ring_abs_linordered_idom : 'a ordered_ring_abs};
+val sgn_if_linordered_idom = #sgn_if_linordered_idom :
+  'a linordered_idom -> 'a sgn_if;
+val ring_char_0_linordered_idom = #ring_char_0_linordered_idom :
+  'a linordered_idom -> 'a ring_char_0;
+val idom_linordered_idom = #idom_linordered_idom :
+  'a linordered_idom -> 'a idom;
+val linordered_ring_strict_linordered_idom =
+  #linordered_ring_strict_linordered_idom :
+  'a linordered_idom -> 'a linordered_ring_strict;
+val linordered_semidom_linordered_idom = #linordered_semidom_linordered_idom :
+  'a linordered_idom -> 'a linordered_semidom;
+val linordered_semiring_1_strict_linordered_idom =
+  #linordered_semiring_1_strict_linordered_idom :
+  'a linordered_idom -> 'a linordered_semiring_1_strict;
+val ordered_comm_ring_linordered_idom = #ordered_comm_ring_linordered_idom :
+  'a linordered_idom -> 'a ordered_comm_ring;
+val ordered_ring_abs_linordered_idom = #ordered_ring_abs_linordered_idom :
+  'a linordered_idom -> 'a ordered_ring_abs;
+
+val linordered_ab_semigroup_add_int =
+  {ordered_ab_semigroup_add_linordered_ab_semigroup_add =
+     ordered_ab_semigroup_add_int,
+    linorder_linordered_ab_semigroup_add = linorder_int}
+  : int linordered_ab_semigroup_add;
+
+val linordered_cancel_ab_semigroup_add_int =
+  {linordered_ab_semigroup_add_linordered_cancel_ab_semigroup_add =
+     linordered_ab_semigroup_add_int,
+    ordered_ab_semigroup_add_imp_le_linordered_cancel_ab_semigroup_add =
+      ordered_ab_semigroup_add_imp_le_int}
+  : int linordered_cancel_ab_semigroup_add;
+
+val linordered_semiring_int =
+  {linordered_cancel_ab_semigroup_add_linordered_semiring =
+     linordered_cancel_ab_semigroup_add_int,
+    ordered_comm_monoid_add_linordered_semiring = ordered_comm_monoid_add_int,
+    ordered_cancel_semiring_linordered_semiring = ordered_cancel_semiring_int}
+  : int linordered_semiring;
+
+val linordered_semiring_strict_int =
+  {linordered_semiring_linordered_semiring_strict = linordered_semiring_int} :
+  int linordered_semiring_strict;
+
+val linordered_semiring_1_int =
+  {linordered_semiring_linordered_semiring_1 = linordered_semiring_int,
+    semiring_1_linordered_semiring_1 = semiring_1_int}
+  : int linordered_semiring_1;
+
+val linordered_semiring_1_strict_int =
+  {linordered_semiring_1_linordered_semiring_1_strict =
+     linordered_semiring_1_int,
+    linordered_semiring_strict_linordered_semiring_1_strict =
+      linordered_semiring_strict_int}
+  : int linordered_semiring_1_strict;
+
+val ordered_ab_group_add_abs_int =
+  {abs_ordered_ab_group_add_abs = abs_int,
+    ordered_ab_group_add_ordered_ab_group_add_abs = ordered_ab_group_add_int}
+  : int ordered_ab_group_add_abs;
+
+val linordered_ab_group_add_int =
+  {linordered_cancel_ab_semigroup_add_linordered_ab_group_add =
+     linordered_cancel_ab_semigroup_add_int,
+    ordered_ab_group_add_linordered_ab_group_add = ordered_ab_group_add_int}
+  : int linordered_ab_group_add;
+
+val linordered_ring_int =
+  {abs_if_linordered_ring = abs_if_int,
+    linordered_ab_group_add_linordered_ring = linordered_ab_group_add_int,
+    ordered_ab_group_add_abs_linordered_ring = ordered_ab_group_add_abs_int,
+    linordered_semiring_linordered_ring = linordered_semiring_int,
+    ordered_ring_linordered_ring = ordered_ring_int}
+  : int linordered_ring;
+
+val linordered_ring_strict_int =
+  {linordered_ring_linordered_ring_strict = linordered_ring_int,
+    linordered_semiring_strict_linordered_ring_strict =
+      linordered_semiring_strict_int,
+    ring_no_zero_divisors_linordered_ring_strict = ring_no_zero_divisors_int}
+  : int linordered_ring_strict;
+
+val ordered_comm_semiring_int =
+  {comm_semiring_0_ordered_comm_semiring = comm_semiring_0_int,
+    ordered_semiring_ordered_comm_semiring = ordered_semiring_int}
+  : int ordered_comm_semiring;
+
+val ordered_cancel_comm_semiring_int =
+  {comm_semiring_0_cancel_ordered_cancel_comm_semiring =
+     comm_semiring_0_cancel_int,
+    ordered_cancel_semiring_ordered_cancel_comm_semiring =
+      ordered_cancel_semiring_int,
+    ordered_comm_semiring_ordered_cancel_comm_semiring =
+      ordered_comm_semiring_int}
+  : int ordered_cancel_comm_semiring;
+
+val linordered_comm_semiring_strict_int =
+  {linordered_semiring_strict_linordered_comm_semiring_strict =
+     linordered_semiring_strict_int,
+    ordered_cancel_comm_semiring_linordered_comm_semiring_strict =
+      ordered_cancel_comm_semiring_int}
+  : int linordered_comm_semiring_strict;
+
+val linordered_semidom_int =
+  {semiring_char_0_linordered_semidom = semiring_char_0_int,
+    linordered_comm_semiring_strict_linordered_semidom =
+      linordered_comm_semiring_strict_int,
+    semidom_linordered_semidom = semidom_int}
+  : int linordered_semidom;
+
+val ordered_comm_ring_int =
+  {comm_ring_ordered_comm_ring = comm_ring_int,
+    ordered_cancel_comm_semiring_ordered_comm_ring =
+      ordered_cancel_comm_semiring_int,
+    ordered_ring_ordered_comm_ring = ordered_ring_int}
+  : int ordered_comm_ring;
+
+val ordered_ring_abs_int =
+  {ordered_ab_group_add_abs_ordered_ring_abs = ordered_ab_group_add_abs_int,
+    ordered_ring_ordered_ring_abs = ordered_ring_int}
+  : int ordered_ring_abs;
+
+val linordered_idom_int =
+  {sgn_if_linordered_idom = sgn_if_int,
+    ring_char_0_linordered_idom = ring_char_0_int,
+    idom_linordered_idom = idom_int,
+    linordered_ring_strict_linordered_idom = linordered_ring_strict_int,
+    linordered_semidom_linordered_idom = linordered_semidom_int,
+    linordered_semiring_1_strict_linordered_idom =
+      linordered_semiring_1_strict_int,
+    ordered_comm_ring_linordered_idom = ordered_comm_ring_int,
+    ordered_ring_abs_linordered_idom = ordered_ring_abs_int}
+  : int linordered_idom;
 
 datatype nat = Nat of IntInf.int;
 
 fun integer_of_nat (Nat x) = x;
 
 fun equal_nata m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
-type 'a equal = {equal : 'a -> 'a -> bool};
-val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
 val equal_nat = {equal = equal_nata} : nat equal;
 
@@ -450,12 +1557,7 @@ val typerep_nat = {typerep = typerep_nata} : nat typerep;
 val heap_nat = {countable_heap = countable_nat, typerep_heap = typerep_nat} :
   nat heap;
 
-datatype num = One | Bit0 of num | Bit1 of num;
-
 val one_nata : nat = Nat (1 : IntInf.int);
-
-type 'a one = {one : 'a};
-val one = #one : 'a one -> 'a;
 
 val one_nat = {one = one_nata} : nat one;
 
@@ -468,12 +1570,6 @@ fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
-
-type 'a preorder = {ord_preorder : 'a ord};
-val ord_preorder = #ord_preorder : 'a preorder -> 'a ord;
-
-type 'a order = {preorder_order : 'a preorder};
-val preorder_order = #preorder_order : 'a order -> 'a preorder;
 
 val preorder_nat = {ord_preorder = ord_nat} : nat preorder;
 
@@ -504,9 +1600,6 @@ fun hashcode_nat n = uint32_of_int (int_of_nat n);
 val hashable_nat =
   {hashcode = hashcode_nat, def_hashmap_size = def_hashmap_size_nat} :
   nat hashable;
-
-type 'a linorder = {order_linorder : 'a order};
-val order_linorder = #order_linorder : 'a linorder -> 'a order;
 
 val linorder_nat = {order_linorder = order_nat} : nat linorder;
 
@@ -571,11 +1664,11 @@ datatype ('a, 'b) hashmapb =
 
 datatype ('a, 'b, 'c, 'd) gen_g_impl_ext = Gen_g_impl_ext of 'a * 'b * 'c * 'd;
 
-datatype 'a pre_network_ext =
+datatype ('a, 'b) pre_network_ext =
   Pre_network_ext of
-    ((nat * nat), int) hashmap * (nat, unit) hashmap *
+    ((nat * nat), 'a) hashmap * (nat, unit) hashmap *
       (nat, (nat list)) hashmap * (nat, (nat list)) hashmap *
-      (nat, (nat list)) hashmap * bool * bool * 'a;
+      (nat, (nat list)) hashmap * bool * bool * 'b;
 
 datatype ('a, 'b, 'c) simple_state_nos_impl_ext =
   Simple_state_nos_impl_ext of 'a * 'b * 'c;
@@ -660,61 +1753,61 @@ fun ln_N el =
       (sup_set equal_nat (image fst (Set el)) (image (fst o snd) (Set el))))
     one_nata;
 
-fun pn_t_node_update pn_t_nodea
+fun pn_t_node_update A_ pn_t_nodea
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_nodea pn_t_node,
         more);
 
-fun pn_s_node_update pn_s_nodea
+fun pn_s_node_update A_ pn_s_nodea
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_nodea pn_s_node, pn_t_node,
         more);
 
-fun pn_psucc_update pn_psucca
+fun pn_psucc_update A_ pn_psucca
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_c, pn_V, pn_succ, pn_pred, pn_psucca pn_psucc, pn_s_node, pn_t_node,
         more);
 
-fun pn_succ_update pn_succa
+fun pn_succ_update A_ pn_succa
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_c, pn_V, pn_succa pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node,
         more);
 
-fun pn_pred_update pn_preda
+fun pn_pred_update A_ pn_preda
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_c, pn_V, pn_succ, pn_preda pn_pred, pn_psucc, pn_s_node, pn_t_node,
         more);
 
-fun pn_c_update pn_ca
+fun pn_c_update A_ pn_ca
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_ca pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node,
         more);
 
-fun pn_V_update pn_Va
+fun pn_V_update A_ pn_Va
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = Pre_network_ext
       (pn_c, pn_Va pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node,
         more);
 
-fun pn_t_node
+fun pn_t_node A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_t_node;
 
-fun pn_s_node
+fun pn_s_node A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_s_node;
@@ -731,17 +1824,17 @@ fun ahm_empty A_ = (fn _ => ahm_empty_const A_);
 
 fun empty_ahm_basic_ops A_ = ahm_empty A_;
 
-fun pn_psucc
+fun pn_psucc A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_psucc;
 
-fun pn_succ
+fun pn_succ A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_succ;
 
-fun pn_pred
+fun pn_pred A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_pred;
@@ -857,14 +1950,12 @@ fun ahm_update (A1_, A2_) k v hm =
 
 fun ins_ahm_basic_ops (A1_, A2_) x s = ahm_update (A1_, A2_) x () s;
 
-fun equal_int k l = (((integer_of_int k) : IntInf.int) = (integer_of_int l));
-
-fun pn_c
+fun pn_c A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_c;
 
-fun pn_V
+fun pn_V A_
   (Pre_network_ext
     (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
   = pn_V;
@@ -883,62 +1974,84 @@ fun the_default uu (SOME x) = x
 
 fun ahm_ld (B1_, B2_) a ahm k = the_default a (ahm_lookup (B1_, B2_) k ahm);
 
-fun read [] uu uv =
+fun read (A1_, A2_) [] uu uv =
   SOME (Pre_network_ext
          (ahm_empty (hashable_prod hashable_nat hashable_nat) (),
            empty_ahm_basic_ops hashable_nat (), ahm_empty hashable_nat (),
            ahm_empty hashable_nat (), ahm_empty hashable_nat (), false, false,
            ()))
-  | read ((u, (v, c)) :: es) s t =
-    (case read es s t of NONE => NONE
+  | read (A1_, A2_) ((u, (v, c)) :: es) s t =
+    (case read (A1_, A2_) es s t of NONE => NONE
       | SOME x =>
-        (if equal_int
+        (if eq A1_
               (ahm_ld
                 (equal_prod equal_nat equal_nat,
                   hashable_prod hashable_nat hashable_nat)
-                zero_inta (pn_c x) (u, v))
-              zero_inta andalso
-              (equal_int
+                (zero ((zero_abs_if o abs_if_linordered_ring o
+                         linordered_ring_linordered_ring_strict o
+                         linordered_ring_strict_linordered_idom)
+                        A2_))
+                (pn_c A2_ x) (u, v))
+              (zero ((zero_abs_if o abs_if_linordered_ring o
+                       linordered_ring_linordered_ring_strict o
+                       linordered_ring_strict_linordered_idom)
+                      A2_)) andalso
+              (eq A1_
                  (ahm_ld
                    (equal_prod equal_nat equal_nat,
                      hashable_prod hashable_nat hashable_nat)
-                   zero_inta (pn_c x) (v, u))
-                 zero_inta andalso
-                less_int zero_inta c)
+                   (zero ((zero_abs_if o abs_if_linordered_ring o
+                            linordered_ring_linordered_ring_strict o
+                            linordered_ring_strict_linordered_idom)
+                           A2_))
+                   (pn_c A2_ x) (v, u))
+                 (zero ((zero_abs_if o abs_if_linordered_ring o
+                          linordered_ring_linordered_ring_strict o
+                          linordered_ring_strict_linordered_idom)
+                         A2_)) andalso
+                less ((ord_abs_if o abs_if_linordered_ring o
+                        linordered_ring_linordered_ring_strict o
+                        linordered_ring_strict_linordered_idom)
+                       A2_)
+                  (zero ((zero_abs_if o abs_if_linordered_ring o
+                           linordered_ring_linordered_ring_strict o
+                           linordered_ring_strict_linordered_idom)
+                          A2_))
+                  c)
           then (if equal_nata u v orelse (equal_nata v s orelse equal_nata u t)
                  then NONE
-                 else SOME (pn_t_node_update
-                             (fn _ => pn_t_node x orelse equal_nata v t)
-                             (pn_s_node_update
-                               (fn _ => pn_s_node x orelse equal_nata u s)
-                               (pn_psucc_update
+                 else SOME (pn_t_node_update A2_
+                             (fn _ => pn_t_node A2_ x orelse equal_nata v t)
+                             (pn_s_node_update A2_
+                               (fn _ => pn_s_node A2_ x orelse equal_nata u s)
+                               (pn_psucc_update A2_
                                  (fn _ =>
                                    ahm_update (equal_nat, hashable_nat) u
                                      (v :: ahm_ld (equal_nat, hashable_nat) []
-     (pn_psucc x) u)
+     (pn_psucc A2_ x) u)
                                      (ahm_update (equal_nat, hashable_nat) v
                                        (u ::
- ahm_ld (equal_nat, hashable_nat) [] (pn_psucc x) v)
-                                       (pn_psucc x)))
-                                 (pn_pred_update
+ ahm_ld (equal_nat, hashable_nat) [] (pn_psucc A2_ x) v)
+                                       (pn_psucc A2_ x)))
+                                 (pn_pred_update A2_
                                    (fn _ =>
                                      ahm_update (equal_nat, hashable_nat) v
                                        (u ::
- ahm_ld (equal_nat, hashable_nat) [] (pn_pred x) v)
-                                       (pn_pred x))
-                                   (pn_succ_update
+ ahm_ld (equal_nat, hashable_nat) [] (pn_pred A2_ x) v)
+                                       (pn_pred A2_ x))
+                                   (pn_succ_update A2_
                                      (fn _ =>
                                        ahm_update (equal_nat, hashable_nat) u
- (v :: ahm_ld (equal_nat, hashable_nat) [] (pn_succ x) u) (pn_succ x))
-                                     (pn_V_update
+ (v :: ahm_ld (equal_nat, hashable_nat) [] (pn_succ A2_ x) u) (pn_succ A2_ x))
+                                     (pn_V_update A2_
                                        (fn _ =>
  ins_ahm_basic_ops (equal_nat, hashable_nat) u
-   (ins_ahm_basic_ops (equal_nat, hashable_nat) v (pn_V x)))
-                                       (pn_c_update
+   (ins_ahm_basic_ops (equal_nat, hashable_nat) v (pn_V A2_ x)))
+                                       (pn_c_update A2_
  (fn _ =>
    ahm_update
      (equal_prod equal_nat equal_nat, hashable_prod hashable_nat hashable_nat)
-     (u, v) c (pn_c x))
+     (u, v) c (pn_c A2_ x))
  x))))))))
           else NONE));
 
@@ -963,9 +2076,10 @@ fun upd_oo A_ f =
 
 fun gen_equal ss1 ss2 s1 s2 = ss1 s1 s2 andalso ss2 s2 s1;
 
-fun rev_graph_of_impl pn t =
+fun rev_graph_of_impl A_ pn t =
   Gen_g_impl_ext
-    ((fn _ => true), ahm_ld (equal_nat, hashable_nat) [] (pn_pred pn), [t], ());
+    ((fn _ => true), ahm_ld (equal_nat, hashable_nat) [] (pn_pred A_ pn), [t],
+      ());
 
 fun ssnos_visited_impl_update ssnos_visited_impla
   (Simple_state_nos_impl_ext (ssnos_stack_impl, ssnos_visited_impl, more)) =
@@ -1253,9 +2367,10 @@ fun reachable_impl gi =
       (find_reachable_codeT equal_nata (bounded_hashcode_nat hashable_nat)
         (def_hashmap_size_nat Type) gi));
 
-fun graph_of_impl pn s =
+fun graph_of_impl A_ pn s =
   Gen_g_impl_ext
-    ((fn _ => true), ahm_ld (equal_nat, hashable_nat) [] (pn_succ pn), [s], ());
+    ((fn _ => true), ahm_ld (equal_nat, hashable_nat) [] (pn_succ A_ pn), [s],
+      ());
 
 fun ahm_iterateia A_ (HashMapa (a, n)) = ahm_iteratei_aux A_ a;
 
@@ -1300,20 +2415,25 @@ fun net_alpha (A1_, A2_) B_ (C1_, C2_) (ci, psucci) =
 
 fun checkNet4 el s t =
   (if equal_nata s t then NONE
-    else (case read el s t of NONE => NONE
+    else (case read (equal_int, linordered_idom_int) el s t of NONE => NONE
            | SOME xa =>
-             (if pn_s_node xa andalso pn_t_node xa
+             (if pn_s_node linordered_idom_int xa andalso
+                   pn_t_node linordered_idom_int xa
                then let
-                      val xb = reachable_impl (graph_of_impl xa s);
-                      val xc = reachable_impl (rev_graph_of_impl xa t);
+                      val xb =
+                        reachable_impl (graph_of_impl linordered_idom_int xa s);
+                      val xc =
+                        reachable_impl
+                          (rev_graph_of_impl linordered_idom_int xa t);
                     in
-                      (if sets_eq_impl (pn_V xa) xb andalso
-                            sets_eq_impl (pn_V xa) xc
+                      (if sets_eq_impl (pn_V linordered_idom_int xa) xb andalso
+                            sets_eq_impl (pn_V linordered_idom_int xa) xc
                         then SOME (net_alpha
                                     (equal_prod equal_nat equal_nat,
                                       hashable_prod hashable_nat hashable_nat)
                                     zero_int (equal_nat, hashable_nat)
-                                    (pn_c xa, pn_psucc xa))
+                                    (pn_c linordered_idom_int xa,
+                                      pn_psucc linordered_idom_int xa))
                         else NONE)
                     end
                else NONE)));
@@ -1523,14 +2643,8 @@ fun bottleNeck_imp n cfi pi =
           bottleNeck_imp_0 n cfi (xs, x_c) ()
         end));
 
-fun minus_int k l =
-  Int_of_integer (IntInf.- (integer_of_int k, integer_of_int l));
-
 fun mtx_set A_ n mtx e v =
   upd A_ (plus_nat (fst e) (times_nat (snd e) n)) v mtx;
-
-fun plus_int k l =
-  Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
 
 fun augment_imp_0 n capi x =
   (case x of ([], a2) => (fn () => a2)
@@ -1538,13 +2652,13 @@ fun augment_imp_0 n capi x =
       (fn () =>
         let
           val xa = mtx_get heap_int n a2 x_d ();
-          val xb = mtx_set heap_int n a2 x_d (minus_int xa capi) ();
+          val xb = mtx_set heap_int n a2 x_d (minus_inta xa capi) ();
           val x_e =
             let
               val x_g = swap x_d;
             in
               (fn f_ => fn () => f_ ((mtx_get heap_int n xb x_g) ()) ())
-                (fn x_i => mtx_set heap_int n xb x_g (plus_int x_i capi))
+                (fn x_i => mtx_set heap_int n xb x_g (plus_inta x_i capi))
             end
               ();
         in
@@ -1600,9 +2714,9 @@ fun get_flow c n s fi =
             val cfsv = mtx_get heap_int n fi (s, v) ();
           in
             let
-              val fsv = minus_int csv cfsv;
+              val fsv = minus_inta csv cfsv;
             in
-              (fn () => (plus_int cap fsv))
+              (fn () => (plus_inta cap fsv))
             end
               ()
           end)

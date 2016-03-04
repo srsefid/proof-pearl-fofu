@@ -2,8 +2,12 @@ theory Graph_Impl
 imports Refine_Add_Fofu Graph
 begin
 
+-- \<open>Fixing capacities to integer values\<close>
+type_synonym capacity_impl = int
+
+
 locale Impl_Succ =
-  fixes absG :: "'ga \<Rightarrow> graph"
+  fixes absG :: "'ga \<Rightarrow> capacity_impl graph" 
   fixes ifT :: "'ig itself"
   fixes succ :: "'ga \<Rightarrow> node \<Rightarrow> node list nres"
   fixes isG :: "'ga \<Rightarrow> 'gi \<Rightarrow> assn"

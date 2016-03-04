@@ -34,7 +34,7 @@ begin
     definition "fofu \<equiv> do {
       let f = (\<lambda>_. 0);
 
-      (f,_) \<leftarrow> WHILEIT fofu_invar
+      (f,_) \<leftarrow> WHILEI fofu_invar
         (\<lambda>(f,brk). \<not>brk) 
         (\<lambda>(f,_). do {
           p \<leftarrow> find_augmenting_spec f;
@@ -83,7 +83,7 @@ begin
       Moreover note, that we show total correctness here. 
       As our capacities are natural numbers, the algorithm always terminates.
       \<close>
-    lemma fofu_total_correct: "fofu \<le> SPEC (\<lambda>f. isMaxFlow c s t f)"
+    lemma fofu_partial_correct: "fofu \<le> SPEC (\<lambda>f. isMaxFlow c s t f)"
       unfolding fofu_def find_augmenting_spec_def
       apply (refine_vcg)
       apply clarsimp_all
@@ -92,10 +92,12 @@ begin
         using Network_axioms
         by (auto simp: s_node t_node cap_positive)  
         
+      (*  
       txt \<open>Note: Exploiting integer capacities. For irrational numbers, the 
         general Ford-Fulkerson scheme needs not terminate.\<close>  
       let ?S = "measure (\<lambda>f. nat ((\<Sum>e\<in> outgoing s. c e) - Flow.val c s f)) <*lex*> measure (\<lambda>True \<Rightarrow> 0 | False \<Rightarrow> 1)"
       show "wf ?S" by auto
+      *)
 
       {
         fix f p
@@ -105,10 +107,10 @@ begin
         from NFlow.augment_pres_nflow[OF asm1 asm2] show "NFlow c s t ?F''" .
         then interpret F''!: NFlow c s t ?F'' .
 
-        {
+        (*{
           {
             have "Graph.isPath (residualGraph c f) s p t" 
-              using asm2 NFlow.isAugmenting_def[OF asm1] Graph.isSimplePath_def by auto
+              using asm2 unfolding NFlow.isAugmenting_def[OF asm1] Graph.isSimplePath_def by auto
             then have "0 < NFlow.bottleNeck c f p" using NFlow.bottleNeck_gzero[OF asm1] by auto
             then have "Flow.val (residualGraph c f) s (NFlow.augmentingFlow c f p) > 0"
               using NFlow.augFlow_val[OF asm1 asm2] by auto
@@ -128,7 +130,7 @@ begin
              (NFlow.augmentingFlow c f p), False),
             (f,False)) \<in> ?S"
             by (simp)
-        }
+        }*)
       }
       {
         fix f
@@ -136,9 +138,9 @@ begin
         assume asm2: "(\<forall>p. \<not>NFlow.isAugmenting c s t f p)"
         show "isMaxFlow c s t f" using NFlow.maxFlow_iff_noAugPath[OF asm1] asm2 by blast
       }
-      { fix f
+      (*{ fix f
         show "((f, True), f, False) \<in> ?S" by auto
-      }  
+      } *) 
 
       {
         fix f
@@ -150,7 +152,6 @@ begin
           by (simp add: Graph.isPath.simps)
 
       }
-
     qed   
 
     (* TODO: May be a good idea for main refinement branch, too! *)
@@ -166,7 +167,7 @@ text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>
 definition "ford_fulkerson_algo \<equiv> do {
   let f = (\<lambda>_. 0);
 
-  (f,_) \<leftarrow> while\<^sub>T
+  (f,_) \<leftarrow> while
     (\<lambda>(f,brk). \<not>brk) 
     (\<lambda>(f,_). do {
       p \<leftarrow> find_augmenting_spec f;
@@ -188,7 +189,7 @@ text_raw \<open>}%EndSnippet\<close>
           apply (refine_dref_type)
           apply (vc_solve simp: NFlow.augment_with_path_def)
           done
-        also note fofu_total_correct  
+        also note fofu_partial_correct  
         finally show ?thesis .
       qed  
     end  

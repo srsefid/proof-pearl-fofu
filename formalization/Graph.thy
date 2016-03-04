@@ -8,7 +8,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   type_synonym node = nat 
   type_synonym edge = "node \<times> node"
-  type_synonym capacity = int
+  (*type_synonym capacity = int*)
 
   (*
   typedecl capacity 
@@ -16,10 +16,10 @@ begin
   *)
 
 
-  type_synonym graph = "edge \<Rightarrow> capacity"
+  type_synonym 'capacity graph = "edge \<Rightarrow> 'capacity"
   
   locale Graph = 
-    fixes c :: graph
+    fixes c :: "'capacity::linordered_idom graph"
   begin
     definition E :: "edge set" -- \<open>Edges of the graph\<close>
     where "E \<equiv> {(u, v). c (u, v) \<noteq> 0}"
@@ -57,35 +57,35 @@ begin
   end
 
   locale Graph_Syntax begin
-    abbreviation Graph_E :: "graph \<Rightarrow> edge set"
+    abbreviation Graph_E :: "'c::linordered_idom graph \<Rightarrow> edge set"
       ("\<lbrace>_/ \<parallel>\<^sub>G/ E\<rbrace>" 1000)
     where "\<lbrace>c \<parallel>\<^sub>G E\<rbrace> \<equiv> Graph.E c"
       
-    abbreviation Graph_V :: "graph \<Rightarrow> node set" 
+    abbreviation Graph_V :: "'c::linordered_idom graph \<Rightarrow> node set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ V\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G V\<rbrace> \<equiv> Graph.V c"
       
-    abbreviation Graph_incoming :: "graph \<Rightarrow> node \<Rightarrow> edge set" 
+    abbreviation Graph_incoming :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> edge set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>+(_)\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<delta>\<^sup>+ u\<rbrace> \<equiv> Graph.incoming c u"
       
-    abbreviation Graph_outgoing :: "graph \<Rightarrow> node \<Rightarrow> edge set" 
+    abbreviation Graph_outgoing :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> edge set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>-(_)\<rbrace>" 1000)
     where "\<lbrace>c \<parallel>\<^sub>G \<delta>\<^sup>- u\<rbrace> \<equiv> Graph.outgoing c u"
       
-    abbreviation Graph_delta :: "graph \<Rightarrow> node \<Rightarrow> edge set"
+    abbreviation Graph_delta :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> edge set"
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>(_)\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<delta> u\<rbrace> \<equiv> Graph.adjacent c u"
       
-    abbreviation Graph_incoming' :: "graph \<Rightarrow> node set \<Rightarrow> edge set" 
+    abbreviation Graph_incoming' :: "'c::linordered_idom graph \<Rightarrow> node set \<Rightarrow> edge set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>+(_)\<rbrace>" 1000)
     where "\<lbrace>c \<parallel>\<^sub>G \<Delta>\<^sup>+ u\<rbrace> \<equiv> Graph.incoming' c u"  
     
-    abbreviation Graph_outgoing' :: "graph \<Rightarrow> node set \<Rightarrow> edge set" 
+    abbreviation Graph_outgoing' :: "'c::linordered_idom graph \<Rightarrow> node set \<Rightarrow> edge set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>-(_)\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<Delta>\<^sup>- u\<rbrace> \<equiv> Graph.outgoing' c u"
       
-    abbreviation Graph_delta' :: "graph \<Rightarrow> node set \<Rightarrow> edge set" 
+    abbreviation Graph_delta' :: "'c::linordered_idom graph \<Rightarrow> node set \<Rightarrow> edge set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>(_)\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<Delta> u\<rbrace> \<equiv> Graph.adjacent' c u"
     (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -136,23 +136,23 @@ begin
   end
 
   context Graph_Syntax begin  
-    abbreviation Graph_isPath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
+    abbreviation Graph_isPath :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto> _, _, _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<leadsto> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isPath c u p v"
       
-    abbreviation Graph_connected :: "graph \<Rightarrow> node \<Rightarrow> node \<Rightarrow> bool" 
+    abbreviation Graph_connected :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> node \<Rightarrow> bool" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>_/ \<leadsto>/ _\<rangle>\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<langle>u \<leadsto> v\<rangle>\<rbrace> \<equiv> Graph.connected c u v"
       
-    abbreviation Graph_reachableNodes :: "graph \<Rightarrow> node \<Rightarrow> node set" 
+    abbreviation Graph_reachableNodes :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> node set" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<star>/ _\<rangle>\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<star> u\<rangle>\<rbrace> \<equiv> Graph.reachableNodes c u"
       
-    abbreviation Graph_isShortestPath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
+    abbreviation Graph_isShortestPath :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<rightarrow> _, _, _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<rightarrow> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isShortestPath c u p v"
       
-    abbreviation Graph_isSimplePath :: "graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool"
+    abbreviation Graph_isSimplePath :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool"
       ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<Rightarrow> _, _, _\<rangle>\<rbrace>" 1000) 
     where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<Rightarrow> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isSimplePath c u p v"
   end  
@@ -166,20 +166,20 @@ begin
   (* Flow definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  type_synonym flow = "edge \<Rightarrow> capacity"
+  type_synonym 'capacity flow = "edge \<Rightarrow> 'capacity"
   
-  locale Flow = Graph +
+  locale Flow = Graph c for c :: "'capacity::linordered_idom graph" +
     fixes s t :: node
-    fixes f :: flow
+    fixes f :: "'capacity::linordered_idom flow"
     assumes capacity_const: "\<forall>e. 0 \<le> f e \<and> f e \<le> c e"
     assumes conservation_const: "\<forall>v \<in> V - {s, t}. (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
   begin
-    definition val :: "capacity"
+    definition val :: "'capacity"
     where "val \<equiv> (\<Sum>e \<in> outgoing s. f e) - (\<Sum>e \<in> incoming s. f e)"
   end
 
   context Graph_Syntax begin    
-    abbreviation Flow_val :: "graph \<Rightarrow> node \<Rightarrow> flow \<Rightarrow> capacity"
+    abbreviation Flow_val :: "'capacity::linordered_idom graph \<Rightarrow> node \<Rightarrow> 'capacity flow \<Rightarrow> 'capacity"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>F/ |_|\<rbrace>" 1000) 
     where "\<lbrace>c, s \<parallel>\<^sub>F |f|\<rbrace> \<equiv> Flow.val c s f"
   end  

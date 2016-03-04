@@ -8,7 +8,7 @@ begin
   (* Residual graph definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  definition residualGraph :: "graph \<Rightarrow> flow \<Rightarrow> graph"
+  definition residualGraph :: "_ graph \<Rightarrow> _ flow \<Rightarrow> _ graph"
   where "residualGraph c f \<equiv> \<lambda>(u, v).
     if (u, v) \<in> Graph.E c then
       c (u, v) - f (u, v)
@@ -35,14 +35,15 @@ begin
   begin
     abbreviation "cf \<equiv> residualGraph c f"
     sublocale cf!: Graph cf .
+    lemmas cf_def = residualGraph_def[of c f]
     
     definition isAugmenting :: "path \<Rightarrow> bool"
     where "isAugmenting p \<equiv> cf.isSimplePath s p t"
       
-    definition bottleNeck :: "path \<Rightarrow> capacity"
+    definition bottleNeck :: "path \<Rightarrow> 'capacity"
     where "bottleNeck p \<equiv> Min {cf e | e. e \<in> set p}"
       
-    definition augmentingFlow :: "path \<Rightarrow> flow"
+    definition augmentingFlow :: "path \<Rightarrow> 'capacity flow"
     where "augmentingFlow p \<equiv> \<lambda>(u, v).
       if (u, v) \<in> (set p) then
         bottleNeck p
@@ -57,15 +58,15 @@ begin
   end
 
   context Graph_Syntax begin  
-    abbreviation NFlow_isAugmenting :: "graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> flow \<Rightarrow> path \<Rightarrow> bool"
+    abbreviation NFlow_isAugmenting :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> bool"
       ("\<lbrace>_,/ _,/ _,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<Rightarrow>\<^sup>A/ _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c, s, t, f \<parallel>\<^sub>N\<^sub>F \<langle>\<Rightarrow>\<^sup>A p\<rangle>\<rbrace> \<equiv> NFlow.isAugmenting c s t f p"
     
-    abbreviation NFlow_bottleNeck :: "graph \<Rightarrow> flow \<Rightarrow> path \<Rightarrow> capacity"
+    abbreviation NFlow_bottleNeck :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<nabla>/ _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<nabla> p\<rangle>\<rbrace> \<equiv> NFlow.bottleNeck c f p"
     
-    abbreviation NFlow_augmentingFlow :: "graph \<Rightarrow> flow \<Rightarrow> path \<Rightarrow> flow"
+    abbreviation NFlow_augmentingFlow :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _ flow"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<F>\<^sub>\<p>/ _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<F>\<^sub>\<p> p\<rangle>\<rbrace> \<equiv> NFlow.augmentingFlow c f p"
   end
@@ -139,12 +140,12 @@ begin
               thus ?thesis
               proof
                 assume "(u, v) \<in> E"
-                then have "cf e = c e - f e" using residualGraph_def obt by auto
+                then have "cf e = c e - f e" using cf_def obt by auto
                 thus ?thesis using capacity_const cap_positive obt by (metis diff_0_right
                   diff_eq_diff_less_eq eq_iff eq_iff_diff_eq_0 linear)
               next
                 assume "(v, u) \<in> E"
-                then have "cf e = f (v, u)" using residualGraph_def no_parallel_edge obt by auto
+                then have "cf e = f (v, u)" using cf_def no_parallel_edge obt by auto
                 thus ?thesis using obt capacity_const using le_less by fastforce 
               qed
           next
@@ -156,7 +157,7 @@ begin
     lemma resE_positive: "e \<in> cf.E \<Longrightarrow> cf e > 0"
       proof -
         assume asm: "e \<in> cf.E"
-        have "cf e \<noteq> 0" using asm Graph.E_def by auto
+        have "cf e \<noteq> 0" using asm cf.E_def by auto
         thus ?thesis using resE_nonNegative by (meson eq_iff not_le)
       qed 
       
@@ -169,7 +170,7 @@ begin
           
           then have "cf (v, u) = f (u, v)"
             unfolding residualGraph_def using no_parallel_edge by auto
-          moreover have "f' (v, u) \<le> cf (v, u)" using asm Flow_def by auto
+          moreover have "f' (v, u) \<le> cf (v, u)" using asm[unfolded Flow_def] by auto
           ultimately have "f' (v, u) \<le> f (u, v)" by metis
         }
         thus ?thesis by auto
@@ -236,7 +237,7 @@ begin
                       using asm_s Graph.isPath_ex_edge1[of cf s p t v u] by auto
                     moreover have "(x, v) \<in> Graph.E cf" using `Graph.isPath cf s p t` 
                       Graph.isPath_edgeset[of cf s p t "(x,v)"] `(x, v) \<in> set p` by auto
-                    ultimately have "x \<in> ?S_IP" using Graph.V_def by auto
+                    ultimately have "x \<in> ?S_IP" unfolding cf.V_def by auto
                     thus "False" using True by auto
                   qed
                 thus ?thesis using True by metis
@@ -254,7 +255,7 @@ begin
                   have f1: "Graph.isPath cf s p t" using asm Graph.isSimplePath_def by auto
                   obtain v' where "(v, v') \<in> set p" using asm_s 
                     Graph.isPath_ex_edge2[OF f1 `(u, v) \<in> set p`] by auto
-                  then have "v' \<in> Graph.V cf" using Graph.isPath_edgeset[OF f1] Graph.V_def by auto
+                  then have "v' \<in> Graph.V cf" using Graph.isPath_edgeset[OF f1] cf.V_def by auto
                   then have "v' \<in> ?S_OP" using `(v, v') \<in> set p` by auto
                   have "\<forall> v''. v'' \<noteq> v' \<longrightarrow> v'' \<notin> ?S_OP" using 
                     Graph.isSPath_sg_outgoing[OF asm `(v, v') \<in> set p`] by auto
@@ -271,7 +272,7 @@ begin
       proof -
         assume asm: "isAugmenting p"
         then have asm: "Graph.isPath cf s p t \<and> distinct (pathVertices s p)" 
-          using isAugmenting_def Graph.isSimplePath_def by auto
+          using isAugmenting_def cf.isSimplePath_def by auto
         {
           fix e
           have "0 \<le> (augmentingFlow p) e \<and> (augmentingFlow p) e \<le> cf e"
@@ -405,7 +406,7 @@ begin
       proof -
         assume asm: "isAugmenting p"
         {
-          then have "Graph.isPath cf s p t" using isAugmenting_def Graph.isSimplePath_def by auto
+          then have "Graph.isPath cf s p t" using isAugmenting_def cf.isSimplePath_def by auto
           then have "p \<noteq> []" using s_not_t by (metis Graph.isPath.simps(1))
           then obtain e es where "p = e # es" by (metis list.collapse)
           then obtain u v where "e = (u, v)" by (metis nat_gcd.cases)
@@ -430,7 +431,7 @@ begin
               using Flow.val_def by auto
             moreover {
               have f1: "finite (Graph.V cf)" using resV_netV finite_V by auto
-              have f2: "\<forall>e. 0 \<le> augmentingFlow p e \<and> augmentingFlow p e \<le> cf e" using fct1 Graph.Flow_def by auto
+              have f2: "\<forall>e. 0 \<le> augmentingFlow p e \<and> augmentingFlow p e \<le> cf e" using fct1[unfolded Flow_def] by auto
               note Graph.sum_outgoing_alt[OF f1 f2]
               
               then have "?SUM ?OG ?F = ?SUM ?S ?F_O" using s_node resV_netV by auto
@@ -472,7 +473,7 @@ begin
             
             moreover {
               have f1: "finite (Graph.V cf)" using resV_netV finite_V by auto
-              have f2: "\<forall>e. 0 \<le> augmentingFlow p e \<and> augmentingFlow p e \<le> cf e" using fct1 Graph.Flow_def by auto
+              have f2: "\<forall>e. 0 \<le> augmentingFlow p e \<and> augmentingFlow p e \<le> cf e" using fct1[unfolded Flow_def] by auto
               note Graph.sum_incoming_alt[OF f1 f2]
               
               then have "?SUM ?IN ?F = ?SUM ?S ?F_I" using s_node resV_netV by auto
@@ -515,8 +516,8 @@ begin
             moreover {
               have "Graph.isSimplePath cf s p t" using asm isAugmenting_def by auto
               moreover obtain v where "(s, v) \<in> set p" using fct by auto
-              ultimately have "\<forall> u. u \<noteq> v \<longrightarrow> u \<notin> ?S_OP" using 
-                Graph.isSPath_sg_outgoing by auto
+              ultimately have "\<forall> u. u \<noteq> v \<longrightarrow> u \<notin> ?S_OP" 
+                using cf.isSPath_sg_outgoing by auto
               moreover {
                 have "Graph.isPath cf s p t" 
                   using `Graph.isSimplePath cf s p t` Graph.isSimplePath_def by auto
@@ -533,7 +534,7 @@ begin
                 have fct1: "Graph.isSimplePath cf s p t" using asm isAugmenting_def by auto
                 moreover obtain v where "(s, v) \<in> set p" using fct by auto
                 ultimately have "\<exists>es1 es2. p = es1 @ (v', s) # (s, v) # es2 \<or> (v', s) \<notin> set p" 
-                  using Graph.isSPath_no_returning by auto
+                  using cf.isSPath_no_returning by auto
                 moreover {
                   have "\<not> (\<exists>es1 es2. p = es1 @ (v', s) # (s, v) # es2)"
                     proof (rule ccontr)

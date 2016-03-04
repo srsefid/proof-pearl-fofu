@@ -2,21 +2,22 @@ theory NetCheck
 imports 
   Fofu_Impl_Base
    Network 
-  "cava/DFS_Framework/Examples/Reachable_Nodes"
   "Temporary_Graph_Add"
+  "Graph_Impl"
+  "cava/DFS_Framework/Examples/Reachable_Nodes"
 begin
 
   declare [[coercion_delete int]]
   declare [[coercion_delete "real::nat\<Rightarrow>real"]]
 
-  type_synonym edge_list = "(node \<times> node \<times> capacity) list"
+  type_synonym edge_list = "(node \<times> node \<times> capacity_impl) list"
 
   definition ln_invar :: "edge_list \<Rightarrow> bool" where 
     "ln_invar el \<equiv> 
       distinct (map (\<lambda>(u, v, _). (u,v)) el) 
     \<and> (\<forall>(u,v,c)\<in>set el. c>0) 
     "
-  definition ln_\<alpha> :: "edge_list \<Rightarrow> graph" where 
+  definition ln_\<alpha> :: "edge_list \<Rightarrow> capacity_impl graph" where 
     "ln_\<alpha> el \<equiv> \<lambda>(u,v). 
       if \<exists>c. (u, v, c) \<in> set el \<and> c \<noteq> 0 then 
         SOME c. (u, v, c) \<in> set el \<and> c \<noteq> 0
@@ -29,10 +30,10 @@ begin
 
   (*export_code ln_invar in SML*)
 
-  definition ln_N :: "(node\<times>node\<times>capacity) list \<Rightarrow> nat" where
+  definition ln_N :: "(node\<times>node\<times>_) list \<Rightarrow> nat" where
     "ln_N el \<equiv> Max ((fst`set el) \<union> ((fst o snd)`set el)) + 1"
 
-  lemma ln_\<alpha>_imp_in_set: "\<lbrakk>ln_\<alpha> el (u,v)\<noteq>(0::capacity)\<rbrakk> \<Longrightarrow> (u,v,ln_\<alpha> el (u,v))\<in>set el"
+  lemma ln_\<alpha>_imp_in_set: "\<lbrakk>ln_\<alpha> el (u,v)\<noteq>(0)\<rbrakk> \<Longrightarrow> (u,v,ln_\<alpha> el (u,v))\<in>set el"
     apply (auto simp: ln_\<alpha>_def split: split_if_asm)
     apply (metis (mono_tags, lifting) someI_ex)
     done
@@ -47,7 +48,7 @@ begin
 
 
   record pre_network =
-    pn_c :: graph
+    pn_c :: "capacity_impl graph"
     pn_V :: "nat set"
     pn_succ :: "nat \<Rightarrow> nat list"
     pn_pred :: "nat \<Rightarrow> nat list"
@@ -55,7 +56,7 @@ begin
     pn_s_node :: bool
     pn_t_node :: bool
 
-  fun read :: "(nat \<times> nat \<times> capacity) list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+  fun read :: "edge_list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
     pre_network option" where
     "read [] _ _ = Some \<lparr>
       pn_c = (\<lambda> _. 0), 
@@ -253,7 +254,7 @@ begin
           then have "\<not>t_n' \<and> v1 \<noteq> t" using fct3 by blast
           then have "t \<notin> V" using fct fct5 fct1  by auto
         }
-        moreover have "\<forall>u v. c (u, v) \<ge> 0" using fct fct4 fct1 fct0 by auto
+        moreover have "\<forall>u v. (c (u, v) \<ge> 0)" using fct fct4 fct1 fct0 by auto
         moreover have "\<forall>u. c (u, u) = 0" using fct fct4 fct1 fct0 by auto
         moreover have "\<forall>u. c (u, s) = 0" using fct fct4 fct1 fct0 by auto
         moreover have "\<forall>u. c (t, u) = 0" using fct fct4 fct1 fct0 by auto
@@ -425,7 +426,7 @@ begin
     qed
     
   lemma read_correct2: "read el s t = None \<Longrightarrow> \<not>ln_invar el 
-    \<or> (\<exists>u v c. (u,v,c) \<in> set el \<and> c \<le> 0)
+    \<or> (\<exists>u v c. (u,v,c) \<in> set el \<and> \<not>(c > 0))
     \<or> (\<exists>u c. (u, u, c) \<in> set el \<and> c \<noteq> 0) \<or> 
     (\<exists>u c. (u, s, c) \<in> set el \<and> c \<noteq> 0) \<or> (\<exists>u c. (t, u, c) \<in> set el \<and> c \<noteq> 0) \<or>
     (\<exists>u v c1 c2. (u, v, c1) \<in> set el \<and> (v, u, c2) \<in> set el \<and> c1 \<noteq> 0 \<and> c2 \<noteq> 0)"
@@ -442,17 +443,17 @@ begin
                 proof
                   assume "\<not>ln_invar el"
                   then have "\<not>distinct (map (\<lambda>(u, v, _). (u,v)) (e # el)) \<or> 
-                    (\<exists>(u, v, c) \<in> set (e # el). c\<le>0)" unfolding ln_invar_def by fastforce
+                    (\<exists>(u, v, c) \<in> set (e # el). \<not>(c>0))" unfolding ln_invar_def by fastforce
                   thus ?thesis unfolding ln_invar_def by fastforce
                 next
-                  assume "(\<exists>u v c. (u, v, c) \<in> set (el) \<and> c \<le> 0) 
+                  assume "(\<exists>u v c. (u, v, c) \<in> set (el) \<and> \<not>(c > 0)) 
                   \<or> (\<exists>u c. (u, u, c) \<in> set el \<and> c \<noteq> 0) \<or> 
                     (\<exists>u c. (u, s, c) \<in> set el \<and> c \<noteq> 0) \<or> (\<exists>u c. (t, u, c) \<in> set el \<and> c \<noteq> 0) \<or>
                     (\<exists>u v c1 c2. (u, v, c1) \<in> set el \<and> (v, u, c2) \<in> set el \<and> c1 \<noteq> 0 \<and> c2 \<noteq> 0)" 
                   
                   moreover {
-                    assume "(\<exists>u v c. (u, v, c) \<in> set el \<and> c \<le> 0)"
-                    then have "(\<exists>u v c. (u, v, c) \<in> set (e # el) \<and> c \<le> 0)" by auto
+                    assume "(\<exists>u v c. (u, v, c) \<in> set el \<and> \<not>(c > 0))"
+                    then have "(\<exists>u v c. (u, v, c) \<in> set (e # el) \<and> \<not>(c > 0))" by auto
                   }
                   moreover {
                     assume "(\<exists>u c. (u, u, c) \<in> set el \<and> c \<noteq> 0)"
@@ -480,7 +481,7 @@ begin
             obtain c' V' sc' pd' ps' s_n' t_n' where obt3: "x = \<lparr>pn_c = c', pn_V = V', pn_succ = sc',
               pn_pred = pd', pn_psucc = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" 
               apply (cases x) by auto 
-            then have "(el, c') \<in> ln_rel" using obt1 read_correct1 by simp
+            then have "(el, c') \<in> ln_rel" using obt1 read_correct1[of el s t] by simp
             then have "c' = ln_\<alpha> el" unfolding ln_rel_def br_def by simp
             
 
@@ -530,8 +531,8 @@ begin
           qed
     qed
     
-  record pre_network' =
-    pn_c' :: "(nat*nat,capacity) ahm"
+  record 'capacity::linordered_idom pre_network' =
+    pn_c' :: "(nat*nat,'capacity) ahm"
     pn_V' :: "nat ahs"
     pn_succ' :: "(nat,nat list) ahm"
     pn_pred' :: "(nat,nat list) ahm"
@@ -557,8 +558,8 @@ begin
   abbreviation "succ_lookup \<equiv> ahm_ld []"
 
 
-  fun read' :: "(nat \<times> nat \<times> capacity) list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
-    pre_network' option" where
+  fun read' :: "(nat \<times> nat \<times> 'capacity::linordered_idom) list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+    'capacity pre_network' option" where
     "read' [] _ _ = Some \<lparr>
       pn_c' = ahm.empty (), 
       pn_V' = ahs.empty (), 
@@ -652,9 +653,9 @@ begin
             pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
           note fct = read_correct1[OF this]
           
-          then have "finite (Graph.V c)" by blast
-          moreover have "Graph.E c \<subseteq> (Graph.V c) \<times> (Graph.V c)" unfolding Graph.V_def by auto
-          ultimately have "finite (Graph.E (pn_c x))" using finite_subset obt by auto
+          then have [simp, intro!]: "finite (Graph.V c)" by blast
+          have "Graph.E c \<subseteq> (Graph.V c) \<times> (Graph.V c)" unfolding Graph.V_def by auto
+          from finite_subset[OF this] have "finite (Graph.E (pn_c x))" by (simp add: obt)
           then show  "finite ((Graph.E (pn_c x))\<^sup>* `` {s})" 
             and "finite (((Graph.E (pn_c x))\<inverse>)\<^sup>* `` {t})"  by (auto simp add: finite_rtrancl_Image)
         }
@@ -708,12 +709,12 @@ begin
               {
                 have "Graph.V c \<subseteq> ((Graph.E c))\<^sup>* `` {s}" using asm6 obt fct by simp
                 then have "\<forall>v\<in>(Graph.V c). Graph.isReachable c s v" 
-                  unfolding Graph.connected_def using Graph.rtc_isPath by auto
+                  unfolding Graph.connected_def using Graph.rtc_isPath[of s _ c] by auto
               }
               moreover {
                 have "Graph.V c \<subseteq> ((Graph.E c)\<inverse>)\<^sup>* `` {t}" using asm5 asm6 obt fct by simp
                 then have "\<forall>v\<in>(Graph.V c). Graph.isReachable c v t"
-                  unfolding Graph.connected_def using Graph.rtci_isPath by auto
+                  unfolding Graph.connected_def using Graph.rtci_isPath by fastforce
               }
               ultimately have "\<forall>v\<in>(Graph.V c). Graph.isReachable c s v \<and> Graph.isReachable c v t" by simp
             }
@@ -817,7 +818,7 @@ begin
               then have "x \<in> Graph.V c"
                 proof (cases "p = []")
                   case True
-                    then have "x = s" using `Graph.isPath c s p x` Graph.isPath.simps(1) by auto
+                    then have "x = s" using `Graph.isPath c s p x` by (auto simp: Graph.isPath.simps(1))
                     thus ?thesis using fct by auto
                 next
                   case False
@@ -869,13 +870,13 @@ begin
             assume "\<not>ln_invar el"
             thus ?thesis using `ln_invar el` by blast
           next
-            assume asm: "(\<exists>u v c. (u, v, c) \<in> set el \<and> c \<le> 0) 
+            assume asm: "(\<exists>u v c. (u, v, c) \<in> set el \<and> \<not>(c > 0)) 
             \<or> (\<exists>u c. (u, u, c) \<in> set el \<and> c\<noteq>0) \<or> (\<exists>u c. (u, s, c) \<in> set el \<and> c\<noteq>0) \<or>
               (\<exists>u c. (t, u, c) \<in> set el \<and> c\<noteq>0) \<or> (\<exists>u v c1 c2. (u, v, c1) \<in> set el \<and>
               (v, u, c2) \<in> set el \<and> c1\<noteq>0 \<and> c2\<noteq>0)"
             
             moreover {
-              assume A: "(\<exists>u v c. (u, v, c) \<in> set el \<and> c\<le>0)"
+              assume A: "(\<exists>u v c. (u, v, c) \<in> set el \<and> \<not>(c>0))"
               then have "\<not>ln_invar el" using not_less by (fastforce simp: ln_invar_def)
               with \<open>ln_invar el\<close> have False by simp
             }
@@ -883,19 +884,19 @@ begin
               assume "(\<exists>u c. (u, u, c) \<in> set el \<and> c\<noteq>0)"
               then have "\<exists> u. ln_\<alpha> el (u, u) \<noteq> 0" unfolding ln_\<alpha>_def apply (auto split:if_splits)
                 by (metis (mono_tags, lifting) tfl_some)
-              then have "False" using `Network (ln_\<alpha> el) s t` Network_def by (auto simp: Graph.E_def)
+              then have "False" using `Network (ln_\<alpha> el) s t` unfolding Network_def by (auto simp: Graph.E_def)
             }
             moreover {
               assume "(\<exists>u c. (u, s, c) \<in> set el \<and> c\<noteq>0)"
               then have "\<exists> u. ln_\<alpha> el (u, s) \<noteq> 0" unfolding ln_\<alpha>_def apply (auto split:if_splits)
                 by (metis (mono_tags, lifting) tfl_some)
-              then have "False" using `Network (ln_\<alpha> el) s t` Network_def by (auto simp: Graph.E_def)
+              then have "False" using `Network (ln_\<alpha> el) s t` unfolding Network_def by (auto simp: Graph.E_def)
             }
             moreover {
               assume "(\<exists>u c. (t, u, c) \<in> set el \<and> c\<noteq>0)"
               then have "\<exists> u. ln_\<alpha> el (t, u) \<noteq> 0" unfolding ln_\<alpha>_def apply (auto split:if_splits)
                 by (metis (mono_tags, lifting) tfl_some)
-              then have "False" using `Network (ln_\<alpha> el) s t` Network_def by (auto simp: Graph.E_def)
+              then have "False" using `Network (ln_\<alpha> el) s t` unfolding Network_def by (auto simp: Graph.E_def)
             }
             moreover {
               assume "(\<exists>u v c1 c2. (u, v, c1) \<in> set el \<and> (v, u, c2) \<in> set el \<and> c1\<noteq>0 \<and> c2\<noteq>0)"
@@ -906,7 +907,7 @@ begin
               moreover have "ln_\<alpha> el (v, u) \<noteq> 0" unfolding ln_\<alpha>_def using o1 
                 apply (auto split:if_splits) by (metis (mono_tags, lifting) tfl_some)
               ultimately have "\<not> (\<forall>u v. (ln_\<alpha> el) (u, v) \<noteq> 0 \<longrightarrow> (ln_\<alpha> el) (v, u) = 0)" by auto
-              then have "False" using `Network (ln_\<alpha> el) s t` Network_def by (auto simp: Graph.E_def)
+              then have "False" using `Network (ln_\<alpha> el) s t` unfolding Network_def by (auto simp: Graph.E_def)
             }
             ultimately show ?thesis by force
           qed
@@ -924,9 +925,9 @@ begin
           pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
         note fct = read_correct1[OF this]
         
-        then have "finite (Graph.V c)" by blast
-        moreover have "Graph.E c \<subseteq> (Graph.V c) \<times> (Graph.V c)" unfolding Graph.V_def by auto
-        ultimately have "finite (Graph.E (pn_c x))" using finite_subset obt by auto
+        then have [simp]: "finite (Graph.V c)" by blast
+        have "Graph.E c \<subseteq> (Graph.V c) \<times> (Graph.V c)" unfolding Graph.V_def by auto
+        from finite_subset[OF this] have "finite (Graph.E (pn_c x))" by (auto simp: obt)
         then show  "finite ((Graph.E (pn_c x))\<^sup>* `` {s})" 
           and "finite (((Graph.E (pn_c x))\<inverse>)\<^sup>* `` {t})"  by (auto simp add: finite_rtrancl_Image)
       }
@@ -997,13 +998,13 @@ begin
         (el, c) \<in> ln_rel \<and> Network c s t 
         \<and> (\<forall>u. set (psucc u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (psucc u))
     | None \<Rightarrow> \<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)"
-    using checkNet_pre_correct1 checkNet_pre_correct2
+    using checkNet_pre_correct1[of el s t] checkNet_pre_correct2[of el s t]
     by (auto split: option.splits simp: pw_le_iff refine_pw_simps)
 
   lemma checkNet_correct : "checkNet el s t \<le> SPEC (\<lambda>r. case r of 
       Some (c, psucc) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> is_pred_succ psucc c
     | None \<Rightarrow> \<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)"
-    using checkNet_pre_correct1 checkNet_pre_correct2
+    using checkNet_pre_correct1[of el s t] checkNet_pre_correct2[of el s t]
     by (auto split: option.splits simp: is_pred_succ_def pw_le_iff refine_pw_simps)
 
   definition "graph_of pn s \<equiv> \<lparr>
@@ -1269,7 +1270,7 @@ begin
     finally show ?thesis by simp
   qed  
 
-  definition prepareNet :: "edge_list \<Rightarrow> node \<Rightarrow> node \<Rightarrow> (graph \<times> (node\<Rightarrow>node list) \<times> nat) option"
+  definition prepareNet :: "edge_list \<Rightarrow> node \<Rightarrow> node \<Rightarrow> (capacity_impl graph \<times> (node\<Rightarrow>node list) \<times> nat) option"
   where
     "prepareNet el s t \<equiv> do {
       (c,psucc) \<leftarrow> checkNet4 el s t;

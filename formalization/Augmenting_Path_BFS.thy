@@ -280,25 +280,12 @@ begin
     done
 
 
-  definition "less_than_bool \<equiv> {(a,b). a>(b::bool)}"
-  lemma wf_less_than_bool[simp, intro!]: "wf (less_than_bool)"
-    unfolding less_than_bool_def
-    by (auto simp: wf_def)
-  lemma less_than_bool_iff[simp]:
-    "(x,y)\<in>less_than_bool \<longleftrightarrow> x=True \<and> y=False"  
-    by (auto simp: less_than_bool_def)
-
-  definition "greater_bounded N \<equiv> inv_image less_than (\<lambda>x. N-x)" 
-  lemma wf_greater_bounded[simp, intro!]: "wf (greater_bounded N)" by (auto simp: greater_bounded_def)
-
-  lemma greater_bounded_Suc_iff[simp]: "(Suc x,x)\<in>greater_bounded N \<longleftrightarrow> Suc x \<le> N"
-    by (auto simp: greater_bounded_def)
 
   definition "max_dist src \<equiv> Max (min_dist src`V)"
 
   definition "outer_loop_rel src \<equiv> 
     inv_image (less_than_bool <*lex*> greater_bounded (max_dist src + 1) <*lex*> finite_psubset) 
-      (\<lambda>(f,PRED,C,N,d). (f,d,C))"
+      (\<lambda>(f,PRED,C,N,d). (\<not>f,d,C))"
   lemma outer_loop_rel_wf: 
     assumes "finite V"
     shows "wf (outer_loop_rel src)"

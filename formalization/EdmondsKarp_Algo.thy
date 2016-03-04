@@ -2,7 +2,59 @@ section \<open>Edmonds-Karp Algorithm\<close>
 theory EdmondsKarp_Algo
 imports FordFulkerson_Algo Temporary_Graph_Add
 begin
+  (* TODO: Move to refinement framework! *)
+  lemma WHILEIT_less_WHILEI:
+    assumes "wf V"
+    assumes VAR: "\<And>s. \<lbrakk> I s; b s; f s \<le> SPEC I \<rbrakk> \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. (s',s)\<in>V)"
+    shows "WHILEIT I b f s \<le> WHILEI I b f s"
+    using \<open>wf V\<close>
+    apply (induction s rule: wf_induct[consumes 1])
+    apply (subst WHILEIT_unfold) 
+    apply (subst WHILEI_unfold)
+  proof (clarsimp)
+    fix x
+    assume A: "I x" "b x"
+    assume IH: "\<forall>y. (y, x) \<in> V \<longrightarrow> WHILE\<^sub>T\<^bsup>I\<^esup> b f y \<le> WHILE\<^bsup>I\<^esup> b f y"
 
+    show "f x \<guillemotright>= WHILE\<^sub>T\<^bsup>I\<^esup> b f \<le> f x \<guillemotright>= WHILE\<^bsup>I\<^esup> b f"
+    proof cases
+      assume B: "f x \<le> SPEC I"
+      show "?thesis"
+        apply (rule Refine_Basic.bind_mono(1)[OF order_refl])
+        using IH VAR[OF A B]
+        by (auto simp: pw_le_iff)
+    next
+      assume B: "\<not>(f x \<le> SPEC I)"
+      hence "f x \<guillemotright>= WHILE\<^bsup>I\<^esup> b f = FAIL"
+        apply (subst WHILEI_unfold[abs_def])
+        apply (auto simp: pw_eq_iff pw_le_iff refine_pw_simps)
+        done
+      thus ?thesis by simp  
+    qed
+  qed
+
+  lemmas WHILEIT_refine_WHILEI = order_trans[OF WHILEIT_less_WHILEI WHILEI_refine]
+
+  (* TODO: Move to refinement framework! *)
+  lemma bind_sim_select_rule:
+    assumes "m\<guillemotright>=f' \<le> SPEC \<Psi>"
+    assumes "\<And>x. \<lbrakk>nofail m; inres m x; f' x\<le>SPEC \<Psi>\<rbrakk> \<Longrightarrow> f x\<le>SPEC \<Phi>"
+    shows "m\<guillemotright>=f \<le> SPEC \<Phi>"
+    -- \<open>Simultaneously select a result from assumption and verification goal.
+      Useful to work with assumptions that restrict the current program to 
+      be verified, as, e.g., introduced by @{thm [source] WHILEIT_less_WHILEI}.\<close>
+    using assms 
+    by (auto simp: pw_le_iff refine_pw_simps)
+
+  (* TODO: Move to refinement framework! *)
+  lemma assert_bind_spec_conv: "ASSERT \<Phi> \<guillemotright> m \<le> SPEC \<Psi> \<longleftrightarrow> (\<Phi> \<and> m \<le> SPEC \<Psi>)"  
+    -- \<open>Simplify a bind-assert verification condition. 
+      Useful if this occurs in the assumptions, and considerably faster than 
+      using pointwise reasoning, which may causes a blowup for many chained 
+      assertions.\<close>
+    by (auto simp: pw_le_iff refine_pw_simps)
+
+  
   subsection \<open>Algorithm\<close>
   text \<open>
     In this theory, we formalize an abstract version of
@@ -37,11 +89,13 @@ begin
       using NFlow.augmenting_path_imp_shortest NFlow.shortest_is_augmenting
       by (auto split: option.split)
 
-    text \<open>Next, we specify the Edmonds-Karp algorithm\<close>  
-    definition "edka \<equiv> do {
+    text \<open>Next, we specify the Edmonds-Karp algorithm. 
+      Our first specification still uses partial correctness, 
+      termination will be proved afterwards. \<close>  
+    definition "edka_partial \<equiv> do {
       let f = (\<lambda>_. 0);
 
-      (f,_) \<leftarrow> WHILEIT fofu_invar
+      (f,_) \<leftarrow> WHILEI fofu_invar
         (\<lambda>(f,brk). \<not>brk) 
         (\<lambda>(f,_). do {
           p \<leftarrow> find_shortest_augmenting_spec f;
@@ -62,8 +116,8 @@ begin
       RETURN f 
     }"
 
-    lemma edka_refine[refine]: "edka \<le> \<Down>Id fofu"
-      unfolding edka_def fofu_def
+    lemma edka_partial_refine[refine]: "edka_partial \<le> \<Down>Id fofu"
+      unfolding edka_partial_def fofu_def
       apply (refine_rcg bind_refine')
       apply (refine_dref_type)
       apply (vc_solve simp: find_shortest_augmenting_spec_def)
@@ -72,7 +126,7 @@ begin
 
   end
 
-  subsection \<open>Complexity Analysis\<close>
+  subsection \<open>Complexity and Termination Analysis\<close>
   text \<open>
     In this section, we show that the loop iterations of the Edmonds-Karp algorithm
     are bounded by $O(|V||E|)$.
@@ -435,22 +489,6 @@ begin
       using assms
       by (fastforce simp: Graph.augment_cf_def intro!: ext)
       
-    (*lemma (in Graph) augment_singleton_bounds:
-      fixes e cap
-      defines "c' \<equiv> augment_cf {e} cap"
-      assumes CAP_POS: "cap>0" and NO_LOOP: "e\<noteq>prod.swap e"
-      shows "Graph.E c' \<supseteq> E - {e} \<union> {prod.swap e}" "Graph.E c' \<subseteq> E \<union> {prod.swap e}"
-      unfolding c'_def using CAP_POS NO_LOOP
-      by (auto simp: augment_cf_def Graph.E_def)
-  
-    lemma (in Graph) augment_singleton_bounds_saturate:
-      fixes e
-      defines "c' \<equiv> augment_cf {e} (c e)"
-      assumes CAP_POS: "c e>0" and NO_LOOP: "e\<noteq>prod.swap e"
-      shows "Graph.E c' \<supseteq> E - {e} \<union> {prod.swap e}" "Graph.E c' \<subseteq> E \<union> {prod.swap e}" "e\<notin>Graph.E c'"
-      unfolding c'_def using CAP_POS NO_LOOP
-      by (auto simp: augment_cf_def Graph.E_def)
-    *)  
   end
 
   context NFlow begin
@@ -545,6 +583,8 @@ begin
     lemma (in Graph) shortestPath_is_path: "isShortestPath u p v \<Longrightarrow> isPath u p v"
       by (auto simp: isShortestPath_def)
 
+    text \<open>Finally, we show the main theorem used for termination and complexity 
+      analysis: Augmentation with a shortest path decreases the measure function.\<close>
     theorem shortest_path_decr_ek_measure:
       fixes p
       assumes SP: "Graph.isShortestPath cf s p t"
@@ -602,12 +642,74 @@ begin
 
   end
 
+  subsection \<open>Total Correctness\<close>
+  context Network begin
+    text \<open>We specify the total correct version of Edmonds-Karp algorithm.\<close>
+    definition "edka \<equiv> do {
+      let f = (\<lambda>_. 0);
+
+      (f,_) \<leftarrow> WHILEIT fofu_invar
+        (\<lambda>(f,brk). \<not>brk) 
+        (\<lambda>(f,_). do {
+          p \<leftarrow> find_shortest_augmenting_spec f;
+          case p of 
+            None \<Rightarrow> RETURN (f,True)
+          | Some p \<Rightarrow> do {
+              ASSERT (p\<noteq>[]);
+              ASSERT (NFlow.isAugmenting c s t f p);
+              ASSERT (Graph.isShortestPath (residualGraph c f) s p t);
+              let f' = NFlow.augmentingFlow c f p;
+              let f = NFlow.augment c f f';
+              ASSERT (NFlow c s t f);
+              RETURN (f, False)
+            }  
+        })
+        (f,False);
+      ASSERT (NFlow c s t f);
+      RETURN f 
+    }"
+
+    definition "edka_wf_rel \<equiv> inv_image 
+      (less_than_bool <*lex*> measure (\<lambda>cf. ek_analysis_defs.ekMeasure cf s t))
+      (\<lambda>(f,brk). (\<not>brk,residualGraph c f))"
+    lemma edka_wf_rel_wf[simp, intro!]: "wf edka_wf_rel"
+      unfolding edka_wf_rel_def by auto
+
+    text \<open>The following theorem states that the total correct 
+      version of Edmonds-Karp algorithm refines the partial correct one.\<close>  
+    theorem edka_refine[refine]: "edka \<le> \<Down>Id edka_partial"
+      unfolding edka_def edka_partial_def
+      apply (refine_rcg bind_refine' 
+        WHILEIT_refine_WHILEI[where V=edka_wf_rel])
+      apply (refine_dref_type)
+      apply (simp; fail)
+
+      txt \<open>Unfortunately, the verification condition for introducing 
+        the variant requires a bit of manual massaging to be solved:\<close>
+      apply (simp)
+      apply (erule bind_sim_select_rule)
+      apply (auto split: option.split 
+        simp: assert_bind_spec_conv 
+        simp: find_shortest_augmenting_spec_def
+        simp: edka_wf_rel_def NFlow.shortest_path_decr_ek_measure
+      ; fail)
+
+      txt \<open>The other VCs are straightforward\<close>
+      apply (vc_solve)
+      done
+
+  end
+
+  subsection \<open>Complexity Analysis\<close>
+
   context Network begin
     (* TODO_ Move *)
     lemma V_not_empty: "V\<noteq>{}" using s_node by auto
     lemma E_not_empty: "E\<noteq>{}" using V_not_empty by (auto simp: V_def)
 
-
+    text \<open>For the complexity analysis, we additionally show that the measure
+      function is bounded by $O(VE)$. Note that our absolute bound is not as 
+      precise as possible, but clearly $O(VE)$.\<close>
     lemma ekMeasure_upper_bound: 
       (* TODO: #edgesSp even bound by |E|, as either e or swap e lays on shortest path! *)
       "ek_analysis_defs.ekMeasure (residualGraph c (\<lambda>_. 0)) s t < 2 * card V * card E + card V"
@@ -653,7 +755,9 @@ begin
         finally show ?thesis by (auto simp: algebra_simps)
       qed  
     qed  
+  end  
 
+  context Network begin
     definition "edkac_rel \<equiv> {((f,brk,itc), (f,brk)) | f brk itc.
       itc + ek_analysis_defs.ekMeasure (residualGraph c f) s t < 2 * card V * card E + card V
     }"
@@ -708,13 +812,12 @@ begin
       proof -  
         note edka_complexity_refine
         also note edka_refine
-        also note fofu_total_correct
+        also note edka_partial_refine
+        also note fofu_partial_correct
         finally show ?thesis .
       qed  
     end  
 
   end
-
-
 end
 
