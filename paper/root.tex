@@ -560,11 +560,11 @@ results in a program that refines the original program. This gives us a natural 
         xmode = log,
         ymode = log,
         xlabel = Number of vertices in the network,
-        ylabel = Execution time in seconds, % in milliseconds,
+        ylabel = Execution time in seconds, %in milliseconds, modify the scale for lables
         xtick = data,
         ytick = data,
-        xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$},
-        yticklabels = {$0.2$, $1.4$, $4.8$, $9.3$, $23.4$},
+        xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$}, %corresponds to the first column in {SML, Sparse}
+        yticklabels = {$0.2$, $1.4$, $4.9$, $9.2$, $23.6$}, %corresponds to the second column in {SML, Sparse}
         smooth,
         cycle list name = black white,
         legend style = { 
