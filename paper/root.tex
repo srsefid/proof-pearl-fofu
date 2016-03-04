@@ -560,8 +560,11 @@ results in a program that refines the original program. This gives us a natural 
         xmode = log,
         ymode = log,
         xlabel = Number of vertices in the network,
-        ylabel = Execution time in milliseconds,
-      xticklabels={$0$, $1000$,$2000$,$3000$,$4000$},
+        ylabel = Execution time in seconds, % in milliseconds,
+        xtick = data,
+        ytick = data,
+        xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$},
+        yticklabels = {$0.2$, $1.4$, $4.8$, $9.3$, $23.4$},
         smooth,
         cycle list name = black white,
         legend style = { 
