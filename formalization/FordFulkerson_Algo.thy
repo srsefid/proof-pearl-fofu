@@ -5,54 +5,6 @@ imports
   Refine_Add_Fofu
   Refine_Monadic_Syntax_Sugar
 begin
-
-  (* TODO: Move to refinement framework. Combine with select from CAVA-Base. *)
-  definition "SELECTp \<equiv> select o Collect"
-
-  lemma selectp_rule[refine_vcg]: 
-    assumes "\<forall>x. \<not>P x \<Longrightarrow> RETURN None \<le> SPEC \<Phi>"
-    assumes "\<And>x. P x \<Longrightarrow> RETURN (Some x) \<le> SPEC \<Phi>"
-    shows "SELECTp P \<le> SPEC \<Phi>"
-    using assms unfolding SELECTp_def select_def[abs_def]
-    by (auto)
-
-  lemma selectp_refine_eq:
-    "SELECTp P \<le> \<Down>(\<langle>R\<rangle>option_rel) (SELECTp Q) \<longleftrightarrow> 
-    (\<forall>x. P x \<longrightarrow> (\<exists>y. (x,y)\<in>R \<and> Q y)) \<and> ((\<forall>x. \<not>P x) \<longrightarrow> (\<forall>y. \<not>Q y))"
-    by (auto simp: SELECTp_def select_def option_rel_def
-      simp: pw_le_iff refine_pw_simps)
-
-  lemma selectp_refine[refine]:
-    assumes "SPEC P \<le>\<Down>R (SPEC Q)"  
-    assumes "\<And>y. \<forall>x. \<not>P x \<Longrightarrow> \<not>Q y"
-    shows "SELECTp P \<le> \<Down>(\<langle>R\<rangle>option_rel) (SELECTp Q)"
-    unfolding selectp_refine_eq
-    using assms by (auto simp: pw_le_iff refine_pw_simps)
-
-  lemma selectp_refine_Id[refine]:  
-    assumes "\<And>x. P x \<Longrightarrow> Q x"
-    assumes "\<And>y. \<forall>x. \<not>P x \<Longrightarrow> \<not>Q y"
-    shows "SELECTp P \<le> \<Down>Id (SELECTp Q)"
-    using selectp_refine[where R=Id, of P Q] assms by auto
-    
-  lemma selectp_pw[refine_pw_simps]:
-    "nofail (SELECTp P)"  
-    "inres (SELECTp P) r \<longleftrightarrow> (r=None \<longrightarrow> (\<forall>x. \<not>P x)) \<and> (\<forall>x. r=Some x \<longrightarrow> P x)"
-    unfolding SELECTp_def select_def[abs_def]
-    by auto
-
-  lemma selectp_pw_simps[simp]:
-    "nofail (SELECTp P)"
-    "inres (SELECTp P) None \<longleftrightarrow> (\<forall>x. \<not>P x)"
-    "inres (SELECTp P) (Some x) \<longleftrightarrow> P x"
-    by (auto simp: refine_pw_simps)
-
-  context Refine_Monadic_Syntax begin 
-    notation SELECTp (binder "selectp " 10)
-
-    term "selectp x. P x"
-  end
-
   text \<open>In this theory, we formalize the abstract Ford-Fulkerson
     method, which is independent of how an augmenting flow is chosen
     \<close>
