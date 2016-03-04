@@ -57,6 +57,22 @@ begin
       heap: Network_Impl.edka_imp_correct 
       simp: ln_rel_def br_def network_is_impl)
 
+context
+begin
+private definition "is_rflow \<equiv> Network_Impl.is_rflow"
+
+text_raw \<open>\DefineSnippet{edmonds_karp_correct}{\<close>       
+theorem
+  fixes el defines "c\<equiv>ln_\<alpha> el"
+  shows "<emp> edmonds_karp el s t <\<lambda>
+      None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network c s t)
+    | Some (N,fi) \<Rightarrow> \<up>(ln_invar el \<and> Network c s t \<and> Graph.V c \<subseteq> {0..<N})
+                   * (\<exists>\<^sub>Af. is_rflow c N f fi * \<up>(isMaxFlow c s t f))>\<^sub>t"
+text_raw \<open>}%EndSnippet\<close>
+  unfolding c_def is_rflow_def
+  by (sep_auto heap: edmonds_karp_correct[of el s t] split: option.split)
+
+end
 
   (* TODO: Justify this by abstract definition + refinement *)  
   definition get_flow :: "capacity_impl graph \<Rightarrow> nat \<Rightarrow> Graph.node \<Rightarrow> capacity_impl mtx \<Rightarrow> capacity_impl Heap" where

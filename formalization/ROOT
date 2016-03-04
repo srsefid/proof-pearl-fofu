@@ -13,7 +13,6 @@ session Snippets = "Edka_Base" +
      document = "pdf",
      document_output = "generated"]
    theories
-     Augmenting
-     FordFulkerson_Algo
+     Edka_Checked_Impl
    document_files
      build

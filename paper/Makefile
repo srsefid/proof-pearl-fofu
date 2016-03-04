@@ -1,7 +1,7 @@
 TEX=root
 
 # You probably don't need to change anything below the following line:
-.PHONY: clean ps pdf dvi holbib clean check
+.PHONY: clean ps pdf dvi holbib clean check clean_snippets
 LATEX_ARGS= --interaction batchmode
 
 all: check $(TEX).pdf
@@ -15,10 +15,17 @@ check:
 	done; true
 #	egrep -o "[[:alpha:]]+-[[:alpha:]-]+" *.tex | tr "[:upper:]" "[:lower:]" | sed -re "s/:/: /g" | sort -k2 -u | egrep -v --file allow_hyphen | sort | egrep --color "[[:alpha:]]+-[[:alpha:]-]+"; true
 
-$(TEX).pdf: *.tex snippets/*.tex *.bib
+snippets/snippets.tex:
+	isabelle build -d ../formalization Snippets && cp ../formalization/generated/snippets.tex snippets/snippets.tex
+
+snippets/snippets.out.tex: snippets/snippets.tex massage_snippets.sed
+	sed -rf massage_snippets.sed snippets/snippets.tex > snippets/snippets.out.tex
+
+$(TEX).pdf: *.tex snippets/snippets.out.tex *.bib
 	latexmk -pdf $(TEX).tex; err=$$?; egrep --color -i 'error|warning|overfull|underfull|undef|^l\.[0-9]' $(TEX).log; grep --color=never "Output written" $(TEX).log; exit $$err
 
 clean:
-	@rm -f *.toc *.aux *.dvi *.log *.lof *.bbl *.blg *.hix *.tid *.tde *~
+	@rm -f *.toc *.aux *.dvi *.log *.lof *.bbl *.blg *.hix *.tid *.tde *~ snippets/*.out.tex
 
-
+clean_snippets: clean
+	@rm -rf snippets/*.tex

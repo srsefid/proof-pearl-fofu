@@ -184,19 +184,22 @@ definition "ford_fulkerson_algo \<equiv> do {
 }"
 text_raw \<open>}%EndSnippet\<close>
 
-      theorem "ford_fulkerson_algo \<le> (spec f. isMaxFlow c s t f)"
-      proof -
-        have "ford_fulkerson_algo \<le> fofu"
-          unfolding ford_fulkerson_algo_def fofu_def Let_def
-            find_augmenting_spec_def augment_def is_augmenting_path_def
-          apply (rule refine_IdD)
-          apply (refine_vcg)
-          apply (refine_dref_type)
-          apply (vc_solve simp: NFlow.augment_with_path_def)
-          done
-        also note fofu_partial_correct  
-        finally show ?thesis .
-      qed  
+text_raw \<open>\DefineSnippet{ford_fulkerson_correct}{\<close>       
+theorem "ford_fulkerson_algo \<le> (spec f. isMaxFlow c s t f)"
+text_raw \<open>}%EndSnippet\<close>
+proof -
+  have "ford_fulkerson_algo \<le> fofu"
+    unfolding ford_fulkerson_algo_def fofu_def Let_def
+      find_augmenting_spec_def augment_def is_augmenting_path_def
+    apply (rule refine_IdD)
+    apply (refine_vcg)
+    apply (refine_dref_type)
+    apply (vc_solve simp: NFlow.augment_with_path_def)
+    done
+  also note fofu_partial_correct  
+  finally show ?thesis .
+qed  
+
     end  
 
   end

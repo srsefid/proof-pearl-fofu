@@ -181,8 +181,6 @@ lemma RECT_rule_arb':
     lemmas [sepref_import_param] = param_prod_swap
     
 
-
-
 (* Refinement Setup for nfoldli \<rightarrow> move to Sepref-Foreach *)
 lemma nfoldli_arities[sepref_monadify_arity]:
   "nfoldli \<equiv> \<lambda>\<^sub>2s c f \<sigma>. SP (nfoldli)$s$(\<lambda>\<^sub>2x. c$x)$(\<lambda>\<^sub>2x \<sigma>. f$x$\<sigma>)$\<sigma>"

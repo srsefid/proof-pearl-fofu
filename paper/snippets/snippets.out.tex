@@ -1,23 +1,23 @@
 \DefineSnippet{ford_fulkerson_algo}{
 \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
-\ \ let\ f\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharunderscore}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
+\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymequiv}\ \isainnerkeyword{do}\ {\isacharbraceleft}\isanewline
+\ \ \isainnerkeyword{let}\ f\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharunderscore}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
 \isanewline
-\ \ {\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ while\isanewline
+\ \ {\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ \isainnerkeyword{while}\isanewline
 \ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ {\isasymnot}brk{\isacharparenright}\ \isanewline
-\ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}{\isachardot}\ do\ {\isacharbraceleft}\isanewline
-\ \ \ \ \ \ p\ {\isasymleftarrow}\ selectp\ p{\isachardot}\ is{\isacharunderscore}augmenting{\isacharunderscore}path\ f\ p{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ case\ p\ of\ \isanewline
-\ \ \ \ \ \ \ \ None\ {\isasymRightarrow}\ return\ {\isacharparenleft}f{\isacharcomma}True{\isacharparenright}\isanewline
-\ \ \ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ return\ {\isacharparenleft}augment\ c\ f\ p{\isacharcomma}\ False{\isacharparenright}\isanewline
+\ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}{\isachardot}\ \isainnerkeyword{do}\ {\isacharbraceleft}\isanewline
+\ \ \ \ \ \ p\ {\isasymleftarrow}\ \isainnerkeyword{selectp}\ p{\isachardot}\ is{\isacharunderscore}augmenting{\isacharunderscore}path\ f\ p{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \isainnerkeyword{case}\ p\ of\ \isanewline
+\ \ \ \ \ \ \ \ None\ {\isasymRightarrow}\ \isainnerkeyword{return}\ {\isacharparenleft}f{\isacharcomma}True{\isacharparenright}\isanewline
+\ \ \ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ \isainnerkeyword{return}\ {\isacharparenleft}augment\ c\ f\ p{\isacharcomma}\ False{\isacharparenright}\isanewline
 \ \ \ \ {\isacharbraceright}{\isacharparenright}\isanewline
 \ \ \ \ {\isacharparenleft}f{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ return\ f\ \isanewline
+\ \ \isainnerkeyword{return}\ f\ \isanewline
 {\isacharbraceright}{\isachardoublequoteclose}%
 }%EndSnippet
 \DefineSnippet{ford_fulkerson_correct}{
 \isacommand{theorem}\isamarkupfalse%
-\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymle}\ {\isacharparenleft}spec\ f{\isachardot}\ isMaxFlow\ c\ s\ t\ f{\isacharparenright}{\isachardoublequoteclose}%
+\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymle}\ {\isacharparenleft}\isainnerkeyword{spec}\ f{\isachardot}\ isMaxFlow\ c\ s\ t\ f{\isacharparenright}{\isachardoublequoteclose}%
 }%EndSnippet
 \DefineSnippet{edmonds_karp_correct}{
 \isacommand{theorem}\isamarkupfalse%
@@ -26,7 +26,7 @@
 \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isacharless}emp{\isachargreater}\ edmonds{\isacharunderscore}karp\ el\ s\ t\ {\isacharless}{\isasymlambda}\isanewline
 \ \ \ \ \ \ None\ {\isasymRightarrow}\ {\isasymup}{\isacharparenleft}{\isasymnot}ln{\isacharunderscore}invar\ el\ {\isasymor}\ {\isasymnot}Network\ c\ s\ t{\isacharparenright}\isanewline
 \ \ \ \ {\isacharbar}\ Some\ {\isacharparenleft}N{\isacharcomma}fi{\isacharparenright}\ {\isasymRightarrow}\ {\isasymup}{\isacharparenleft}ln{\isacharunderscore}invar\ el\ {\isasymand}\ Network\ c\ s\ t\ {\isasymand}\ Graph{\isachardot}V\ c\ {\isasymsubseteq}\ {\isacharbraceleft}{\isadigit{0}}{\isachardot}{\isachardot}{\isacharless}N{\isacharbraceright}{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharasterisk}\ {\isacharparenleft}{\isasymexists}\isactrlsub Af{\isachardot}\ is{\isacharunderscore}rflow\ c\ N\ f\ fi\ {\isacharasterisk}\ {\isasymup}{\isacharparenleft}isMaxFlow\ c\ s\ t\ f{\isacharparenright}{\isacharparenright}{\isachargreater}\isactrlsub t{\isachardoublequoteclose}%
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharasterisk}\ {\isacharparenleft}{\isasymexistsA}f{\isachardot}\ is{\isacharunderscore}rflow\ c\ N\ f\ fi\ {\isacharasterisk}\ {\isasymup}{\isacharparenleft}isMaxFlow\ c\ s\ t\ f{\isacharparenright}{\isacharparenright}{\isachargreater}\isactrlsub t{\isachardoublequoteclose}%
 }%EndSnippet
 \DefineSnippet{augment_flow_presv_cap}{
 \isacommand{lemma}\isamarkupfalse%

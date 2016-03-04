@@ -32,6 +32,8 @@
 \usepackage{packages/isabellesym}
 \usepackage{packages/comment}
 
+\isabellestyle{it}
+
 \def\isadelimproof{}
 \def\endisadelimproof{}
 \def\isatagproof{}
@@ -43,9 +45,12 @@
 \input{macros}
 
 \input{lstisabelle}
-\lstset{basicstyle=\small\ttfamily\slshape,breaklines=true}
+\lstset{basicstyle=\small\ttfamily\slshape}
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
+
+\newcommand{\isainnerkeyword}[1]{{\tt #1}}
+\newcommand{\isasymexistsA}{\isamath{\exists_{\textsc A}\,}}
 
 % Include snippets
 \newcommand{\DefineSnippet}[2]{%
@@ -55,8 +60,8 @@
      #2
      \end{isabelle}
      \end{quote}}}
-\newcommand{\Snippet}[1]{\csname snippet--#1\endcsname}
-\input{snippets/snippets}
+\newcommand{\Snippet}[1]{\ifcsname snippet--#1\endcsname\csname snippet--#1\endcsname\else\PackageError{}{No snippet '#1' defined.}{}\fi}
+\input{snippets/snippets.out}
 
 
 % \overfullrule=8pt
@@ -266,7 +271,7 @@ Its structure is exactly the same as the textbook proof, except that we had to a
 In textbooks, it is common to present algorithms in pseudocode, which captures the essential ideas, but leaves open implementation details. As a formal equivalent to pseudocode, we use the monadic programming language provided by the Isabelle Refinement Framework~\cite{LaTu12,La12}:
 \Snippet{ford_fulkerson_algo}
 
-TODO: Introduce obtain-syntax, and unfold find-augmenting-path spec! Or even while-exists loop as combinator?
+% DONE: Introduce obtain-syntax, and unfold find-augmenting-path spec! Or even while-exists loop as combinator?
 The code looks quite similar to pseudocode that one would expect in a textbook, but actually is a rigorous formal specification of the algorithm, using nondeterminism to leave open the implementation details (\cf Section~\ref{sec:refinement}). Note that we had to use the available combinators of the refinement framework, which made the 
 code slightly more verbose than we would have liked.
 
@@ -274,7 +279,7 @@ code slightly more verbose than we would have liked.
 
 Finally, using the Ford-Fulkerson theorem and the verification condition generator of the Refinement Framework, it is straightforward to prove (partial) correctness of
 the Ford-Fulkerson method, which is stated in Isabelle/HOL by the following theorem:
-\Snippet{ford_fulkerson_partial_correct}
+\Snippet{ford_fulkerson_correct}
 
 \section{Refinement in Isabelle/HOL}\label{sec:refinement}
 After having stated and proved correct an algorithm on the abstract level, the next step is to provide an efficient implementation. 
@@ -500,7 +505,7 @@ results in a program that refines the original program. This gives us a natural 
     
   Combining the implementation of the Edmonds-Karp algorithm with the network checker yields our final algorithm,
   for which we can export code, and have proved the theorem: 
-  \Snippet{edmonds-karp-correct}
+  \Snippet{edmonds_karp_correct}
 %     theorem edmonds_karp_correct:
 %     "<emp> edmonds_karp el s t <λ
 %         None ⇒ ↑(¬ln_invar el ∨ ¬Network (ln_α el) s t)
@@ -512,7 +517,7 @@ results in a program that refines the original program. This gives us a natural 
   Here, \isai{ln_invar} describes well-formed edge lists, i.e., edge lists that have no duplicate edges and only edges with positive capacity,
   and \isai{ln_\<alpha>} describes the mapping from (well-formed) edge lists to capacity matrices.
   If the algorithm returns some number $N$ and residual graph $fi$, then the input was a well-formed edge list that describes a valid network with at most $N$ nodes.
-  Moreover, the returned residual graph describes a flow $f$ in the network, which is maximal. TODO: Swap in thm!
+  Moreover, the returned residual graph describes a flow $f$ in the network, which is maximal. 
   As there are no other possible return values, this theorem completely describes the correctness of the algorithm. 
   Note that Isabelle/HOL does not have a notion of execution, thus total correctness of the code finally produced by the code 
   generator cannot be defined. However, the program is phrased in a heap-exception monad, thus introducing some (coarse grained) notion of
