@@ -486,8 +486,10 @@ begin
 
     subsection \<open>Implementing the Successor Function for BFS\<close>  
 
+    -- \<open>Note: We use @{term filter_rev} here, as it is tail-recursive, 
+      and we are not interested in the order of successors.\<close>
     definition "rg_succ ps cf u \<equiv>  
-      filter (\<lambda>v. cf (u,v) > 0) (ps u)"
+      filter_rev (\<lambda>v. cf (u,v) > 0) (ps u)"
   
     lemma (in NFlow) E_ss_cfinvE: "E \<subseteq> Graph.E cf \<union> (Graph.E cf)\<inverse>"
       unfolding residualGraph_def Graph.E_def
@@ -512,7 +514,7 @@ begin
 
     lemma (in RGraph) rg_succ_ref1: "\<lbrakk>is_pred_succ ps c\<rbrakk> 
       \<Longrightarrow> (rg_succ ps cf u, Graph.E cf``{u}) \<in> \<langle>Id\<rangle>list_set_rel"
-      apply (clarsimp simp: list_set_rel_def br_def rg_succ_def Graph.E_def; intro conjI)
+      apply (clarsimp simp: list_set_rel_def br_def rg_succ_def filter_rev_alt Graph.E_def; intro conjI)
       using cfE_ss_invE resE_nonNegative apply (auto simp: is_pred_succ_def Graph.E_def simp: less_le) []
       apply (auto simp: is_pred_succ_def) []
       done
@@ -520,15 +522,75 @@ begin
     definition ps_get_op :: "_ \<Rightarrow> node \<Rightarrow> node list nres" 
       where "ps_get_op ps u \<equiv> ASSERT (u\<in>V) \<guillemotright> RETURN (ps u)"
 
+    definition monadic_filter_rev_aux 
+      :: "'a list \<Rightarrow> ('a \<Rightarrow> bool nres) \<Rightarrow> 'a list \<Rightarrow> 'a list nres"
+    where
+      "monadic_filter_rev_aux a P l \<equiv> RECT (\<lambda>D (l,a). case l of
+        [] \<Rightarrow> RETURN a 
+      | (v#l) \<Rightarrow> do {
+          c \<leftarrow> P v;
+          let a = (if c then v#a else a);
+          D (l,a)
+        }
+      ) (l,a)"
+
+    lemma monadic_filter_rev_aux_rule:
+      assumes "\<And>x. x\<in>set l \<Longrightarrow> P x \<le> SPEC (\<lambda>r. r=Q x)"
+      shows "monadic_filter_rev_aux a P l \<le> SPEC (\<lambda>r. r=filter_rev_aux a Q l)"
+      using assms
+      apply (induction l arbitrary: a)
+
+      apply (unfold monadic_filter_rev_aux_def) []
+      apply (subst RECT_unfold, refine_mono)
+      apply (fold monadic_filter_rev_aux_def) []
+      apply simp
+
+      apply (unfold monadic_filter_rev_aux_def) []
+      apply (subst RECT_unfold, refine_mono)
+      apply (fold monadic_filter_rev_aux_def) []
+      apply (auto simp: pw_le_iff refine_pw_simps)
+      done
+
+    definition "monadic_filter_rev = monadic_filter_rev_aux []"
+
+    lemma monadic_filter_rev_rule:
+      assumes "\<And>x. x\<in>set l \<Longrightarrow> P x \<le> SPEC (\<lambda>r. r=Q x)"
+      shows "monadic_filter_rev P l \<le> SPEC (\<lambda>r. r=filter_rev Q l)"
+      using monadic_filter_rev_aux_rule[where a="[]"] assms
+      by (auto simp: monadic_filter_rev_def filter_rev_def)
+
     definition "rg_succ2 ps cf u \<equiv> do {
       l \<leftarrow> ps_get_op ps u;
-      RECT (\<lambda>D l. case l of 
-        [] \<Rightarrow> RETURN [] 
+      monadic_filter_rev (\<lambda>v. do {
+        x \<leftarrow> cf_get cf (u,v);
+        return (x>0)
+      }) l
+    }"
+
+    lemma (in RGraph) rg_succ_ref2: 
+      assumes PS: "is_pred_succ ps c" and V: "u\<in>V"
+      shows "rg_succ2 ps cf u \<le> RETURN (rg_succ ps cf u)"
+    proof -
+      have "\<forall>v\<in>set (ps u). valid_edge (u,v)"
+        using PS V
+        by (auto simp: is_pred_succ_def Graph.V_def)
+      
+      thus ?thesis  
+        unfolding rg_succ2_def rg_succ_def ps_get_op_def cf_get_def
+        apply (refine_vcg monadic_filter_rev_rule[where Q="(\<lambda>v. 0 < cf (u, v))", THEN order_trans])
+        by (vc_solve simp: V)
+    qed    
+
+(*
+    definition "rg_succ2 ps cf u \<equiv> do {
+      l \<leftarrow> ps_get_op ps u;
+      RECT (\<lambda>D (l,a). case l of 
+        [] \<Rightarrow> RETURN a 
       | (v#l) \<Rightarrow> do {
-          rl \<leftarrow> D l;
           x \<leftarrow> cf_get cf (u,v);
-          if x > 0 then RETURN (v#rl) else RETURN rl   
-        }) l
+          let a = (if x>0 then v#a else a);
+          D (l,a)
+        }) (l,[])
       }"
   
     lemma (in RGraph) rg_succ_ref2: "\<lbrakk>is_pred_succ ps c; u\<in>V\<rbrakk> 
@@ -560,7 +622,7 @@ begin
           apply fastforce
         done
     qed    
-  
+*)
     (* Snippet *)
     lemma (in RGraph) rg_succ_ref:
       assumes A: "is_pred_succ ps c"
@@ -761,7 +823,8 @@ begin
         itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
       notes [sepref_import_param] = IdI[of N]
       shows "hn_refine (hn_ctxt is_ps ps psi * hn_ctxt (is_mtx N) cf cfi * hn_val nat_rel u ui) (?c::?'c Heap) ?\<Gamma> ?R (rg_succ2 ps cf u)"
-      unfolding rg_succ2_def APP_def 
+      unfolding rg_succ2_def APP_def monadic_filter_rev_def monadic_filter_rev_aux_def
+      (* TODO: Make setting up combinators for sepref simpler, then we do not need to unfold! *)
       using [[id_debug, goals_limit = 1]]
       by sepref_keep
     concrete_definition (in -) succ_imp uses Edka_Impl.rg_succ2_impl

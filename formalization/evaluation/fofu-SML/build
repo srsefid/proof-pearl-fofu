@@ -2,4 +2,4 @@
 
 mlton -verbose 1 -default-type intinf -output Fofu Fofu.mlb
 
-# mlton -verbose 1 -profile count -default-type intinf -output Fofu Fofu.mlb
+# mlton -verbose 1 -profile time -default-type intinf -output Fofu Fofu.mlb

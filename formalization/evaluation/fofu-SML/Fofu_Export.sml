@@ -2595,14 +2595,14 @@ else (a1d, (a1e, (x_f, (a2e, a2c)))))))))
 fun mtx_get A_ n mtx e = nth A_ mtx (plus_nat (times_nat (fst e) n) (snd e));
 
 fun succ_imp_0 n cfi ui x =
-  (case x of [] => (fn () => [])
-    | x_d :: xs =>
+  (case x of ([], a2) => (fn () => a2)
+    | (x_e :: xs, a2) =>
       (fn () =>
         let
-          val x_e = succ_imp_0 n cfi ui xs ();
-          val x_f = mtx_get heap_int n cfi (ui, x_d) ();
+          val xa = mtx_get heap_int n cfi (ui, x_e) ();
         in
-          (if less_int zero_inta x_f then x_d :: x_e else x_e)
+          succ_imp_0 n cfi ui
+            (xs, (if less_int zero_inta xa then x_e :: a2 else a2)) ()
         end));
 
 fun ps_get_imp A_ psi u = nth A_ psi u;
@@ -2610,9 +2610,9 @@ fun ps_get_imp A_ psi u = nth A_ psi u;
 fun succ_imp n psi cfi ui =
   (fn () =>
     let
-      val x = ps_get_imp (heap_list heap_nat) psi ui ();
+      val x_c = ps_get_imp (heap_list heap_nat) psi ui ();
     in
-      succ_imp_0 n cfi ui x ()
+      succ_imp_0 n cfi ui (x_c, []) ()
     end);
 
 fun bfsi n s t psi cfi = bfs_impl (fn (a, b) => succ_imp n a b) (psi, cfi) s t;
