@@ -2592,7 +2592,7 @@ else (a1d, (a1e, (x_f, (a2e, a2c)))))))))
                ()
            end));
 
-fun mtx_get A_ n mtx e = nth A_ mtx (plus_nat (fst e) (times_nat (snd e) n));
+fun mtx_get A_ n mtx e = nth A_ mtx (plus_nat (times_nat (fst e) n) (snd e));
 
 fun succ_imp_0 n cfi ui x =
   (case x of [] => (fn () => [])
@@ -2644,7 +2644,7 @@ fun bottleNeck_imp n cfi pi =
         end));
 
 fun mtx_set A_ n mtx e v =
-  upd A_ (plus_nat (fst e) (times_nat (snd e) n)) v mtx;
+  upd A_ (plus_nat (times_nat (fst e) n) (snd e)) v mtx;
 
 fun augment_imp_0 n capi x =
   (case x of ([], a2) => (fn () => a2)
@@ -2672,7 +2672,7 @@ fun div_integer k l = fst (divmod_integer k l);
 fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
 
 fun mtx_new A_ n c =
-  make A_ (times_nat n n) (fn i => c (mod_nat i n, div_nat i n));
+  make A_ (times_nat n n) (fn i => c (div_nat i n, mod_nat i n));
 
 fun edka_imp n ps c s t =
   (fn () =>

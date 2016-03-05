@@ -48,7 +48,7 @@ begin
 
   definition "is_mtx N c mtx \<equiv> \<exists>\<^sub>Al. mtx \<mapsto>\<^sub>a l * \<up>( 
       length l = N*N 
-    \<and> (\<forall>i<N. \<forall>j<N. l!(i+j*N) = c (i,j))
+    \<and> (\<forall>i<N. \<forall>j<N. l!(i*N+j) = c (i,j))
     \<and> (\<forall>i j. (i\<ge>N \<or> j\<ge>N) \<longrightarrow> c (i,j) = 0))"
 
   lemma is_mtx_precise[constraint_rules]: "precise (is_mtx N)"
@@ -65,13 +65,13 @@ begin
     
 
   definition "mtx_new N c \<equiv> do {
-    Array.make (N*N) (\<lambda>i. c (i mod N, i div N))
+    Array.make (N*N) (\<lambda>i. c (i div N, i mod N))
   }"
 
-  definition "mtx_get N mtx e \<equiv> Array.nth mtx (fst e + snd e * N)"
-  definition "mtx_set N mtx e v \<equiv> Array.upd (fst e + snd e * N) v mtx"
+  definition "mtx_get N mtx e \<equiv> Array.nth mtx (fst e * N + snd e)"
+  definition "mtx_set N mtx e v \<equiv> Array.upd (fst e * N + snd e) v mtx"
 
-  lemma mtx_idx_valid[simp]: "\<lbrakk>i < (N::nat); j < N\<rbrakk> \<Longrightarrow> i + j * N < N * N"
+  lemma mtx_idx_valid[simp]: "\<lbrakk>i < (N::nat); j < N\<rbrakk> \<Longrightarrow> i * N + j < N * N"
   proof -
     assume a1: "i < N"
     assume a2: "j < N"
@@ -83,7 +83,7 @@ begin
       using a2 a1 by (metis (no_types) ab_semigroup_add_class.add.commute ab_semigroup_mult_class.mult.commute add.left_neutral div_if mod_div_equality mod_lemma mult_0_right)
   qed
 
-  lemma mtx_index_unique[simp]: "\<lbrakk>i<(N::nat); j<N; i'<N; j'<N\<rbrakk> \<Longrightarrow> i+j*N = i'+j'*N \<longleftrightarrow> i=i' \<and> j=j'"
+  lemma mtx_index_unique[simp]: "\<lbrakk>i<(N::nat); j<N; i'<N; j'<N\<rbrakk> \<Longrightarrow> i*N+j = i'*N+j' \<longleftrightarrow> i=i' \<and> j=j'"
     by (metis ab_semigroup_add_class.add.commute add_diff_cancel_right' div_if div_mult_self3 gr0I not_less0)
 
   lemma mtx_new_rl[sep_heap_rules]: "Graph.V c \<subseteq> {0..<N} \<Longrightarrow> <emp> mtx_new N c <is_mtx N c>"

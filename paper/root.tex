@@ -479,7 +479,7 @@ results in a program that refines the original program. This gives us a natural 
   % TODO: Can we trick the Java reference implementation on integer overflow?
   
   We implement nodes as natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
-  are realized as arrays of size $N*N$ with row-major indexing.
+  are realized as arrays of size $N*N$ with row-major indexing, such that the successors of a node are close together in memory.
   The adjacency map of the network is implemented as an array of lists of nodes. 
   An augmenting path is represented by a list of edges, \ie a list of pairs of nodes. 
   
