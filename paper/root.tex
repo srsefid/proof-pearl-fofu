@@ -32,7 +32,16 @@
 \usepackage{packages/isabellesym}
 \usepackage{packages/comment}
 
-\isabellestyle{it}
+% \isabellestyle{it}
+
+\def\isachardoublequote{}%
+\def\isachardoublequoteopen{}%
+\def\isachardoublequoteclose{}%
+
+
+\newcommand{\isainnerkeyword}[1]{{\tt #1}}
+\newcommand{\isasymexistsA}{\isamath{\exists_{\textsc A}\,}}
+
 
 \def\isadelimproof{}
 \def\endisadelimproof{}
@@ -42,15 +51,17 @@
 \def\isadelimproof{}
 \def\endisadelimproof{}
 
-\input{macros}
-
 \input{lstisabelle}
-\lstset{basicstyle=\small\ttfamily\slshape}
+\lstset{basicstyle=\footnotesize\ttfamily\slshape}
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
 
-\newcommand{\isainnerkeyword}[1]{{\tt #1}}
-\newcommand{\isasymexistsA}{\isamath{\exists_{\textsc A}\,}}
+\newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
+
+
+
+
+\input{macros}
 
 % Include snippets
 \newcommand{\DefineSnippet}[2]{%
