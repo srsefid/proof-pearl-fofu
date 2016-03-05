@@ -10,7 +10,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context FoFu
   begin
-    lemma fofu_I_II: "isMaxFlow c s t f \<Longrightarrow> \<not> (\<exists> p. isAugmenting p)"
+    lemma fofu_I_II: "isMaxFlow f \<Longrightarrow> \<not> (\<exists> p. isAugmenting p)"
       unfolding isMaxFlow_def
       proof (rule ccontr)
         assume asm: "NFlow c s t f \<and> (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
@@ -101,7 +101,7 @@ begin
         thus ?thesis by auto
       qed
       
-    lemma fofu_III_I: "val = cap \<Longrightarrow> isMaxFlow c s t f"
+    lemma fofu_III_I: "val = cap \<Longrightarrow> isMaxFlow f"
       proof -
         assume asm: "val = cap"
         {
@@ -118,9 +118,9 @@ begin
     (* Snippet for presentation. 
       Needs explanation on II: We are in a context with a fixed cut and flow. *)  
     theorem ford_fulkerson:
-      "isMaxFlow c s t f \<Longrightarrow> \<not> Ex isAugmenting"
+      "isMaxFlow f \<Longrightarrow> \<not> Ex isAugmenting"
       "\<not> Ex isAugmenting \<Longrightarrow> \<exists>k'. NCut c s t k' \<and> val = NCut.cap c k'"
-      "val = cap \<Longrightarrow> isMaxFlow c s t f"
+      "val = cap \<Longrightarrow> isMaxFlow f"
       using fofu_I_II fofu_II_III fofu_III_I by auto
 
 
@@ -137,7 +137,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context NFlow
   begin
-    lemma maxFlow_iff_noAugPath: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow c s t f"
+    lemma maxFlow_iff_noAugPath: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow f"
       proof -
         let ?S = "{s}"
         have "?S \<subseteq> V" using s_node by blast
@@ -153,7 +153,7 @@ begin
               "NCut c s t k'" and 1: "val = NCut.cap c k'" by blast
             then interpret nc''!: NCut c s t k' by simp
             interpret nc''!: FoFu c s t k' f by unfold_locales
-            from nc''.fofu_III_I[OF 1] show "isMaxFlow c s t f" .
+            from nc''.fofu_III_I[OF 1] show "isMaxFlow f" .
           qed (blast dest: nc'.fofu_I_II)
       qed
   end
@@ -161,9 +161,9 @@ begin
   
   context FoFu
   begin
-    lemma maxFlow_minCut: "\<lbrakk>isMaxFlow c s t f; isMinCut c s t k\<rbrakk> \<Longrightarrow> val = cap"
+    lemma maxFlow_minCut: "\<lbrakk>isMaxFlow f; isMinCut c s t k\<rbrakk> \<Longrightarrow> val = cap"
       proof -
-        assume asm1: "isMaxFlow c s t f"
+        assume asm1: "isMaxFlow f"
         assume asm2: "isMinCut c s t k"
         note f1 = fofu_I_II[OF asm1]
         note f2 = fofu_II_III[OF f1]

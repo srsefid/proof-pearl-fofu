@@ -86,7 +86,7 @@ begin
       Moreover note, that we show total correctness here. 
       As our capacities are natural numbers, the algorithm always terminates.
       \<close>
-    lemma fofu_partial_correct: "fofu \<le> SPEC (\<lambda>f. isMaxFlow c s t f)"
+    lemma fofu_partial_correct: "fofu \<le> SPEC isMaxFlow"
       unfolding fofu_def find_augmenting_spec_def
       apply (refine_vcg)
       apply clarsimp_all
@@ -139,7 +139,7 @@ begin
         fix f
         assume asm1: "NFlow c s t f"
         assume asm2: "(\<forall>p. \<not>NFlow.isAugmenting c s t f p)"
-        show "isMaxFlow c s t f" using NFlow.maxFlow_iff_noAugPath[OF asm1] asm2 by blast
+        show "isMaxFlow f" using NFlow.maxFlow_iff_noAugPath[OF asm1] asm2 by blast
       }
       (*{ fix f
         show "((f, True), f, False) \<in> ?S" by auto
@@ -162,18 +162,18 @@ begin
 
     context begin interpretation Refine_Monadic_Syntax .
 
-      private definition "augment \<equiv> NFlow.augment_with_path"
-      private definition "is_augmenting_path f p \<equiv> NFlow.isAugmenting c s t f p"
+      private abbreviation (input) "augment \<equiv> NFlow.augment_with_path"
+      private abbreviation (input) "is_augmenting_path f p \<equiv> NFlow.isAugmenting c s t f p"
 
       text \<open>A polished version for presentation\<close>
 (* FIXME: Indentation unfortunate, but required to extract snippet for latex presentation *)    
 text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       
 definition "ford_fulkerson_algo \<equiv> do {
-  let f = (\<lambda>_. 0);
+  let f = (\<lambda>(u,v). 0);
 
-  (f,_) \<leftarrow> while
+  (f,brk) \<leftarrow> while
     (\<lambda>(f,brk). \<not>brk) 
-    (\<lambda>(f,_). do {
+    (\<lambda>(f,brk). do {
       p \<leftarrow> selectp p. is_augmenting_path f p;
       case p of 
         None \<Rightarrow> return (f,True)
@@ -184,13 +184,16 @@ definition "ford_fulkerson_algo \<equiv> do {
 }"
 text_raw \<open>}%EndSnippet\<close>
 
+    end  
+  end  
+
 text_raw \<open>\DefineSnippet{ford_fulkerson_correct}{\<close>       
-theorem "ford_fulkerson_algo \<le> (spec f. isMaxFlow c s t f)"
+theorem (in Network) "ford_fulkerson_algo \<le> (spec f. isMaxFlow f)"
 text_raw \<open>}%EndSnippet\<close>
 proof -
+  have [simp]: "(\<lambda>(u,v). 0) = (\<lambda>_. 0)" by auto
   have "ford_fulkerson_algo \<le> fofu"
-    unfolding ford_fulkerson_algo_def fofu_def Let_def
-      find_augmenting_spec_def augment_def is_augmenting_path_def
+    unfolding ford_fulkerson_algo_def fofu_def Let_def find_augmenting_spec_def
     apply (rule refine_IdD)
     apply (refine_vcg)
     apply (refine_dref_type)
@@ -200,7 +203,4 @@ proof -
   finally show ?thesis .
 qed  
 
-    end  
-
-  end
 end

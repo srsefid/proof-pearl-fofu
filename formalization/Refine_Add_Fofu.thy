@@ -2,6 +2,10 @@ theory Refine_Add_Fofu
 imports Fofu_Impl_Base Refine_Monadic_Syntax_Sugar
 begin
 
+  notation Heap_Monad.return ("return")
+
+
+
   (* TODO: Integrate into Refinement Framework! *)
 
   lemma LFO_pre_refine: (* TODO: Move and generalize! *)
@@ -339,7 +343,7 @@ lemma hn_monadic_nfoldli_rl'[sepref_comb_rules]:
 
   thm list_set_autoref_insert[sepref_import_param, to_hfref, to_hnr]
 
-  definition [sepref_opt_simps]: "ls_ins_dj_imp x l \<equiv> return (x#l)"
+  definition ls_ins_dj_imp :: "_\<Rightarrow>_\<Rightarrow>_ Heap" where [sepref_opt_simps]: "ls_ins_dj_imp x l \<equiv> return (x#l)"
   definition [simp]: "op_set_ins_dj \<equiv> Set.insert"
 
   lemma ls_ins_dj_rule[sepref_fr_rules]: 

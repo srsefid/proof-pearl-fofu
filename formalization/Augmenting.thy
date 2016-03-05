@@ -44,36 +44,41 @@ begin
     begin  
       interpretation f'!: Flow cf s t f' by (rule f'_flow)
 
+      (* TODO: Define augment in Network, with two flows as arguments *)
+      abbreviation (input) augment_syntax (infix "\<up>" 55) where "augment_syntax \<equiv> NFlow.augment c"
+
 (* FIXME: Indentation unfortunate, but required to extract snippet for latex presentation *)    
 text_raw \<open>\DefineSnippet{augment_flow_presv_cap}{\<close>  
 lemma augment_flow_presv_cap: 
-  shows "0 \<le> augment f'(u,v) \<and> augment f'(u,v) \<le> c(u,v)"
-proof (cases "(u,v)\<in>E"; rule conjI) case True
-  have "f'(v,u) \<le> cf(v,u)" using f'.capacity_const by auto
-  also from \<open>(u,v)\<in>E\<close> have "cf(v,u) = f(u,v)"
+  shows "0 \<le> (f\<up>f')(u,v) \<and> (f\<up>f')(u,v) \<le> c(u,v)"
+proof (cases "(u,v)\<in>E"; rule conjI) 
+  assume [simp]: "(u,v)\<in>E"
+  hence "f(u,v) = cf(v,u)" 
     using no_parallel_edge by (auto simp: residualGraph_def)
-  finally have "f'(v,u) \<le> f(u,v)" .
+  also have "cf(v,u) \<ge> f'(v,u)" using f'.capacity_const by auto
+  finally(*<*)(xtrans)(*>*) have "f'(v,u) \<le> f(u,v)" .
 
 (*<*){
-    note [trans del] = order_trans note [trans] = order_trans[rotated]
-  (*>*)
-  have "augment f'(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
+    note [trans] = xtrans
+  (*>*)text_raw \<open>{}\<close>
+
+  have "(f\<up>f')(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
     using \<open>(u,v)\<in>E\<close> by (auto simp: augment_def)
   also have "\<dots> \<ge> f(u,v) + f'(u,v) - f(u,v)"
   (*<*)(is "_ \<ge> \<dots>")(*>*)  using \<open>f'(v,u) \<le> f(u,v)\<close> by auto
   also have "\<dots> = f'(u,v)" by auto
   also have "\<dots> \<ge> 0" using f'.capacity_const by auto
-  finally show "augment f'(u,v) \<ge> 0" .
+  finally show "(f\<up>f')(u,v) \<ge> 0" .
   (*<*)}(*>*)
     
-  have "augment f'(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
-    using \<open>(u,v)\<in>E\<close> by (auto simp: augment_def)
+  have "(f\<up>f')(u,v) = f(u,v) + f'(u,v) - f'(v,u)" 
+    by (auto simp: augment_def)
   also have "\<dots> \<le> f(u,v) + f'(u,v)" using f'.capacity_const by auto
   also have "\<dots> \<le> f(u,v) + cf(u,v)" using f'.capacity_const by auto
-  also have "\<dots> = f(u,v) + c(u,v) - f(u,v)"
-    using \<open>(u,v)\<in>E\<close> by (auto simp: residualGraph_def)
+  also have "\<dots> = f(u,v) + c(u,v) - f(u,v)" 
+    by (auto simp: residualGraph_def)
   also have "\<dots> = c(u,v)" by auto
-  finally show "augment f'(u, v) \<le> c(u, v)" .
+  finally show "(f\<up>f')(u, v) \<le> c(u, v)" .
 qed (auto simp: augment_def cap_positive)
 text_raw \<open>}%EndSnippet\<close>
 

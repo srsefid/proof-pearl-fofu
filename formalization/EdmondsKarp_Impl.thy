@@ -902,7 +902,7 @@ begin
     theorem edka_imp_correct: 
       assumes VN: "Graph.V c \<subseteq> {0..<N}"
       assumes ABS_PS: "is_pred_succ ps c"
-      shows "<emp> edka_imp c s t N ps <\<lambda>fi. \<exists>\<^sub>Af. is_rflow N f fi * \<up>(isMaxFlow c s t f)>\<^sub>t"
+      shows "<emp> edka_imp c s t N ps <\<lambda>fi. \<exists>\<^sub>Af. is_rflow N f fi * \<up>(isMaxFlow f)>\<^sub>t"
     proof -
       interpret Edka_Impl by unfold_locales fact
 
@@ -913,7 +913,7 @@ begin
       also note edka_refine
       also note edka_partial_refine
       also note fofu_partial_correct
-      finally have "edka5 ps \<le> SPEC (isMaxFlow c s t)" .
+      finally have "edka5 ps \<le> SPEC isMaxFlow" .
       from hn_refine_ref[OF this edka_imp_refine]
       show ?thesis 
         by (simp add: hn_refine_def)

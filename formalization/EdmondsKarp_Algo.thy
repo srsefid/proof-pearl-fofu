@@ -807,7 +807,7 @@ begin
       qed    
 
       text \<open>We show that this algorithm never fails, and computes a maximum flow.\<close>
-      theorem "edka_complexity \<le> (spec f. isMaxFlow c s t f)"
+      theorem "edka_complexity \<le> (spec f. isMaxFlow f)"
       proof -  
         note edka_complexity_refine
         also note edka_refine

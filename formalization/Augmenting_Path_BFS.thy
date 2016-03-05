@@ -338,7 +338,6 @@ begin
 
 
   (* Presentation for Paper *)  
-  context begin interpretation Refine_Monadic_Syntax .
   definition bfs_core :: "node \<Rightarrow> node \<Rightarrow> (nat \<times> (node\<rightharpoonup>node)) option nres"
     where "bfs_core src dst \<equiv> do {
     (f,P,_,_,d) \<leftarrow> while\<^sub>T (\<lambda>(f,P,C,N,d). f=False \<and> C\<noteq>{})
@@ -359,18 +358,16 @@ begin
     if f then return (Some (d, P)) else return None
     }"
 
-    theorem 
-      assumes "src\<in>V" "src\<noteq>dst" "finite V"
-      shows "bfs_core src dst \<le> (spec p. bfs_spec src dst p)"
-      apply (rule order_trans[OF _ pre_bfs_correct])
-      apply (rule refine_IdD)
-      unfolding bfs_core_def pre_bfs_def
-      apply refine_rcg
-      apply refine_dref_type
-      apply (vc_solve simp: assms)
-      done
-
-  end
+  theorem 
+    assumes "src\<in>V" "src\<noteq>dst" "finite V"
+    shows "bfs_core src dst \<le> (spec p. bfs_spec src dst p)"
+    apply (rule order_trans[OF _ pre_bfs_correct])
+    apply (rule refine_IdD)
+    unfolding bfs_core_def pre_bfs_def
+    apply refine_rcg
+    apply refine_dref_type
+    apply (vc_solve simp: assms)
+    done
 
 
       

@@ -47,7 +47,7 @@ begin
   theorem edmonds_karp_correct:
     "<emp> edmonds_karp el s t <\<lambda>
         None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
-      | Some (N,fi) \<Rightarrow> \<exists>\<^sub>Af. Network_Impl.is_rflow (ln_\<alpha> el) N f fi * \<up>(isMaxFlow (ln_\<alpha> el) s t f)
+      | Some (N,fi) \<Rightarrow> \<exists>\<^sub>Af. Network_Impl.is_rflow (ln_\<alpha> el) N f fi * \<up>(Network.isMaxFlow (ln_\<alpha> el) s t f)
           * \<up>(ln_invar el \<and> Network (ln_\<alpha> el) s t \<and> Graph.V (ln_\<alpha> el) \<subseteq> {0..<N})
     >\<^sub>t"
     unfolding edmonds_karp_def
@@ -66,8 +66,9 @@ theorem
   fixes el defines "c\<equiv>ln_\<alpha> el"
   shows "<emp> edmonds_karp el s t <\<lambda>
       None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network c s t)
-    | Some (N,fi) \<Rightarrow> \<up>(ln_invar el \<and> Network c s t \<and> Graph.V c \<subseteq> {0..<N})
-                   * (\<exists>\<^sub>Af. is_rflow c N f fi * \<up>(isMaxFlow c s t f))>\<^sub>t"
+    | Some (N,cf) \<Rightarrow> 
+      \<up>(ln_invar el \<and> Network c s t \<and> Graph.V c \<subseteq> {0..<N})
+    * (\<exists>\<^sub>Af. is_rflow c N f cf * \<up>(Network.isMaxFlow c s t f))>\<^sub>t"
 text_raw \<open>}%EndSnippet\<close>
   unfolding c_def is_rflow_def
   by (sep_auto heap: edmonds_karp_correct[of el s t] split: option.split)

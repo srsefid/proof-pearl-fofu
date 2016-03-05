@@ -5,10 +5,13 @@ session Edka_Base = "CAVA_Base" +
     "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
     "~~/src/HOL/Library/Rewrite"
 
-session Edka = "Edka_Base" +
-   theories Code
+session Edka_BFS = "Edka_Base" +   
+  theories Augmenting_Path_BFS
 
-session Snippets = "Edka_Base" +
+session Edka = "Edka_BFS" +
+  theories Edka_Checked_Impl
+
+session Snippets = Edka_BFS +
    options [
      document = "pdf",
      document_output = "generated"]

@@ -26,13 +26,13 @@ begin
   
   
   
-  (* s-t Flow definitions *)
+  (* Flow definitions *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   locale NFlow = Network c s t + Flow c s t f for c :: "'capacity::linordered_idom graph" and s t f
     
-  definition isMaxFlow :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _ flow \<Rightarrow> bool" 
-  where "isMaxFlow c s t f \<equiv> NFlow c s t f \<and> 
+  definition (in Network) isMaxFlow :: "_ flow \<Rightarrow> bool" 
+  where "isMaxFlow f \<equiv> NFlow c s t f \<and> 
     (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
