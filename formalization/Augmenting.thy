@@ -60,9 +60,9 @@ proof (cases "(u,v)\<in>E"; rule conjI)
 
 (*<*){
     note [trans] = xtrans
-  (*>*)text_raw \<open>{}\<close>
+  (*>*)text_raw \<open>\isanewline\<close>
 
-  have "(f\<up>f')(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
+  text_raw \<open>\ \ \<close>have "(f\<up>f')(u,v) = f(u,v) + f'(u,v) - f'(v,u)"
     using \<open>(u,v)\<in>E\<close> by (auto simp: augment_def)
   also have "\<dots> \<ge> f(u,v) + f'(u,v) - f(u,v)"
   (*<*)(is "_ \<ge> \<dots>")(*>*)  using \<open>f'(v,u) \<le> f(u,v)\<close> by auto

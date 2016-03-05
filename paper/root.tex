@@ -184,6 +184,7 @@ Given a network $G$, the maximum flow problem is to find a flow with a maximum v
 
 To simplify reasoning about the maximum flow problem, we assume that our network satisfies some additional constraints: 1) The source only has outgoing edges while the sink only has incoming edges; 2) If the flow network contains an edge $(u, v)$ then there is no \emph{parallel edge} $(v, u)$ in the reverse direction; and 3) every vertex of the flow network must be on a path from $s$ to $t$. Note that any network can be transformed to a network with the aforementioned properties and the same maximum flow~\cite{CLRS09}.
 
+
 An important result is the relation between flows and cuts in a network. A \emph{cut} is a partitioning of the vertices into two sets, such that one set contains 
 the source and the other set contains the sink. The capacity of a cut is the sum of the capacities of all edges going from the source's side to the sink's side of the cut.
 It is easy to see that the value of any flow cannot exceed the capacity of any cut, as all flow from the source must ultimately reach the sink, and thus go through the edges of the cut. The Ford-Fulkerson theorem tightens this bound and states that the value of the maximum flow is equal to the capacity of the minimum cut.
