@@ -21,15 +21,15 @@ begin
   | constant stat_inner_c \<rightharpoonup> (SML) "stat.inner'_c'_incr"  
 
 
-  schematic_lemma [code]: "edka_imp N ps c s t = ?foo"
-    unfolding edka_imp_def
-    apply (rewrite in "heap_WHILET _ \<hole> _" insert_stat_outer_c)
+  schematic_lemma [code]: "edka_imp_run_0 s t N f brk = ?foo"
+    apply (subst edka_imp_run.code)
+    apply (rewrite in "\<hole>" insert_stat_outer_c)
     by (rule refl)
     
 
-  schematic_lemma [code]: "bfs_impl N c s t = ?foo"
-    unfolding bfs_impl_def
-    apply (rewrite in "imp_nfoldli _ _ \<hole> _" insert_stat_inner_c)
+  schematic_lemma [code]: "bfs_impl_0 t u l = ?foo"
+    apply (subst bfs_impl.code)
+    apply (rewrite in "\<hole>" insert_stat_inner_c)
     by (rule refl)
 
   definition "edmonds_karp el s t \<equiv> do {
@@ -88,7 +88,7 @@ end
 
 
   export_code nat_of_integer integer_of_nat int_of_integer integer_of_int
-    edmonds_karp edka_imp prepareNet get_flow
+    edmonds_karp edka_imp edka_imp_tabulate edka_imp_run prepareNet get_flow
     in SML_imp 
     module_name Fofu 
     file "evaluation/fofu-SML/Fofu_Export.sml"  

@@ -374,6 +374,11 @@ structure Fofu : sig
   val prepareNet :
     (nat * (nat * int)) list ->
       nat -> nat -> ((nat * nat -> int) * ((nat -> nat list) * nat)) option
+  val edka_imp_tabulate :
+    (nat * nat -> int) ->
+      nat -> (nat -> nat list) -> (unit -> (int array * (nat list) array))
+  val edka_imp_run :
+    nat -> nat -> nat -> int array -> (nat list) array -> (unit -> (int array))
   val edka_imp :
     (nat * nat -> int) ->
       nat -> nat -> nat -> (nat -> nat list) -> (unit -> (int array))
@@ -2466,11 +2471,6 @@ fun iam_new_sz A_ sz = new (heap_option A_) sz NONE;
 
 fun iam_new A_ = iam_new_sz A_ iam_initial_size;
 
-fun equal_bool p true = p
-  | equal_bool p false = not p
-  | equal_bool true p = p
-  | equal_bool false p = not p;
-
 fun iam_update A_ k v a =
   upd_oo (heap_option A_)
     (fn () =>
@@ -2500,90 +2500,118 @@ fun init_state_impl srci =
       (false, (xa, ([srci], ([], zero_nata))))
     end);
 
-fun heap_WHILET b f s =
-  (fn () =>
-    let
-      val bv = b s ();
-    in
-      (if bv then (fn f_ => fn () => f_ ((f s) ()) ()) (heap_WHILET b f)
-        else (fn () => s))
-        ()
-    end);
+fun iam_lookup A_ k a = nth_oo (heap_option A_) NONE a k;
+
+fun bfs_impl_2 si a2 x =
+  (if let
+        val (a1a, _) = x;
+      in
+        not (equal_nata a1a si)
+      end
+    then (fn () =>
+           let
+             val xa =
+               let
+                 val (a1a, a2a) = x;
+               in
+                 (fn f_ => fn () => f_ ((iam_lookup heap_nat a1a a2) ()) ())
+                   (fn xa =>
+                     let
+                       val x_i = the xa;
+                     in
+                       (fn () => (x_i, (x_i, a1a) :: a2a))
+                     end)
+               end
+                 ();
+           in
+             bfs_impl_2 si a2 xa ()
+           end)
+    else (fn () => x));
+
+fun equal_bool p true = p
+  | equal_bool p false = not p
+  | equal_bool true p = p
+  | equal_bool false p = not p;
 
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
-fun imp_nfoldli (x :: ls) c f s =
+fun bfs_impl_0 t u l =
   (fn () =>
     let
-      val b = c s ();
+      val _ = stat.inner_c_incr ();
     in
-      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
-        else (fn () => s))
+      (case l of ([], s) => (fn () => s)
+        | (x :: ls, s) =>
+          (if let
+                val (a1d, (_, _)) = s;
+              in
+                not a1d
+              end
+            then (fn f_ => fn () => f_
+                   (let
+                      val (a1d, (a1e, a2e)) = s;
+                    in
+                      (fn f_ => fn () => f_ ((iam_lookup heap_nat x a1e) ()) ())
+                        (fn xa =>
+                          (if not (is_None xa) then (fn () => (a1d, (a1e, a2e)))
+                            else (fn f_ => fn () => f_
+                                   ((iam_update heap_nat x u a1e) ()) ())
+                                   (fn x_l =>
+                                     (fn () =>
+                                       (equal_nata x t, (x_l, x :: a2e))))))
+                    end
+                   ()) ())
+                   (fn sa => bfs_impl_0 t u (ls, sa))
+            else (fn () => s)))
         ()
-    end)
-  | imp_nfoldli [] c f s = (fn () => s);
+    end);
 
-fun iam_lookup A_ k a = nth_oo (heap_option A_) NONE a k;
+fun bfs_impl_1 succ_impl ci ti x =
+  (if let
+        val (a1, (_, (a1b, (_, _)))) = x;
+      in
+        equal_bool a1 false andalso not (is_Nil a1b)
+      end
+    then (fn () =>
+           let
+             val xa =
+               let
+                 val (_, (a1a, (a1b, (a1c, a2c)))) = x;
+                 val x_e = hd a1b;
+                 val x_f = glist_delete equal_nata x_e a1b;
+               in
+                 (fn f_ => fn () => f_ ((succ_impl ci x_e) ()) ())
+                   (fn x_h =>
+                     (fn f_ => fn () => f_
+                       ((bfs_impl_0 ti x_e (x_h, (false, (a1a, a1c)))) ()) ())
+                       (fn (a1d, (a1e, a2e)) =>
+                         (fn () =>
+                           (if a1d
+                             then (a1d, (a1e,
+  (x_f, (a2e, plus_nat a2c one_nata))))
+                             else (if is_Nil x_f
+                                    then (a1d,
+   (a1e, (a2e, ([], plus_nat a2c one_nata))))
+                                    else (a1d, (a1e, (x_f, (a2e, a2c)))))))))
+               end
+                 ();
+           in
+             bfs_impl_1 succ_impl ci ti xa ()
+           end)
+    else (fn () => x));
 
-fun bfs_impl n c s t =
-  (if equal_nata s t then (fn () => (SOME []))
+fun bfs_impl succ_impl ci si ti =
+  (if equal_nata si ti then (fn () => (SOME []))
     else (fn () =>
            let
-             val x_d = init_state_impl s ();
-             val x_e =
-               heap_WHILET
-                 (fn (a1, (_, (a1b, (_, _)))) =>
-                   (fn () => (equal_bool a1 false andalso not (is_Nil a1b))))
-                 (fn (_, (a1a, (a1b, (a1c, a2c)))) =>
-                   let
-                     val x_e = hd a1b;
-                     val x_f = glist_delete equal_nata x_e a1b;
-                   in
-                     (fn f_ => fn () => f_ ((n c x_e) ()) ())
-                       (fn x_h =>
-                         (fn f_ => fn () => f_
-                           ((imp_nfoldli x_h
-                              (fn (a1d, (_, _)) => (fn () => (not a1d)))
-                              (fn xg => fn (a1d, (a1e, a2e)) =>
-                                (fn f_ => fn () => f_ (stat.inner_c_incr ()) ())
-                                  (fn _ =>
-                                    (fn f_ => fn () => f_
-                                      ((iam_lookup heap_nat xg a1e) ()) ())
-                                      (fn x =>
-(if not (is_None x) then (fn () => (a1d, (a1e, a2e)))
-  else (fn f_ => fn () => f_ ((iam_update heap_nat xg x_e a1e) ()) ())
-         (fn x_l => (fn () => (equal_nata xg t, (x_l, xg :: a2e))))))))
-                              (false, (a1a, a1c)))
-                           ()) ())
-                           (fn (a1d, (a1e, a2e)) =>
-                             (fn () =>
-                               (if a1d
-                                 then (a1d,
-(a1e, (x_f, (a2e, plus_nat a2c one_nata))))
-                                 else (if is_Nil x_f
-then (a1d, (a1e, (a2e, ([], plus_nat a2c one_nata))))
-else (a1d, (a1e, (x_f, (a2e, a2c)))))))))
-                   end)
-                 x_d ();
+             val x_d = init_state_impl si ();
+             val x_e = bfs_impl_1 succ_impl ci ti x_d ();
            in
              (case (case x_e of (true, (a1a, (_, (_, a2c)))) => SOME (a2c, a1a)
                      | (false, (_, (_, (_, _)))) => NONE)
                of NONE => (fn () => NONE)
                | SOME (_, a2) =>
-                 (fn f_ => fn () => f_
-                   ((heap_WHILET
-                      (fn (a1a, _) => (fn () => (not (equal_nata a1a s))))
-                      (fn (a1a, a2a) =>
-                        (fn f_ => fn () => f_ ((iam_lookup heap_nat a1a a2) ())
-                          ())
-                          (fn x =>
-                            let
-                              val x_i = the x;
-                            in
-                              (fn () => (x_i, (x_i, a1a) :: a2a))
-                            end))
-                      (t, []))
-                   ()) ())
+                 (fn f_ => fn () => f_ ((bfs_impl_2 si a2 (ti, [])) ()) ())
                    (fn x_h => (fn () => (SOME let
         val (_, b) = x_h;
       in
@@ -2620,6 +2648,22 @@ fun bfsi n s t psi cfi = bfs_impl (fn (a, b) => succ_imp n a b) (psi, cfi) s t;
 fun swap p = (snd p, fst p);
 
 fun min A_ a b = (if less_eq A_ a b then a else b);
+
+fun div_integer k l = fst (divmod_integer k l);
+
+fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
+
+fun mtx_new A_ n c =
+  make A_ (times_nat n n) (fn i => c (div_nat i n, mod_nat i n));
+
+fun edka_imp_tabulate c n ps =
+  (fn () =>
+    let
+      val x = mtx_new heap_int n c ();
+      val x_a = make (heap_list heap_nat) n ps ();
+    in
+      (x, x_a)
+    end);
 
 fun bottleNeck_imp_0 n cfi x =
   (case x of ([], s) => (fn () => s)
@@ -2667,33 +2711,41 @@ fun augment_imp_0 n capi x =
 
 fun augment_imp n cfi pi capi = augment_imp_0 n capi (pi, cfi);
 
-fun div_integer k l = fst (divmod_integer k l);
-
-fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
-
-fun mtx_new A_ n c =
-  make A_ (times_nat n n) (fn i => c (div_nat i n, mod_nat i n));
-
-fun edka_imp n ps c s t =
+fun edka_imp_run_0 s t n f brk =
   (fn () =>
     let
-      val x = mtx_new heap_int s n ();
-      val x_a = make (heap_list heap_nat) s t ();
-      val a =
-        heap_WHILET (fn (_, b) => (fn () => (not b)))
-          (fn (a1, _) =>
-            (fn f_ => fn () => f_ (stat.outer_c_incr ()) ())
-              (fn _ =>
-                (fn f_ => fn () => f_ ((bfsi s ps c x_a a1) ()) ())
-                  (fn a =>
-                    (case a of NONE => (fn () => (a1, true))
-                      | SOME x_d =>
-                        (fn f_ => fn () => f_ ((bottleNeck_imp s a1 x_d) ()) ())
-                          (fn x_e =>
-                            (fn f_ => fn () => f_ ((augment_imp s a1 x_d x_e)
-                              ()) ())
-                              (fn x_f => (fn () => (x_f, false))))))))
-          (x, false) ();
+      val _ = stat.outer_c_incr ();
+    in
+      (if let
+            val (_, a) = brk;
+          in
+            not a
+          end
+        then (fn f_ => fn () => f_
+               (let
+                  val (a1, _) = brk;
+                in
+                  (fn f_ => fn () => f_ ((bfsi n s t f a1) ()) ())
+                    (fn a =>
+                      (case a of NONE => (fn () => (a1, true))
+                        | SOME x_d =>
+                          (fn f_ => fn () => f_ ((bottleNeck_imp n a1 x_d) ())
+                            ())
+                            (fn x_e =>
+                              (fn f_ => fn () => f_ ((augment_imp n a1 x_d x_e)
+                                ()) ())
+                                (fn x_f => (fn () => (x_f, false))))))
+                end
+               ()) ())
+               (edka_imp_run_0 s t n f)
+        else (fn () => brk))
+        ()
+    end);
+
+fun edka_imp_run s t n cfi psi =
+  (fn () =>
+    let
+      val a = edka_imp_run_0 s t n psi (cfi, false) ();
     in
       let
         val (a1, _) = a;
@@ -2702,6 +2754,30 @@ fun edka_imp n ps c s t =
       end
         ()
     end);
+
+fun edka_imp c s t n ps =
+  (fn () =>
+    let
+      val a = edka_imp_tabulate c n ps ();
+    in
+      let
+        val (aa, b) = a;
+      in
+        edka_imp_run s t n aa b
+      end
+        ()
+    end);
+
+fun imp_nfoldli (x :: ls) c f s =
+  (fn () =>
+    let
+      val b = c s ();
+    in
+      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
+        else (fn () => s))
+        ()
+    end)
+  | imp_nfoldli [] c f s = (fn () => s);
 
 fun get_flow c n s fi =
   imp_nfoldli (upt zero_nata n) (fn _ => (fn () => true))

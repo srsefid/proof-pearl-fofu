@@ -488,6 +488,7 @@ results in a program that refines the original program. This gives us a natural 
 %   The successors of a node are represented as a list with no duplicate elements. The resulting path, which is extracted from $P$ upon termination of
 %   the BFS, is represented as a list of edges. 
   
+  
   The input network of the algorithm is represented as a function from network edges to capacities, which is tabulated into an array
   to obtain the initial residual graph. This gives us some flexibility in using the algorithm, as any capacity matrix representation can be converted into a 
   function easily, and without loosing efficiency for read-access\footnote{Due to technical limitations of our tools, this function 

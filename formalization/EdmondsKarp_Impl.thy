@@ -641,10 +641,13 @@ begin
 
     definition "bfs2_op ps cf \<equiv> Graph.bfs2 cf (rg_succ2 ps cf) s t"
 
-    definition "edka5 ps \<equiv> do {
+    definition "edka5_tabulate ps \<equiv> do {
       cf \<leftarrow> init_cf;
       ps \<leftarrow> init_ps ps;
+      return (cf,ps)
+    }"
 
+    definition "edka5_run cf ps \<equiv> do {
       (cf,_) \<leftarrow> WHILET 
         (\<lambda>(cf,brk). \<not>brk) 
         (\<lambda>(cf,_). do {
@@ -665,11 +668,16 @@ begin
       f \<leftarrow> compute_rflow cf;  
       RETURN f
     }"
-      
+
+    definition "edka5 ps \<equiv> do {
+      (cf,ps) \<leftarrow> edka5_tabulate ps;
+      edka5_run cf ps
+    }"
 
     lemma edka5_refine: "\<lbrakk>is_pred_succ ps c\<rbrakk> \<Longrightarrow> edka5 ps \<le> \<Down>Id edka4"
-      unfolding edka5_def edka4_def init_cf_def compute_rflow_def
-                init_ps_def Let_def nres_monad_laws bfs2_op_def
+      unfolding edka5_def edka5_tabulate_def edka5_run_def
+        edka4_def init_cf_def compute_rflow_def
+        init_ps_def Let_def nres_monad_laws bfs2_op_def
       apply refine_rcg
       apply refine_dref_type
       apply (vc_solve simp: )
@@ -943,7 +951,68 @@ begin
     sepref_register "PR_CONST bfs2_op" "i_ps \<Rightarrow> capacity_impl i_mtx \<Rightarrow> path option nres"  
 
 
+    schematic_lemma edka_imp_tabulate_impl:
+      notes [sepref_opt_simps] = heap_WHILET_def
+      fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
+      notes [id_rules] = 
+        itypeI[Pure.of ps "TYPE(node \<Rightarrow> node list)"]
+      notes [sepref_import_param] = IdI[of ps]
+      shows "hn_refine (emp) (?c::?'c Heap) ?\<Gamma> ?R (edka5_tabulate ps)"
+      unfolding edka5_tabulate_def
+      using [[id_debug, goals_limit = 1]]
+      by sepref_keep
+
+    concrete_definition (in -) edka_imp_tabulate uses Edka_Impl.edka_imp_tabulate_impl
+    prepare_code_thms (in -) edka_imp_tabulate_def
+
+    thm edka_imp_tabulate.refine
+
+    lemma edka_imp_tabulate_refine[sepref_fr_rules]: "(edka_imp_tabulate c N, PR_CONST edka5_tabulate) 
+      \<in> (pure Id)\<^sup>k \<rightarrow>\<^sub>a hn_prod_aux (is_mtx N) is_ps"
+      apply (rule)
+      apply (rule hn_refine_preI)
+      apply (clarsimp simp: uncurry_def hn_list_pure_conv hn_ctxt_def split: prod.split)
+      apply (rule hn_refine_cons[OF _ edka_imp_tabulate.refine[OF this_loc]])
+      apply (sep_auto simp: hn_ctxt_def pure_def)+
+      done
+
+    lemma [def_pat_rules]: "Network.edka5_tabulate$c \<equiv> UNPROTECT edka5_tabulate" by simp
+    sepref_register "PR_CONST edka5_tabulate" "(node \<Rightarrow> node list) \<Rightarrow> (capacity_impl i_mtx \<times> i_ps) nres"
+
+
+    schematic_lemma edka_imp_run_impl:
+      notes [sepref_opt_simps] = heap_WHILET_def
+      fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
+      notes [id_rules] = 
+        itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
+        itypeI[Pure.of ps "TYPE(i_ps)"]
+      shows "hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_ps ps psi) (?c::?'c Heap) ?\<Gamma> ?R (edka5_run cf ps)"
+      unfolding edka5_run_def
+      using [[id_debug, goals_limit = 1]]
+      by sepref_keep
+
+    concrete_definition (in -) edka_imp_run uses Edka_Impl.edka_imp_run_impl
+    prepare_code_thms (in -) edka_imp_run_def
+
+    thm edka_imp_run_def
+    lemma edka_imp_run_refine[sepref_fr_rules]: 
+      "(uncurry (edka_imp_run s t N), uncurry (PR_CONST edka5_run)) 
+        \<in> (is_mtx N)\<^sup>d *\<^sub>a (is_ps)\<^sup>k \<rightarrow>\<^sub>a is_rflow N"
+      apply rule
+      apply (clarsimp simp: uncurry_def hn_list_pure_conv hn_ctxt_def split: prod.split)
+      apply (rule hn_refine_cons[OF _ edka_imp_run.refine[OF this_loc] _])
+      apply (sep_auto simp: hn_ctxt_def)+
+      done
+
+    lemma [def_pat_rules]: "Network.edka5_run$c$s$t \<equiv> UNPROTECT edka5_run" by simp
+    sepref_register "PR_CONST edka5_run" "capacity_impl i_mtx \<Rightarrow> i_ps \<Rightarrow> i_rflow nres"
+
+
+
+
+
     schematic_lemma edka_imp_impl:
+      notes [sepref_opt_simps] = heap_WHILET_def
       fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
       notes [id_rules] = 
         itypeI[Pure.of ps "TYPE(node \<Rightarrow> node list)"]
@@ -954,12 +1023,11 @@ begin
       by sepref_keep
 
     concrete_definition (in -) edka_imp uses Edka_Impl.edka_imp_impl
+    prepare_code_thms (in -) edka_imp_def
     lemmas edka_imp_refine = edka_imp.refine[OF this_loc]
   end
 
   export_code edka_imp checking SML_imp
-
-
 
   context Network_Impl begin
     theorem edka_imp_correct: 

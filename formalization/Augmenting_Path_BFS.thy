@@ -637,9 +637,10 @@ begin
     lemmas [sepref_fr_rules] = init_state_impl.refine[OF this_loc,to_hfref]
 
     schematic_lemma bfs_impl:
-      notes [sepref_opt_simps del] = imp_nfoldli_def 
+      (*notes [sepref_opt_simps del] = imp_nfoldli_def 
           -- \<open>Prevent the foreach-loop to be unfolded to a fixed-point, 
-              to produce more readable code for presentation purposes.\<close>
+              to produce more readable code for presentation purposes.\<close>*)
+      notes [sepref_opt_simps] = heap_WHILET_def
       fixes s t :: nat
       notes [id_rules] = 
         itypeI[Pure.of s "TYPE(nat)"]

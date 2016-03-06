@@ -134,8 +134,13 @@ fun fofu_fun s t G = let
   val t = nat_of_integer t
 in
   {
-    prepare = fn () => prepareNet G s t,
-    run = fn (c,(ps,N)) => fn () => (N,c,edka_imp c s t N ps ()),
+    prepare = fn () => let 
+      val (c,(ps,N)) = the_fail (prepareNet G s t) "prepareNet failed";
+      val (ci,psi) = edka_imp_tabulate c N ps ()
+    in
+      SOME (c,ci,psi,N)
+    end  ,
+    run = fn (c,ci,psi,N) => fn () => (N,c,edka_imp_run s t N ci psi ()),
     compres = fn (N,c,f) => let
         val flow = get_flow c N s f ()
       in
