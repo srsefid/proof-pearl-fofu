@@ -1,6 +1,6 @@
 \DefineSnippet{ford_fulkerson_algo}{
 \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymequiv}\ \isainnerkeyword{do}\ {\isacharbraceleft}\isanewline
+\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}method\ {\isasymequiv}\ \isainnerkeyword{do}\ {\isacharbraceleft}\isanewline
 \ \ \isainnerkeyword{let}\ f\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
 \isanewline
 \ \ {\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}\ {\isasymleftarrow}\ \isainnerkeyword{while}\isanewline
@@ -17,7 +17,7 @@
 }%EndSnippet
 \DefineSnippet{ford_fulkerson_correct}{
 \isacommand{theorem}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ Network{\isacharparenright}\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}algo\ {\isasymle}\ {\isacharparenleft}\isainnerkeyword{spec}\ f{\isachardot}\ isMaxFlow\ f{\isacharparenright}{\isachardoublequoteclose}%
+\ {\isacharparenleft}\isakeyword{in}\ Network{\isacharparenright}\ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}method\ {\isasymle}\ {\isacharparenleft}\isainnerkeyword{spec}\ f{\isachardot}\ isMaxFlow\ f{\isacharparenright}{\isachardoublequoteclose}%
 }%EndSnippet
 \DefineSnippet{edmonds_karp_correct}{
 \isacommand{theorem}\isamarkupfalse%
@@ -63,8 +63,7 @@
 \ \
 \isacommand{have}\isamarkupfalse%
 \ {\isachardoublequoteopen}{\isacharparenleft}f{\isasymup}f{\isacharprime}{\isacharparenright}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharequal}\ f{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharplus}\ f{\isacharprime}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}\ {\isacharminus}\ f{\isacharprime}{\isacharparenleft}v{\isacharcomma}u{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isacommand{using}\isamarkupfalse%
-\ {\isacartoucheopen}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isasymin}E{\isacartoucheclose}\ \isacommand{by}\isamarkupfalse%
+\ \ \ \ \isacommand{by}\isamarkupfalse%
 \ {\isacharparenleft}auto\ simp{\isacharcolon}\ augment{\isacharunderscore}def{\isacharparenright}\isanewline
 \ \ \isacommand{also}\isamarkupfalse%
 \ \isacommand{have}\isamarkupfalse%

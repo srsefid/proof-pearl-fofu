@@ -18,8 +18,7 @@ begin
 
   type_synonym 'capacity graph = "edge \<Rightarrow> 'capacity"
   
-  locale Graph = 
-    fixes c :: "'capacity::linordered_idom graph"
+locale Graph = fixes c :: "'capacity::linordered_idom graph"
   begin
     definition E :: "edge set" -- \<open>Edges of the graph\<close>
     where "E \<equiv> {(u, v). c (u, v) \<noteq> 0}"

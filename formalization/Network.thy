@@ -13,7 +13,7 @@ begin
     assumes t_node: "t \<in> V"
     assumes s_not_t: "s \<noteq> t"
     assumes cap_positive: "\<forall>u v. c (u, v) \<ge> 0"
-    assumes no_self_loop: "\<forall>u. (u, u) \<notin> E"
+    assumes no_self_loop: "\<forall>u. (u, u) \<notin> E"      (* TODO: Implied by no_parallel_edge! *)
     assumes no_incoming_s: "\<forall>u. (u, s) \<notin> E"
     assumes no_outgoing_t: "\<forall>u. (t, u) \<notin> E"
     assumes no_parallel_edge: "\<forall>u v. (u, v) \<in> E \<longrightarrow> (v, u) \<notin> E"

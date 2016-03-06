@@ -168,7 +168,7 @@ begin
       text \<open>A polished version for presentation\<close>
 (* FIXME: Indentation unfortunate, but required to extract snippet for latex presentation *)    
 text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       
-definition "ford_fulkerson_algo \<equiv> do {
+definition "ford_fulkerson_method \<equiv> do {
   let f = (\<lambda>(u,v). 0);
 
   (f,brk) \<leftarrow> while
@@ -188,12 +188,12 @@ text_raw \<open>}%EndSnippet\<close>
   end  
 
 text_raw \<open>\DefineSnippet{ford_fulkerson_correct}{\<close>       
-theorem (in Network) "ford_fulkerson_algo \<le> (spec f. isMaxFlow f)"
+theorem (in Network) "ford_fulkerson_method \<le> (spec f. isMaxFlow f)"
 text_raw \<open>}%EndSnippet\<close>
 proof -
   have [simp]: "(\<lambda>(u,v). 0) = (\<lambda>_. 0)" by auto
-  have "ford_fulkerson_algo \<le> fofu"
-    unfolding ford_fulkerson_algo_def fofu_def Let_def find_augmenting_spec_def
+  have "ford_fulkerson_method \<le> fofu"
+    unfolding ford_fulkerson_method_def fofu_def Let_def find_augmenting_spec_def
     apply (rule refine_IdD)
     apply (refine_vcg)
     apply (refine_dref_type)

@@ -82,9 +82,9 @@
 \title{Formalizing the Edmonds-Karp Algorithm}
 % \subtitle{}
 
-\author{S.~Reza Sefidgar, Peter Lammich}
+\author{Peter Lammich, S.~Reza Sefidgar}
 
-\institute{Technische Universit\"at M\"unchen, \email{\{sefidgar,lammich\}@in.tum.de}}
+\institute{Technische Universit\"at M\"unchen, \email{\{lammich,sefidgar\}@in.tum.de}}
 
 \maketitle
 \begin{abstract}
@@ -111,7 +111,7 @@ Further refinement yields a verified implementation, whose execution time compar
 
 \section{Introduction}
 Computing the maximum flow of a network is an important problem in graph theory.
-Many other problems, like maximum-bipartite-matching, edge-disjoint-paths, circulation-demand, and various scheduling and resource allocating problems can be reduced to it.
+Many other problems, like maximum-bipartite-matching, edge-disjoint-paths, circulation-demand, as well as various scheduling and resource allocating problems can be reduced to it.
 The Ford-Fulkerson method~\cite{FF56} describes a class of algorithms to solve the maximum flow problem, an important instance being the Edmonds-Karp algorithm~\cite{EK72},
 which was one of the first algorithms to solve the maximum flow problem in polynomial time for the general case of real valued capacities.
 
@@ -120,7 +120,7 @@ The formalization is conducted entirely in the Isabelle/HOL proof assistant~\cit
 Stepwise refinement techniques~\cite{Wirth71,Back78,BaWr98} allow us to elegantly structure our verification into an abstract proof of the Ford-Fulkerson method,
 its instantiation to Edmonds-Karp algorithm, and finally its efficient implementation. The abstract parts of our verification closely follow the standard textbook presentation of Cormen et al.~\cite{CLRS09}. Being developed in the Isar~\cite{Wenzel99} proof language, our proofs are accessible even to non-Isabelle experts.
 
-While there exists another formalization of the Ford-Fulkerson method~\cite{Lee05}\footnote{Section~\ref{sec:related_work} provides a detailed discussion}, we are, to the best of our knowledge, the first that verify a polynomial maximum flow algorithm, prove the polynomial complexity bound, or provide a verified executable implementation. 
+While there exists another formalization of the Ford-Fulkerson method in Mizar~\cite{Lee05}\footnote{Section~\ref{sec:related_work} provides a detailed discussion}, we are, to the best of our knowledge, the first that verify a polynomial maximum flow algorithm, prove the polynomial complexity bound, or provide a verified executable implementation. Moreover, this paper is a case study on elegantly formalizing algorithms.
 
 The rest of this paper is structured as follows: In Section~\ref{sec:background} we give a short informal introduction to the Ford-Fulkerson method.
 In Section~\ref{sec:abs-formalization}, we report on our formalization of the abstract method. 
@@ -182,7 +182,7 @@ An \emph{flow} $f$ on a network is a labeling of the edges with real values sati
 The value of a flow $f$ is denoted by $|f|$, and defined to be the sum over the outgoing flows of $s$ minus the sum over the incoming flows of $s$.
 Given a network $G$, the maximum flow problem is to find a flow with a maximum value among all flows of the network. 
 
-To simplify reasoning about the maximum flow problem, we assume that our network satisfies some additional constraints: 1) The source only has outgoing edges while the sink only has incoming edges; 2) If the flow network contains an edge $(u, v)$ then there is no \emph{parallel edge} $(v, u)$ in the reverse direction; and 3) every vertex of the flow network must be on a path from $s$ to $t$. Note that any network can be transformed to a network with the aforementioned properties and the same maximum flow~\cite{CLRS09}.
+To simplify reasoning about the maximum flow problem, we assume that our network satisfies some additional constraints: 1) The source only has outgoing edges while the sink only has incoming edges; 2) If the flow network contains an edge $(u, v)$ then there is no \emph{parallel edge} $(v, u)$ in the reverse direction\footnote{With $u=v$, this also implies that there are no self loops.}; and 3) every vertex of the flow network must be on a path from $s$ to $t$. Note that any network can be transformed to a network with the aforementioned properties and the same maximum flow~\cite{CLRS09}.
 
 
 An important result is the relation between flows and cuts in a network. A \emph{cut} is a partitioning of the vertices into two sets, such that one set contains 
@@ -190,7 +190,7 @@ the source and the other set contains the sink. The capacity of a cut is the sum
 It is easy to see that the value of any flow cannot exceed the capacity of any cut, as all flow from the source must ultimately reach the sink, and thus go through the edges of the cut. The Ford-Fulkerson theorem tightens this bound and states that the value of the maximum flow is equal to the capacity of the minimum cut.
 
 The Ford-Fulkerson method is a corollary of this theorem. It is based on a greedy approach: Starting from a zero flow, the value of the flow is iteratively increased until a maximum flow is reached. In order to increase the overall flow value, it may be necessary to redirect some flow, \ie to decrease the flow passed through specific edges. For this purpose the Ford-Fulkerson method defines the residual graph, which has edges both in parallel and reverse to the edges of the network. 
-Each edge is labeled by the amount of flow that can be effectively moved along this edge, by either increasing or decreasing the flow on an edge in the network.
+Each edge is labeled by the amount of flow that can be effectively moved along this edge, by either increasing or decreasing the flow on a network edge.
 Formally, the residual graph $G_f$ of a flow $f$ is the graph induced by the 
 edges with positive labels according to the following labeling function $c_f$:
 \[ c_f (u, v) = 
@@ -231,11 +231,11 @@ The correctness of the Ford-Fulkerson algorithm follows from the Ford-Fulkerson 
 \item there is a cut $C$ in $G$ such that the capacity of $C$ is equal to the value of $f$.
 \end{enumerate}
 
-The Ford-Fulkerson method does not specify how to find an augmenting path in the residual graph, and there are several possible implementations with different execution times. The general method is only guaranteed to terminate for networks with rational capacities, while it may infinitely converge against non-maximal flows in the case of irrational edge capacities~\cite{FF56,Zwick95}. When always choosing a \emph{shortest} augmenting path, the number of iterations is bound by $O(VE)$, even for the general case of real valued capacities. Note that we write $V$ and $E$ instead of $|V|$ and $|E|$ for the number of nodes and edges.
+The Ford-Fulkerson method does not specify how to find an augmenting path in the residual graph, and there are several possible implementations with different execution times. The general method is only guaranteed to terminate for networks with rational capacities, while it may infinitely converge against non-maximal flows in the case of irrational edge capacities~\cite{FF56,Zwick95}. When always choosing a \emph{shortest} augmenting path, the number of iterations is bound by $O(VE)$, even for the general case of real valued capacities. Note that we write $V$ and $E$ instead of $|V|$ and $|E|$ for the number of nodes and edges if the intended meaning is clear from the context.
 A shortest path can be found by breadth first search (BFS) in time $O(E)$, yielding the Edmonds-Karp algorithm~\cite{EK72} with an overall running time of $O(VE^2)$. 
 
 
-\section{Formalizing the Ford-Fulkerson method}\label{sec:abs-formalization}
+\section{Formalizing the Ford-Fulkerson Method}\label{sec:abs-formalization}
 %  GOAL: Present highlights of our formalization, persuade the reader that we have done something substantial.
 %    Reader should think: Yeah, they did cool stuff!
 %
@@ -255,6 +255,28 @@ A shortest path can be found by breadth first search (BFS) in time $O(E)$, yield
 
 %A formal proof contains many technical details that are not presented in an informal proof. While dealing with the technical details in a proof causes distraction, leaving out such details makes it hard to follow the proofs.  . So, readers may use this informal proof as a guide to better understand the relevant thoughts in our formal proof. Moreover using the proof language Isar, we made the formal proof readable even for readers that are not familiar with Isabelle.
 
+In this section, we provide a brief overview of our formalization of the Ford-Fulkerson method. 
+In order to develop theory in the context of a fixed graph or network, we use Isabelle's concept of \emph{locales}~\cite{Ballarin:2006:MKM}, which allows
+us to define named contexts that fix some parameters and assumptions.
+For example, the graph theory is developed in the locale \isai{Graph}, which 
+fixes the edge labeling function \isai{c}, and defines the set of edges and nodes based on $c$:
+\begin{lstlisting}
+  locale Graph = fixes c :: "edge => 'capacity" begin
+    definition "E == {(u, v). c (u, v) ~= 0}"
+    definition "V == {u. \<exists>v. (u, v) \<in> E \<or> (v, u) \<in> E}"
+    [...]
+\end{lstlisting}
+Moreover, we define basic concepts like (simple, shortest) paths, and provide lemmas to reason about them.
+
+Networks are based on graphs, and add the source and sink node, as well as the network assumptions:
+\begin{lstlisting}
+  locale Network = Graph + fixes s t :: node
+    assumes no_incoming_s: "\<forall>u. (u, s) \<notin> E"
+    [...]
+\end{lstlisting}
+Most theorems presented in this paper are in the context of the \isai{Network} locale.
+
+\subsection{Presentation of Proofs}
 % (DONE: not sure about repeating citation of Cormen: I would definitely repeat the citation!) 
 Informal proofs focus on the relevant thoughts by leaving out technical details and obvious steps. 
 In contrast, a formal proof has to precisely specify each step as the application of some inference rules. 
@@ -289,11 +311,12 @@ In the following we present the corresponding formal proof in Isar:
 \Snippet{augment_flow_presv_cap}
 Its structure is exactly the same as the textbook proof, except that we had to also consider the case $(u,v)\notin E$, which is not mentioned in the informal proof at all, and easily discharged in our formal proof by the \isai{auto}-tactic after the \isai{qed}. We also use exactly the same justifications as the original proof, except that we had to use the fact that there are no parallel edges to show $c_f(v,u)=f(u,v)$, which is not mentioned in the original proof.
 
-In textbooks, it is common to present algorithms in pseudocode, which captures the essential ideas, but leaves open implementation details. As a formal equivalent to pseudocode, we use the monadic programming language provided by the Isabelle Refinement Framework~\cite{LaTu12,La12}:
+\subsection{Presentation of Algorithms}
+In textbooks, it is common to present algorithms in pseudocode, which captures the essential ideas, but leaves open implementation details. As a formal equivalent to pseudocode, we use the monadic programming language provided by the Isabelle Refinement Framework~\cite{LaTu12,La12}. For example, we define the Ford-Fulkerson method as follows:
 \Snippet{ford_fulkerson_algo}
 
 % DONE: Introduce obtain-syntax, and unfold find-augmenting-path spec! Or even while-exists loop as combinator?
-The code looks quite similar to pseudocode that one would expect in a textbook, but actually is a rigorous formal specification of the algorithm, using nondeterminism to leave open the implementation details (\cf Section~\ref{sec:refinement}). Note that we had to use the available combinators of the Isabelle Refinement Framework, which made the code slightly more verbose than we would have liked. We leave it to future work to define a set of combinators and appropriate syntax that allow for more concise presentation of pseudocode.
+The code looks quite similar to pseudocode that one would expect in a textbook, but actually is a rigorous formal specification of the algorithm, using nondeterminism to leave open the implementation details (\cf Section~\ref{sec:refinement}). Note that we had to use the available combinators of the Isabelle Refinement Framework, which made the code slightly more verbose than we would have liked. We leave it to future work to define a set of combinators and appropriate syntax that allows for more concise presentation of pseudocode.
 
 % The only caveat is that our framework currently does not support breaking of loops, such that we had to use an explicit flag instead. 
 
@@ -314,12 +337,12 @@ The monad's type is a set of possible results plus an additional value that indi
   datatype \<alpha> nres = res \<alpha> set | fail
 \end{lstlisting}
 The operation \isai{return x} of the monad describes the single result \isai{x}, and the 
-operation \isai{bind m f} nondeterministically picks a result from $m$ and executes $f$ on it. 
-If either \isai{m = fail}, or \isai{f} may fail for a result in $m$, the bind operation fails.
+operation \isai{bind m f} nondeterministically picks a result from \isai{m} and executes \isai{f} on it. 
+If either \isai{m = fail}, or \isai{f} may fail for a result in \isai{m}, the bind operation fails.
 
 We define the \emph{refinement ordering} on \isai{\<alpha> nres} by lifting the subset ordering with \isai{fail} being the greatest element.
-Intuitively, $m\le m'$ means that $m$ is a refinement of $m'$, \ie all possible results of $m$ are 
-also possible results of $m'$. 
+Intuitively, \isai{m<=m'} means that \isai{m} is a refinement of \isai{m'}, \ie all possible results of \isai{m} are 
+also possible results of \isai{m'}. 
 Note that the refinement ordering is a complete lattice, and bind is monotonic. Thus, we can define recursion using a fixed point construction~\cite{Kr10}.
 Moreover, we can use the standard Isabelle/HOL constructs for if, let and case distinctions, yielding a fully fledged programming 
 language, shallowly embedded into Isabelle/HOL's logic. For simpler usability, we define standard loop constructs (while, foreach), 
@@ -330,21 +353,21 @@ a syntax for postcondition specifications, and use a Haskell-like do-notation:
   do {m; m'} == bind m (%_. m')
 \end{lstlisting}
 
-Correctness of a program $m$ with precondition $P$ and postcondition $Q$ is expressed as \isai{P ==> m <= spec r. Q r} (or, eta-contracted, just \isai{spec Q}), which
-means that, if $P$ holds, $m$ does not fail and all possible results of $m$ satisfy $Q$. Note that we provide different recursion constructs
+Correctness of a program \isai{m} with precondition \isai{P} and postcondition \isai{Q} is expressed as \isai{P ==> m <= spec r. Q r} (or, eta-contracted, just \isai{spec Q}), which
+means that, if \isai{P} holds, \isai{m} does not fail and all possible results of \isai{m} satisfy \isai{Q}. Note that we provide different recursion constructs
 for partial and total correctness: A nonterminating total correct recursion yields \isai{fail}, which satisfies no specification, even if joined 
 with results from other possible runs. On the other hand, a nonterminating partial correct recursion yields \isai|res {}|, which refines any specification 
 and disappears when joined with other results.
 
 The Isabelle Refinement Framework also supports data refinement, changing the representation of results according to a \emph{refinement relation}, 
-which relates concrete with abstract results: Given a relation $R$, \isai{\<Down>R m} is the largest set of concrete results that are related to an 
-abstract result in $m$ by $R$. If \isai{m=fail}, then also \isai{\<Down>R m = fail}.
+which relates concrete with abstract results: Given a relation \isai{R}, \isai{\<Down>R m} is the largest set of concrete results that are related to an 
+abstract result in \isai{m} by \isai{R}. If \isai{m=fail}, then also \isai{\<Down>R m = fail}.
 
-In a typical program development, one first comes up with an initial version $m_0$ of
-the algorithm and its specification $P,Q$, and shows \isai{P ==> m_0 <= spec Q}. Then, one iteratively provides refined versions $m_i$ of the algorithm,
-proving \isai{$m_i$ <= \<Down>$R_i$ $m_{i-1}$}. Using transitivity and composability of data refinement, one 
-gets \isai{P ==> $m_i$ <= \<Down>$R_i\ldots R_1$ spec Q}, showing the correctness of the refined algorithm.
-If no data refinement is performed, $R_i$ is set to the identity relation, in which case \isai{\<Down>$R_i$} becomes the identity function.
+In a typical program development, one first comes up with an initial version \isai{m_0} of
+the algorithm and its specification \isai{P,Q}, and shows \isai{P ==> m_0 <= spec Q}. Then, one iteratively provides refined versions \isai{m$_i$} of the algorithm,
+proving \isai{m$_i$ <= \<Down>R$_i$ m$_{i-1}$}. Using transitivity and composability of data refinement, one 
+gets \isai{P ==> m$_i$ <= \<Down>R$_i$...R$_1$ spec Q}, showing the correctness of the refined algorithm.
+If no data refinement is performed, \isai{R$_i$} is set to the identity relation, in which case \isai{\<Down>R$_i$} becomes the identity function.
 
 Various tools, including a verification condition generator, assist the user in conducting the refinement proofs by breaking 
 them down to statements that do not involve monad constructs any more, and in many cases precisely reflect the core idea of the proof.
@@ -377,7 +400,7 @@ results in a program that refines the original program. This gives us a natural 
 
 
 \section{The Edmonds-Karp Algorithm}\label{sec:edka}
-  Specializing the Ford-Fulkerson method to the Edmonds-Karp algorithm requires us to show that finding a shortest augmenting path is a refinement of finding any augmenting path, which is straightforward using basic graph theory.
+  Specializing the Ford-Fulkerson method to the Edmonds-Karp algorithm requires to show that finding a shortest augmenting path is a refinement of finding any augmenting path, which is straightforward using basic graph theory.
   
   Considerably more effort is required to show that the resulting algorithm terminates within $O(VE)$ iterations. 
   The idea of the proof is as follows: Edges that are reverse to edges on a shortest path cannot lie 
@@ -389,7 +412,7 @@ results in a program that refines the original program. This gives us a natural 
   
   Formalizing the above intuitive argument was more tricky than it seemed on first glance:
   While it is easy to prove that, in a \emph{fixed graph}, an edge and its reverse cannot both lie on shortest paths, generalizing the argument
-  to a graph transformation which may add reverse edges and removes at least one original edge requires some generalization of the statement.
+  to a graph transformation which may add multiple reverse edges and removes at least one original edge requires some generalization of the statement.
   Note that a straightforward induction on the length of the augmenting path or on the number of flipped edges fails, as, after flipping the first 
   edge, the path is no longer augmenting.
   
@@ -410,13 +433,13 @@ results in a program that refines the original program. This gives us a natural 
 %   Adding a special case for loop termination (there are no augmenting paths), and observing that $m$ is bounded by $2|V||E|$, yields 
 %   the desired upper bound on loop iterations. Refinement of the algorithm to add an explicit loop counter, and asserting the upper bound, is then straightforward.
   
-  Having defined the measure function, and shown that it decreases on augmentation, it is straightforward to refine the partial correct while loop to a total correct one. Moreover, to make explicit the bound on the number of loop iterations, we instrument the loop with a counter, and assert the upper bound on the counter after the loop.
+  Having defined the measure function and shown that it decreases on augmentation, it is straightforward to refine the partial correct while loop to a total correct one. Moreover, to make explicit the bound on the number of loop iterations, we instrument the loop with a counter, and assert the upper bound on the counter after the loop.
 
 
     
 \section{Refinement to Executable Code}\label{sec:executable}
   In the previous section, we have presented our abstract formalization of the Edmonds-Karp algorithm,
-  leaving open how to obtain a shortest augmenting path, and how to implement the algorithm. 
+  leaving open how to obtain a shortest augmenting path and how to implement the algorithm. 
   In this section, we outline the further refinement steps that were necessary to obtain an efficient implementation.
 
   \subsection{Using Breadth First Search}
@@ -460,6 +483,13 @@ results in a program that refines the original program. This gives us a natural 
   operations directly on the residual graph. Performing a data refinement of the flow \wrt the refinement 
   relation $\{(c_f,f) \mid \text{$f$ is a flow}\}$ then yields the desired algorithm.
       
+  \subsection{Implementing Augmentation}    
+  In our abstract formalization, which matches the presentation in Section~\ref{sec:background}, we have formulated augmentation by first defining 
+  the residual capacity $c_p$ of the augmenting path. Using $c_p$, we have defined the residual flow $f_p$, which was finally added to the current flow.
+  In the refinement to operate on residual graphs, we have refined this to augment the residual graph.
+  For the implementation, we compute the residual capacity in a first iteration over the augmenting path, and modify the residual graph 
+  in a second iteration. Proving this implementation correct is straightforward by induction on the augmenting path.
+      
   \subsection{Computing Successors}
   In order to find an augmenting path, the BFS algorithm has to compute the successors of a node in the residual graph. 
   Although this can be implemented on the edge labeling function by iterating over all nodes, this implementation tends to be inefficient for sparse graphs,
@@ -474,7 +504,7 @@ results in a program that refines the original program. This gives us a natural 
   In a final step, we have to choose efficient data structures for the algorithm. The objects that the algorithm works with are
   capacities, nodes, edges, the graph of the input network, residual graphs, the adjacency map, paths, and the resulting maximum flow. 
   
-  We implement capacities as (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume real, rational, and integer values.}. Note that an implementation as fixed precision numbers would also be possible,
+  We implement capacities as (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers.}. Note that an implementation as fixed precision numbers would also be possible,
   but requires additional checks on the network to ensure that no overflows can happen. 
   % TODO: Can we trick the Java reference implementation on integer overflow?
   
@@ -491,8 +521,7 @@ results in a program that refines the original program. This gives us a natural 
   
   The input network of the algorithm is represented as a function from network edges to capacities, which is tabulated into an array
   to obtain the initial residual graph. This gives us some flexibility in using the algorithm, as any capacity matrix representation can be converted into a 
-  function easily, and without loosing efficiency for read-access\footnote{Due to technical limitations of our tools, this function 
-  cannot depend on heap content, but it can use the efficient functional and pseudo-functional data structures provided by the Isabelle Collection Framework.}. 
+  function easily, without loosing efficiency for read-access. 
   Similarly, our implementation expects an adjacency map as additional parameter, which is then tabulated into an array. This is convenient in our context, where a preprocessing step computes the adjacency map anyway.
       
   The output flow of the algorithm is represented as the residual graph. The user can decide how to compute the maximum flow from it. For example,
@@ -504,8 +533,8 @@ results in a program that refines the original program. This gives us a natural 
   A subsequent iteration over this list computes the residual capacity, and a final iteration performs the augmentation. 
   This calls for a deforestation optimization to get rid of the intermediate list, and iterate only two times over the predecessor map directly.
 %   A first time to compute the bottleneck, and a second time to do the augmentation. 
-%   Fortunately, iteration over the shortest path seems not to significantly contribute to the runtime of our implementation, such that 
-  We leave this optimization for future work.
+  Fortunately, iteration over the shortest path seems not to significantly contribute to the runtime of our implementation, such that 
+  we leave this optimization for future work.
 
   Note that we performed the last refinement step using our Sepref tool~\cite{La15,La16}, which provides tool support for data refinements from 
   purely functional programs of the Isabelle Refinement Framework into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
@@ -525,48 +554,24 @@ results in a program that refines the original program. This gives us a natural 
   Note that this theorem is stated as a Hoare triple, using separation logic assertions. There are no preconditions on the input.
   If the algorithm returns \isai{None}, then the edge list was malformed or described a graph that does not satisfy the network assumptions.
   Here, \isai{ln_invar} describes well-formed edge lists, \ie edge lists that have no duplicate edges and only edges with positive capacity,
-  and \isai{ln_\<alpha>} describes the mapping from (well-formed) edge lists to capacity matrices.
-  If the algorithm returns some number $N$ and residual graph $cf$, then the input was a well-formed edge list that describes a valid network with at most $N$ nodes.
-  Moreover, the returned residual graph describes a flow $f$ in the network, which is maximal. 
-  As there are no other possible return values, this theorem completely describes the correctness of the algorithm. 
+  and \isai{ln_\<alpha>} describes the mapping from (well-formed) edge lists to capacity matrices (note that we set \isai{c==ln_\<alpha> el}).
+  If the algorithm returns some number \isai{N} and residual graph \isai{cf}, then the input was a well-formed edge list that describes a valid network with at most \isai{N} nodes.
+  Moreover, the returned residual graph describes a flow \isai{f} in the network, which is maximal. 
+  As the case distinction is exhaustive, this theorem states the correctness of the algorithm. 
   Note that Isabelle/HOL does not have a notion of execution, thus total correctness of the generated code cannot be expressed. However, the program is phrased in a heap-exception monad, thus introducing some (coarse grained) notion of
   computation. On this level, termination can be ensured, and, indeed, the above theorem implies that all the recursions stated by recursion 
   combinators in the monad must terminate. However, it does not guarantee that we have not injected spurious code equations like $f~x = f~x$, 
   which is provable by reflexivity, but causes the generated program to diverge.
 
 \section{Benchmarking}\label{sec:benchmark}
-  We have compared the running time of our algorithm against an unverified reference implementation in Java, taken from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}.
+  We have compared the running time of our algorithm against an unverified reference implementation in Java, taken from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}. We have used MLton 20100608~\cite{MLton} and OpenJDK Java 1.7.0\_95, running on a standard laptop machine with a 2.8GHz i7 quadcore processor and 16GiB of RAM.
+  
   We have done the comparison on randomly generated sparse and dense networks, the sparse networks having a \emph{density} (${} = \frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
-  For sparse networks, we varied the number of nodes between $1000$ and $5000$, for dense networks between $1000$ and $1400$.
+  For sparse networks, we varied the number of nodes between $1000$ and $5500$, for dense networks between $1000$ and $1450$.
   The results are shown in Figure~\ref{fig:benchmark}, in a double-logarithmic scale. 
-%   \begin{wrapfigure}{o}{.4\textwidth}
-%   \vspace{-20pt}
-%   \begin{center}
-%   \begin{tabular}{|c|c|c|}
-%   \hline
-%   Name        & SML       & Java   \\
-%   \hline\hline
-%   1000-sparse & 204       & 15     \\
-%   2000-sparse & 1430      & 231    \\
-%   3000-sparse & 4928      & 828    \\
-%   4000-sparse & 9299      & 2145   \\
-%   5000-sparse & 23625     & 4868   \\
-%   1000-dense  & 6575      & 4011   \\
-%   1100-dense  & 8067      & 5487   \\
-%   1200-dense  & 10892     & 7011   \\
-%   1300-dense  & 14070     & 9815   \\
-%   1400-dense  & 17317     & 12156  \\
-%   \hline
-%   \end{tabular}
-%   \end{center}
-%   \vspace{-15pt}
-%   \caption{Dijkstra benchmark}\label{tab:benchmark}
-%   \vspace{-20pt}
-%   \end{wrapfigure}
  
   \begin{figure}[!h]
-  \centering    
-  \begin{tikzpicture}[thick,scale=1, every node/.style={scale=1}] %change the scales if you like to reduce the size
+  \begin{tikzpicture}[thick,scale=.7, every node/.style={scale=1}] %change the scales if you like to reduce the size
     \begin{axis}[
       %title={Benchmark of the Edmonds-Karp algorithm},
         axis x line*= bottom,
@@ -574,11 +579,11 @@ results in a program that refines the original program. This gives us a natural 
         xmode = log,
         ymode = log,
         xlabel = Number of vertices in the network,
-        ylabel = Execution time in seconds, %in milliseconds, modify the scale for lables
-        xtick = data,
-        ytick = data,
+        ylabel = Execution time in milliseconds, %in milliseconds, modify the scale for lables
+        xtick = {0,1000,...,5000},
+%         ytick = data,
         xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$}, %corresponds to the first column in {SML, Sparse}
-        yticklabels = {$0.2$, $1.4$, $4.9$, $9.2$, $23.6$}, %corresponds to the second column in {SML, Sparse}
+%         yticklabels = {$0.2$, $1.4$, $4.9$, $9.2$, $23.6$}, %corresponds to the second column in {SML, Sparse}
         smooth,
         cycle list name = black white,
         legend style = { 
@@ -592,51 +597,184 @@ results in a program that refines the original program. This gives us a natural 
     
     %start data for plotting
       \addplot table {
-        1000 204
-        2000 1430
-        3000 4928
-        4000 9299
-        5000 23625
+        1000 27   
+        1500 124  
+        2000 299  
+        2500 665  
+        3000 1335 
+        3500 2526 
+        4000 3111 
+        4500 6917 
+        5000 7743 
+        5500 10452    
       }; \addlegendentry{SML, sparse};
 
       \addplot table {
-        1000 15
-        2000 231
-        3000 828
-        4000 2145
-        5000 4868
+        1000 16   
+        1500 49   
+        2000 168  
+        2500 453  
+        3000 842  
+        3500 1524 
+        4000 2136 
+        4500 3438 
+        5000 4734 
+        5500 6369     
       }; \addlegendentry{Java, sparse};
-
+    %end data for plotting
+    \end{axis}
+  \end{tikzpicture}
+%
+  \begin{tikzpicture}[thick,scale=.7, every node/.style={scale=1}] %change the scales if you like to reduce the size
+    \begin{axis}[
+      %title={Benchmark of the Edmonds-Karp algorithm},
+        axis x line*= bottom,
+        axis y line*= left,
+        xmode = log,
+        ymode = log,
+        xlabel = Number of vertices in the network,
+        ylabel = Execution time in milliseconds, %in milliseconds, modify the scale for lables
+        xtick = {0,1000,1100,...,1400},
+        ytick = {0,100,1000,10000},
+        xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, %corresponds to the first column in {SML, Sparse}
+%         yticklabels = {$0.2$, $1.4$, $4.9$, $9.2$, $23.6$}, %corresponds to the second column in {SML, Sparse}
+        smooth,
+        cycle list name = black white,
+        legend style = { 
+          at={(0.59,0.4)}, 
+            anchor=north west,
+            draw=black, 
+            fill= white,
+            align=left
+        }
+    ]
+    
+    %start data for plotting
       \addplot table {
-        1000 6575
-        1100 8067
-        1200 10892
-        1300 14070
-        1400 17317
+        1000 3328 
+        1050 3345 
+        1100 4841 
+        1150 5036 
+        1200 5840 
+        1250 6858 
+        1300 7651 
+        1350 8950 
+        1400 8398 
+        1450 10769     
       }; \addlegendentry{SML, dense};
 
       \addplot table {
-        1000 4011
-        1100 5487
-        1200 7011
-        1300 9815
-        1400 12156
+        1000 4141 
+        1050 4778 
+        1100 5465 
+        1150 6248 
+        1200 7128 
+        1250 8137 
+        1300 9864 
+        1350 11008
+        1400 11902
+        1450 13365     
       }; \addlegendentry{Java, dense};
     %end data for plotting
-
     \end{axis}
   \end{tikzpicture}
+  
+  
+  
+%   \centering    
+%   \begin{tikzpicture}[thick,scale=1, every node/.style={scale=1}] %change the scales if you like to reduce the size
+%     \begin{axis}[
+%       %title={Benchmark of the Edmonds-Karp algorithm},
+%         axis x line*= bottom,
+%         axis y line*= left,
+%         xmode = log,
+%         ymode = log,
+%         xlabel = Number of vertices in the network,
+%         ylabel = Execution time in milliseconds, %in milliseconds, modify the scale for lables
+%         xtick = {0,1000,...,5000},
+% %         ytick = data,
+%         xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$}, %corresponds to the first column in {SML, Sparse}
+% %         yticklabels = {$0.2$, $1.4$, $4.9$, $9.2$, $23.6$}, %corresponds to the second column in {SML, Sparse}
+%         smooth,
+%         cycle list name = black white,
+%         legend style = { 
+%           at={(0.59,0.4)}, 
+%             anchor=north west,
+%             draw=black, 
+%             fill= white,
+%             align=left
+%         }
+%     ]
+%     
+%     %start data for plotting
+%       \addplot table {
+%         1000 27   
+%         1500 124  
+%         2000 299  
+%         2500 665  
+%         3000 1335 
+%         3500 2526 
+%         4000 3111 
+%         4500 6917 
+%         5000 7743 
+%         5500 10452    
+%       }; \addlegendentry{SML, sparse};
+% 
+%       \addplot table {
+%         1000 16   
+%         1500 49   
+%         2000 168  
+%         2500 453  
+%         3000 842  
+%         3500 1524 
+%         4000 2136 
+%         4500 3438 
+%         5000 4734 
+%         5500 6369     
+%       }; \addlegendentry{Java, sparse};
+% 
+%       \addplot table {
+%         1000 3328 
+%         1050 3345 
+%         1100 4841 
+%         1150 5036 
+%         1200 5840 
+%         1250 6858 
+%         1300 7651 
+%         1350 8950 
+%         1400 8398 
+%         1450 10769     
+%       }; \addlegendentry{SML, dense};
+% 
+%       \addplot table {
+%         1000 4141 
+%         1050 4778 
+%         1100 5465 
+%         1150 6248 
+%         1200 7128 
+%         1250 8137 
+%         1300 9864 
+%         1350 11008
+%         1400 11902
+%         1450 13365     
+%       }; \addlegendentry{Java, dense};
+%     %end data for plotting
+%     \end{axis}
+%   \end{tikzpicture}
+  
+  
   \caption{Edmonds-Karp benchmark}\label{fig:benchmark}
   \end{figure}
 
-  We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of 6, while for dense graphs, our implementation comes quite close 
-  to the Java implementation. We have no full explanation for this phenomenon. Note that the Java implementation operates on flows, while our implementation 
+  We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
   operates on residual graphs (\cf Section~\ref{sec:impl_res_graph}). Moreover, the Java implementation does not store the augmenting 
   path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_data_structures}).
 
   Finally note that a carefully optimized C++ implementation of the algorithm is only slightly faster than the Java implementation for sparse graphs,
   but roughly one order of magnitude faster for dense graphs. We leave it to future work to investigate this issue, and conclude that we were able to produce
-  a reasonably fast verified implementation, without doing any low-level optimizations, but using the code as generated by the Isabelle/HOL code generator.
+  a reasonably fast verified implementation.
+  
+%   , without doing any low-level optimizations, but using the code as generated by the Isabelle/HOL code generator.
   
 % 
 %   What implementations did we compare: Authors? Where do implementations come from? 
@@ -660,11 +798,10 @@ results in a program that refines the original program. This gives us a natural 
   Finally, we added a verified algorithm to check whether the input is a valid network, and generated executable code in SML.
   Our implementation compares well to a reference implementation in Java.
   
-  Our formalization has combined several techniques to achieve an elegant and accessible formalization: The Isar-proof language~\cite{Wenzel99}
-  supports writing formal proofs that closely resemble informal proofs found in textbooks. This way we have created a completely rigorous but 
-  still accessible proof of the Ford-Fulkerson theorem. The Isabelle Refinement Framework~\cite{LaTu12,La12} and the Sepref tool~\cite{La15,La16} 
-  provide stepwise refinement techniques to formalize an algorithm abstractly, and then refine it, in a modular fashion, towards an efficient implementation. 
-  This allowed us to present the Ford-Fulkerson method on a level 
+  Our formalization has combined several techniques to achieve an elegant and accessible formalization: 
+  Using the Isar proof language~\cite{Wenzel99}, we were able to provide a completely rigorous but 
+  still accessible proof of the Ford-Fulkerson theorem. The Isabelle Refinement Framework~\cite{LaTu12,La12} and the Sepref tool~\cite{La15,La16}
+  allowed us to present the Ford-Fulkerson method on a level 
   of abstraction that closely resembles pseudocode presentations found in textbooks, and then formally link this presentation to an efficient
   implementation. Moreover, modularity of refinement allowed us to develop the breadth first search algorithm independently, and later link it to the 
   main algorithm. The BFS algorithm can be reused as building block for other algorithms. The data structures are re-usable, too: although we had to implement the array representation of (capacity) matrices for this project, it will be added to the growing library of data structures 
@@ -679,7 +816,7 @@ results in a program that refines the original program. This gives us a natural 
   \subsection{Related Work}\label{sec:related_work}
   We are only aware of one other formalization of the Ford-Fulkerson method conducted in Mizar~\cite{MaRu05} by Lee. Unfortunately, there seems to be no publication
   on this formalization except~\cite{Lee05}, which provides a Mizar proof script without any additional comments except that it ``defines and proves correctness of Ford/Fulkerson's Maximum Network-Flow algorithm at the level of graph manipulations''. Moreover, in Lee et al.~\cite{LeRu07}, which is about graph representation in Mizar, the formalization is shortly mentioned, and it is clarified that it does not provide any implementation or data structure formalization.
-  As far as we could understand the Mizar proof scripts, it formalizes an algorithm roughly equivalent to our abstract version of the Ford-Fulkerson method.
+  As far as we could understand the Mizar proof script, it formalizes an algorithm roughly equivalent to our abstract version of the Ford-Fulkerson method.
   Termination is only proved for integer valued capacities.
   
   Apart from our own work~\cite{La14,NoLa12}, there are several other verifications of graph algorithms and their implementations, using different techniques and proof assistants. Noschinski~\cite{Nosch15} verifies a checker for (non-)planarity certificates using a bottom-up approach. Starting at a C implementation,
@@ -688,11 +825,11 @@ results in a program that refines the original program. This gives us a natural 
   generator is used to prove the abstracted program correct. Note that their approach takes the opposite direction than ours: While they start at a concrete version of the algorithm and use abstraction steps to eliminate implementation details, we start at an abstract version, and use concretization steps to introduce implementation details.
 
   Chargu\'eraud~\cite{char11} also uses a bottom-up approach to verify imperative programs written in a subset of OCaml, amongst them a version of Dijkstra's algorithm:
-  A verification condition generator generates a \emph{characteristic formula}, which reflects the semantics of the program in the logic of the proof assistant.
+  A verification condition generator generates a \emph{characteristic formula}, which reflects the semantics of the program in the logic of the Coq proof assistant~\cite{BeCa10}.
   
   \subsection{Future Work}
   Future work includes the optimization of our implementation, and the formalization of more advanced maximum flow algorithms, like Dinic's algorithm~\cite{Di06} or push-relabel algorithms~\cite{GoTa88}.
-  We expect both formalizing the abstract theory and developing efficient implementations, to be challenging but realistic tasks.
+  We expect both formalizing the abstract theory and developing efficient implementations to be challenging but realistic tasks.
   
 %   
 %   can be performed in two directions. First of all, the abstract theory can be extended to also support more advanced 
