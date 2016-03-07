@@ -2,7 +2,6 @@ theory NetCheck
 imports 
   Fofu_Impl_Base
    Network 
-  "Temporary_Graph_Add"
   "Graph_Impl"
   "cava/DFS_Framework/Examples/Reachable_Nodes"
 begin

@@ -1,59 +1,7 @@
 section \<open>Edmonds-Karp Algorithm\<close>
 theory EdmondsKarp_Algo
-imports FordFulkerson_Algo Temporary_Graph_Add
+imports FordFulkerson_Algo
 begin
-  (* TODO: Move to refinement framework! *)
-  lemma WHILEIT_less_WHILEI:
-    assumes "wf V"
-    assumes VAR: "\<And>s. \<lbrakk> I s; b s; f s \<le> SPEC I \<rbrakk> \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. (s',s)\<in>V)"
-    shows "WHILEIT I b f s \<le> WHILEI I b f s"
-    using \<open>wf V\<close>
-    apply (induction s rule: wf_induct[consumes 1])
-    apply (subst WHILEIT_unfold) 
-    apply (subst WHILEI_unfold)
-  proof (clarsimp)
-    fix x
-    assume A: "I x" "b x"
-    assume IH: "\<forall>y. (y, x) \<in> V \<longrightarrow> WHILE\<^sub>T\<^bsup>I\<^esup> b f y \<le> WHILE\<^bsup>I\<^esup> b f y"
-
-    show "f x \<guillemotright>= WHILE\<^sub>T\<^bsup>I\<^esup> b f \<le> f x \<guillemotright>= WHILE\<^bsup>I\<^esup> b f"
-    proof cases
-      assume B: "f x \<le> SPEC I"
-      show "?thesis"
-        apply (rule Refine_Basic.bind_mono(1)[OF order_refl])
-        using IH VAR[OF A B]
-        by (auto simp: pw_le_iff)
-    next
-      assume B: "\<not>(f x \<le> SPEC I)"
-      hence "f x \<guillemotright>= WHILE\<^bsup>I\<^esup> b f = FAIL"
-        apply (subst WHILEI_unfold[abs_def])
-        apply (auto simp: pw_eq_iff pw_le_iff refine_pw_simps)
-        done
-      thus ?thesis by simp  
-    qed
-  qed
-
-  lemmas WHILEIT_refine_WHILEI = order_trans[OF WHILEIT_less_WHILEI WHILEI_refine]
-
-  (* TODO: Move to refinement framework! *)
-  lemma bind_sim_select_rule:
-    assumes "m\<guillemotright>=f' \<le> SPEC \<Psi>"
-    assumes "\<And>x. \<lbrakk>nofail m; inres m x; f' x\<le>SPEC \<Psi>\<rbrakk> \<Longrightarrow> f x\<le>SPEC \<Phi>"
-    shows "m\<guillemotright>=f \<le> SPEC \<Phi>"
-    -- \<open>Simultaneously select a result from assumption and verification goal.
-      Useful to work with assumptions that restrict the current program to 
-      be verified, as, e.g., introduced by @{thm [source] WHILEIT_less_WHILEI}.\<close>
-    using assms 
-    by (auto simp: pw_le_iff refine_pw_simps)
-
-  (* TODO: Move to refinement framework! *)
-  lemma assert_bind_spec_conv: "ASSERT \<Phi> \<guillemotright> m \<le> SPEC \<Psi> \<longleftrightarrow> (\<Phi> \<and> m \<le> SPEC \<Psi>)"  
-    -- \<open>Simplify a bind-assert verification condition. 
-      Useful if this occurs in the assumptions, and considerably faster than 
-      using pointwise reasoning, which may causes a blowup for many chained 
-      assertions.\<close>
-    by (auto simp: pw_le_iff refine_pw_simps)
-
   
   subsection \<open>Algorithm\<close>
   text \<open>
@@ -497,8 +445,6 @@ begin
       assumes EIP: "e\<in>set p"
       shows "prod.swap e \<notin> set p"
     proof -  
-      interpret cf!: Graph cf .  (* TODO: Define this globally as a sublocale, with prefix cf! *)
-
       from AUG have P: "cf.isPath s p t" and D: "distinct (cf.pathVertices s p)"
         by (auto simp: isAugmenting_def cf.isSimplePath_def)
 
@@ -529,8 +475,6 @@ begin
       defines "cf' \<equiv> residualGraph c f'"
       shows "cf' = Graph.augment_cf cf (set p) (bottleNeck p)"
     proof -
-      interpret cf!: Graph cf .
-
       note aux = augmenting_edge_no_swap_aux[OF AUG, where e="(u,v)" for u v, simplified]
 
       {
@@ -565,7 +509,6 @@ begin
       assumes "isAugmenting p"
       obtains e where "e\<in>set p" "cf e = bottleNeck p" 
     proof -  
-      interpret cf!: Graph cf .
       from assms have "p\<noteq>[]" by (auto simp: isAugmenting_def s_not_t)
       hence "{cf e | e. e \<in> set p} \<noteq> {}" by (cases p) auto
       with Min_in[OF aug_flows_finite this, folded bottleNeck_def]
@@ -573,10 +516,6 @@ begin
       thus ?thesis by (blast intro: that)
     qed  
         
-  
-    (* TODO: Move,Rename! This lemma looks more on the same level than the original one.*)    
-    lemma bottleNeck_gzero': "isAugmenting p \<Longrightarrow> 0<bottleNeck p"
-      using bottleNeck_gzero[of p] by (auto simp: isAugmenting_def Graph.isSimplePath_def)
   
     (* TODO: Move *)  
     lemma (in Graph) shortestPath_is_path: "isShortestPath u p v \<Longrightarrow> isPath u p v"
@@ -600,7 +539,7 @@ begin
       from SP have AUG: "isAugmenting p" 
         unfolding isAugmenting_def cf.isShortestPath_alt by simp
   
-      note BNGZ = bottleNeck_gzero'[OF AUG]  
+      note BNGZ = bottleNeck_gzero[OF AUG]  
   
       have cf'_alt: "cf' = cf.augment_cf (set p) (bottleNeck p)"
         using augment_alt[OF AUG] unfolding cf'_def f'_def by simp

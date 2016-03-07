@@ -175,6 +175,11 @@ begin
         }
         thus ?thesis by auto
       qed  
+
+
+    lemma bottleNeck_alt: "bottleNeck p = Min (cf`set p)"  
+      unfolding bottleNeck_def apply (rule arg_cong[where f=Min]) by auto
+
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -188,32 +193,17 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context NFlow
   begin
-    lemma bottleNeck_gzero: "cf.isPath s p t \<Longrightarrow> bottleNeck p > 0"
-      proof -
-        assume asm: "Graph.isPath cf s p t"
-        {
-          fix e
-          assume "e \<in> set p"
-          then obtain u v where "e = (u, v)" by (metis nat_gcd.cases)
-          then have "e \<in> Graph.E cf" using Graph.isPath_edgeset[OF asm]
-            by (metis (poly_guards_query) `e \<in> set p`)
-          then have "cf e > 0" using resE_positive by simp
-        }
-        moreover {
-          have "finite (set p)" by auto
-          then have f1: "finite {cf e |e. e \<in> set p }"
-            proof -
-              have "finite {R. R \<in> set p}" by auto
-              thus "finite {cf e |e. e \<in> set p}" using finite_image_set by blast
-            qed
-          have "set p \<noteq> {}" using asm s_not_t by (metis Graph.isPath.simps(1) set_empty)
-          then have f2: "{cf e |e. e \<in> set p} \<noteq> {}" 
-            by (metis (mono_tags, lifting) Collect_empty_eq all_not_in_conv)
-          
-          note Min_in[OF f1 f2]
-        }
-        ultimately show ?thesis unfolding bottleNeck_def by auto
-      qed
+    lemma bottleNeck_gzero': "cf.isPath s p t \<Longrightarrow> 0<bottleNeck p"
+    proof -
+      assume PATH: "cf.isPath s p t"
+      hence "set p\<noteq>{}" using s_not_t by (auto)
+      moreover have "\<forall>e\<in>set p. cf e > 0"
+        using cf.isPath_edgeset[OF PATH] resE_positive by (auto simp: cf.E_def)
+      ultimately show ?thesis unfolding bottleNeck_alt by (auto)
+    qed  
+
+    lemma bottleNeck_gzero: "isAugmenting p \<Longrightarrow> 0<bottleNeck p"
+      using bottleNeck_gzero'[of p] by (auto simp: isAugmenting_def cf.isSimplePath_def)
     
     lemma augFlow_node_card: "isAugmenting p \<Longrightarrow> \<forall> v \<in> cf.V - {s, t}.
       card {u |u. u \<in> cf.V \<and> (u, v) \<in> set p} = card {u |u. u \<in> cf.V \<and> (v, u) \<in> set p}"
@@ -267,141 +257,92 @@ begin
         }
         thus ?thesis by auto
       qed      
-          
+
+
+    lemma setsum_augmenting_alt:
+      assumes "finite A"          
+      shows "(\<Sum>e \<in> A. (augmentingFlow p) e) = bottleNeck p * of_nat (card (A\<inter>set p))"
+    proof -
+      have "(\<Sum>e \<in> A. (augmentingFlow p) e) = setsum (\<lambda>_. bottleNeck p) (A\<inter>set p)"
+        apply (subst setsum.inter_restrict)
+        apply (auto simp: augmentingFlow_def assms)
+        done
+      thus ?thesis by auto
+    qed  
+
+    lemma finite_cf_incoming[simp, intro!]: "finite (cf.incoming v)" 
+      unfolding cf.incoming_def 
+      apply (rule finite_subset[where B="V\<times>V"])
+      using cf.E_ss_VxV by auto
+
+    lemma finite_cf_outgoing[simp, intro!]: "finite (cf.outgoing v)" 
+      unfolding cf.outgoing_def 
+      apply (rule finite_subset[where B="V\<times>V"])
+      using cf.E_ss_VxV by auto
+
     lemma augFlow_resFlow: "isAugmenting p \<Longrightarrow> Flow cf s t (augmentingFlow p)"
       proof -
         assume asm: "isAugmenting p"
-        then have asm: "Graph.isPath cf s p t \<and> distinct (pathVertices s p)" 
-          using isAugmenting_def cf.isSimplePath_def by auto
+        hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmenting_def)
+        hence PATH: "cf.isPath s p t" by (simp add: cf.isSimplePath_def)
+
         {
           fix e
           have "0 \<le> (augmentingFlow p) e \<and> (augmentingFlow p) e \<le> cf e"
             proof (cases "e \<in> set p") 
               case True
-                have "finite {cf e | e. e \<in> set p}"
-                  proof -
-                    have "finite {R. R \<in> set p}" by auto
-                    thus "finite {cf e |e. e \<in> set p}" using finite_image_set by blast
-                  qed
-                then have "bottleNeck p \<le> cf e" unfolding bottleNeck_def Min_def 
-                  by (metis (mono_tags, lifting) True Min_def Min_le mem_Collect_eq)
+                hence "bottleNeck p \<le> cf e" unfolding bottleNeck_alt by auto
                 moreover  have "(augmentingFlow p) e = bottleNeck p" 
                   unfolding augmentingFlow_def using True by auto
-                moreover have "0 < bottleNeck p" using asm bottleNeck_gzero[of p] by simp 
-                ultimately show ?thesis using bottleNeck_gzero  by auto
+                moreover have "0 < bottleNeck p" using bottleNeck_gzero[OF asm] by simp 
+                ultimately show ?thesis by auto
             next
               case False
-                thus ?thesis unfolding augmentingFlow_def using resE_nonNegative  by auto
+                hence "(augmentingFlow p) e = 0" unfolding augmentingFlow_def by auto
+                thus ?thesis using resE_nonNegative by auto
             qed
-        } note fct1 = this
-        moreover {
+        } moreover {
           fix v
           assume asm_s: "v \<in> Graph.V cf - {s, t}"
-          have "(\<Sum>e \<in> Graph.incoming cf v. (augmentingFlow p) e) =
+
+          have "card (Graph.incoming cf v \<inter> set p) = card (Graph.outgoing cf v \<inter> set p)"  
+          proof (cases)  
+            assume "v\<in>set (cf.pathVertices s p)"
+            then obtain pv1 pv2 where "cf.pathVertices s p = pv1@v#pv2" by (auto simp: in_set_conv_decomp)
+            from cf.split_path_at_vertex[OF PATH this] obtain p1 p2 where
+              P_FMT: "p=p1@p2" 
+              and 1: "cf.isPath s p1 v" "cf.pathVertices s p1 = pv1@[v]"
+              and 2: "cf.isPath v p2 t" "cf.pathVertices v p2 = v#pv2" 
+              .
+            from 1 obtain p1' u1 where [simp]: "p1=p1'@[(u1,v)]"    
+              using asm_s by (cases p1 rule: rev_cases) (auto simp: cf.pathVertices_append)
+            from 2 obtain p2' u2 where [simp]: "p2=(v,u2)#p2'"    
+              using asm_s by (cases p2) (auto)
+            from 
+              cf.isSPath_sg_outgoing[OF SPATH, of v u2]  cf.isSPath_sg_incoming[OF SPATH, of u1 v]
+              cf.isPath_edgeset[OF PATH] 
+            have "cf.outgoing v \<inter> set p = {(v,u2)}" "cf.incoming v \<inter> set p = {(u1,v)}"
+              by (fastforce simp: P_FMT cf.outgoing_def cf.incoming_def)+
+            thus ?thesis by auto
+          next
+            assume "v\<notin>set (cf.pathVertices s p)"
+            then have "\<forall>u. (u,v)\<notin>set p \<and> (v,u)\<notin>set p"
+              by (auto dest: cf.pathVertices_edge[OF PATH])
+            hence "cf.incoming v \<inter> set p = {}" "cf.outgoing v \<inter> set p = {}"
+              by (auto simp: cf.incoming_def cf.outgoing_def)
+            thus ?thesis by auto
+          qed  
+          hence "(\<Sum>e \<in> Graph.incoming cf v. (augmentingFlow p) e) =
             (\<Sum>e \<in> Graph.outgoing cf v. (augmentingFlow p) e)"
-            proof -
-              let ?S = "{u | u. u \<in> Graph.V cf}"
-              let ?S_OP = "{u | u. u \<in> Graph.V cf \<and> (v, u) \<in> set p}"
-              let ?S_ON = "{u | u. u \<in> Graph.V cf \<and> (v, u) \<notin> set p}"
-              let ?S_IP = "{u | u. u \<in> Graph.V cf \<and> (u, v) \<in> set p}"
-              let ?S_IN = "{u | u. u \<in> Graph.V cf \<and> (u, v) \<notin> set p}"
-              let ?OG = "Graph.outgoing cf v"
-              let ?IN = "Graph.incoming cf v"
-              let ?F = "augmentingFlow p"
-              let ?F_O = "\<lambda>x. ?F (v, x)"
-              let ?F_I = "\<lambda>x. ?F (x, v)"
-              let ?SUM = "\<lambda>s f. \<Sum>e \<in> s. f e"
-              {
-                have f1: "finite (Graph.V cf)" using resV_netV finite_V by auto
-                have f2: "\<forall>e. 0 \<le> (augmentingFlow p) e \<and> (augmentingFlow p) e \<le> cf e" using fct1 resE_nonNegative by auto
-                note Graph.sum_incoming_alt[OF f1 f2]
-                
-                then have "?SUM ?IN ?F = ?SUM ?S ?F_I" using asm_s by auto
-              }
-              moreover {
-                {
-                  have f1: "finite ?S_IP" using resV_netV finite_V by auto
-                  have f2: "finite ?S_IN" using resV_netV finite_V by auto
-                  have f3: "?S_IP \<inter> ?S_IN = {}" by auto
-                  
-                  note setsum.union_disjoint[OF f1 f2 f3]
-                }
-                note this[of ?F_I]
-                moreover have "?S_IP \<union> ?S_IN = ?S" by auto
-                ultimately have "?SUM ?S ?F_I = ?SUM ?S_IP ?F_I + ?SUM ?S_IN ?F_I" by auto
-              }
-              moreover {
-                {
-                  fix e
-                  assume "e \<in> ?S_IN"
-                  then have "(e, v) \<notin> set p" by auto
-                  then have "?F_I e = 0" unfolding augmentingFlow_def by auto
-                }
-                then have "\<And>e. e \<in> ?S_IN \<Longrightarrow> ?F_I e = 0" by auto
-                then have "?SUM ?S_IN ?F_I = 0" by auto
-              }
-              moreover {
-                {
-                  fix e
-                  assume "e \<in> ?S_IP"
-                  then have "(e, v) \<in> set p" by auto
-                  then have "?F_I e = bottleNeck p" unfolding augmentingFlow_def by auto
-                }
-                then have f1: "\<forall>x \<in> ?S_IP. ?F_I x = bottleNeck p" by auto
-                have f2: "finite ?S_IP" using resV_netV finite_V by auto
-                note setsumExt.decomp_4[OF f2 f1]
-              }
-              moreover have "card ?S_IP = card ?S_OP" 
-                using augFlow_node_card[OF `isAugmenting p`] asm_s by auto
-              ultimately have "?SUM ?IN ?F = bottleNeck p * of_nat (card ?S_OP)" by auto
-              moreover {
-                {
-                  fix e
-                  assume "e \<in> ?S_OP"
-                  then have "(v, e) \<in> set p" by auto
-                  then have "?F_O e = bottleNeck p" unfolding augmentingFlow_def by auto
-                }
-                then have f1: "\<forall>x \<in> ?S_OP. ?F_O x = bottleNeck p" by auto
-                have f2: "finite ?S_OP" using resV_netV finite_V by auto
-                note setsumExt.decomp_4[OF f2 f1]
-                then have "bottleNeck p * of_nat (card ?S_OP) = ?SUM ?S_OP ?F_O" by auto
-              }
-              moreover {
-                {
-                  fix e
-                  assume "e \<in> ?S_ON"
-                  then have "(v, e) \<notin> set p" by auto
-                  then have "?F_O e = 0" unfolding augmentingFlow_def by auto
-                }
-                then have "\<And>e. e \<in> ?S_ON \<Longrightarrow> ?F_O e = 0" by auto
-                then have "?SUM ?S_ON ?F_O = 0" by auto
-                then have "?SUM ?S_OP ?F_O = ?SUM ?S_OP ?F_O + ?SUM ?S_ON ?F_O" by auto
-              }
-              moreover {
-                {
-                  have f1: "finite ?S_OP" using resV_netV finite_V by auto
-                  have f2: "finite ?S_ON" using resV_netV finite_V by auto
-                  have f3: "?S_OP \<inter> ?S_ON = {}" by auto
-                  
-                  note setsum.union_disjoint[OF f1 f2 f3]
-                }
-                note this[of ?F_O]
-                moreover have "?S_OP \<union> ?S_ON = ?S" by auto
-                ultimately have "?SUM ?S_OP ?F_O + ?SUM ?S_ON ?F_O = ?SUM ?S ?F_O" by auto
-              }
-              moreover {
-                have f1: "finite (Graph.V cf)" using resV_netV finite_V by auto
-                have f2: "\<forall>e. 0 \<le> (augmentingFlow p) e \<and>(augmentingFlow p) e \<le> cf e" using fct1 by auto
-                note Graph.sum_outgoing_alt[OF f1 f2]
-                
-                then have "?SUM ?S ?F_O = ?SUM ?OG ?F" using asm_s by auto
-              }
-              ultimately show ?thesis by auto
-            qed
-        }
-        ultimately show ?thesis unfolding Flow_def by auto
+            by (auto simp: setsum_augmenting_alt)
+        } ultimately show ?thesis unfolding Flow_def by auto
       qed
       
+
+    (*
+      TODO: Simplify.
+        It is easy to show that outgoing s is singleton set, and incoming s is empty!
+    *)  
     lemma augFlow_val: "isAugmenting p \<Longrightarrow> Flow.val cf s (augmentingFlow p) = bottleNeck p"
       proof -
         assume asm: "isAugmenting p"

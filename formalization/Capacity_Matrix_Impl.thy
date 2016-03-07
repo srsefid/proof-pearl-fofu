@@ -5,24 +5,6 @@ imports
   Graph
 begin
   (*
-  (* TODO: Move to imperative-HOL. Or at least to imp-hol-add *)
-  context begin
-    setup_lifting type_definition_integer 
-  
-    lift_definition integer_encode :: "integer \<Rightarrow> nat" is int_encode .
-  
-    lemma integer_encode_eq: "integer_encode x = integer_encode y \<longleftrightarrow> x = y"
-      apply transfer
-      by (rule inj_int_encode [THEN inj_eq])
-
-    lifting_update integer.lifting
-    lifting_forget integer.lifting
-  end  
-
-  instance integer :: countable
-    by (rule countable_classI [of integer_encode]) (simp add: integer_encode_eq)
-
-  instance integer :: heap ..
   *)
 
 

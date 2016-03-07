@@ -159,6 +159,58 @@ lemma RECT_rule_arb':
     term "selectp x. P x"
   end
 
+  (* TODO: Move to refinement framework! *)
+  lemma WHILEIT_less_WHILEI:
+    assumes "wf V"
+    assumes VAR: "\<And>s. \<lbrakk> I s; b s; f s \<le> SPEC I \<rbrakk> \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. (s',s)\<in>V)"
+    shows "WHILEIT I b f s \<le> WHILEI I b f s"
+    using \<open>wf V\<close>
+    apply (induction s rule: wf_induct[consumes 1])
+    apply (subst WHILEIT_unfold) 
+    apply (subst WHILEI_unfold)
+  proof (clarsimp)
+    fix x
+    assume A: "I x" "b x"
+    assume IH: "\<forall>y. (y, x) \<in> V \<longrightarrow> WHILE\<^sub>T\<^bsup>I\<^esup> b f y \<le> WHILE\<^bsup>I\<^esup> b f y"
+
+    show "f x \<guillemotright>= WHILE\<^sub>T\<^bsup>I\<^esup> b f \<le> f x \<guillemotright>= WHILE\<^bsup>I\<^esup> b f"
+    proof cases
+      assume B: "f x \<le> SPEC I"
+      show "?thesis"
+        apply (rule Refine_Basic.bind_mono(1)[OF order_refl])
+        using IH VAR[OF A B]
+        by (auto simp: pw_le_iff)
+    next
+      assume B: "\<not>(f x \<le> SPEC I)"
+      hence "f x \<guillemotright>= WHILE\<^bsup>I\<^esup> b f = FAIL"
+        apply (subst WHILEI_unfold[abs_def])
+        apply (auto simp: pw_eq_iff pw_le_iff refine_pw_simps)
+        done
+      thus ?thesis by simp  
+    qed
+  qed
+
+  lemmas WHILEIT_refine_WHILEI = order_trans[OF WHILEIT_less_WHILEI WHILEI_refine]
+
+  (* TODO: Move to refinement framework! *)
+  lemma bind_sim_select_rule:
+    assumes "m\<guillemotright>=f' \<le> SPEC \<Psi>"
+    assumes "\<And>x. \<lbrakk>nofail m; inres m x; f' x\<le>SPEC \<Psi>\<rbrakk> \<Longrightarrow> f x\<le>SPEC \<Phi>"
+    shows "m\<guillemotright>=f \<le> SPEC \<Phi>"
+    -- \<open>Simultaneously select a result from assumption and verification goal.
+      Useful to work with assumptions that restrict the current program to 
+      be verified, as, e.g., introduced by @{thm [source] WHILEIT_less_WHILEI}.\<close>
+    using assms 
+    by (auto simp: pw_le_iff refine_pw_simps)
+
+  (* TODO: Move to refinement framework! *)
+  lemma assert_bind_spec_conv: "ASSERT \<Phi> \<guillemotright> m \<le> SPEC \<Psi> \<longleftrightarrow> (\<Phi> \<and> m \<le> SPEC \<Psi>)"  
+    -- \<open>Simplify a bind-assert verification condition. 
+      Useful if this occurs in the assumptions, and considerably faster than 
+      using pointwise reasoning, which may causes a blowup for many chained 
+      assertions.\<close>
+    by (auto simp: pw_le_iff refine_pw_simps)
+
 
 
     (* TODO: Move *)
@@ -361,7 +413,26 @@ lemma hn_monadic_nfoldli_rl'[sepref_comb_rules]:
     using ls_ins_dj_rule
     by simp
 
+  (* TODO: This messes up code generation with some odd error msg! Why?  
+  (* TODO: Move to imperative-HOL. Or at least to imp-hol-add *)
+  context begin
+    setup_lifting type_definition_integer 
+  
+    lift_definition integer_encode :: "integer \<Rightarrow> nat" is int_encode .
+  
+    lemma integer_encode_eq: "integer_encode x = integer_encode y \<longleftrightarrow> x = y"
+      apply transfer
+      by (rule inj_int_encode [THEN inj_eq])
 
+    lifting_update integer.lifting
+    lifting_forget integer.lifting
+  end  
+
+  instance integer :: countable
+    by (rule countable_classI [of integer_encode]) (simp add: integer_encode_eq)
+
+  instance integer :: heap ..
+  *)
 
 
 end
