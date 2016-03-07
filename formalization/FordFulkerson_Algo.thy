@@ -171,8 +171,7 @@ text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>
 definition "ford_fulkerson_method \<equiv> do {
   let f = (\<lambda>(u,v). 0);
 
-  (f,brk) \<leftarrow> while
-    (\<lambda>(f,brk). \<not>brk) 
+  (f,brk) \<leftarrow> while (\<lambda>(f,brk). \<not>brk) 
     (\<lambda>(f,brk). do {
       p \<leftarrow> selectp p. is_augmenting_path f p;
       case p of 

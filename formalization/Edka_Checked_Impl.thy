@@ -63,7 +63,7 @@ private definition "is_rflow \<equiv> Network_Impl.is_rflow"
 
 text_raw \<open>\DefineSnippet{edmonds_karp_correct}{\<close>       
 theorem
-  fixes el defines "c\<equiv>ln_\<alpha> el"
+  fixes el defines "c \<equiv> ln_\<alpha> el"
   shows "<emp> edmonds_karp el s t <\<lambda>
       None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network c s t)
     | Some (N,cf) \<Rightarrow> 
