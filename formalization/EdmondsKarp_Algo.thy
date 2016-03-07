@@ -418,7 +418,8 @@ begin
       by (auto simp: augment_cf_def)
   
     lemma augment_cf_ss_V: "\<lbrakk>edges \<subseteq> E\<rbrakk> \<Longrightarrow> Graph.V (augment_cf edges cap) \<subseteq> V"  
-      by (auto simp add: augment_cf_def Graph.V_def Graph.E_def) []
+      unfolding Graph.E_def Graph.V_def
+      by (auto simp add: augment_cf_def) []
       
     lemma augment_saturate:
       fixes edges e
@@ -445,8 +446,8 @@ begin
       assumes EIP: "e\<in>set p"
       shows "prod.swap e \<notin> set p"
     proof -  
-      from AUG have P: "cf.isPath s p t" and D: "distinct (cf.pathVertices s p)"
-        by (auto simp: isAugmenting_def cf.isSimplePath_def)
+      from AUG have P: "cf.isPath s p t" and D: "distinct (cf.pathVertices_fwd s p)"
+        by (auto simp: isAugmenting_def cf.isSimplePath_fwd)
 
       show "prod.swap e \<notin> set p"  
         apply (cases e) using D EIP
@@ -489,8 +490,7 @@ begin
         assume "(u,v)\<in>set p"
         hence "(u,v)\<in>cf.E" using AUG cf.isPath_edgeset
           by (auto simp: isAugmenting_def cf.isSimplePath_def)
-        hence "(u,v)\<in>E \<or> (v,u)\<in>E"
-          by (auto simp: residualGraph_def Graph.E_def split: split_if_asm)
+        hence "(u,v)\<in>E \<or> (v,u)\<in>E" using cfE_ss_invE by (auto)
       } note edge_or_swap = this 
 
       show ?thesis  
@@ -567,13 +567,16 @@ begin
         apply (simp_all add: s_node)
         apply (rule SP)
         apply (rule order_refl)
+
         apply (rule conjI)
-          apply (auto simp: cf'_alt cf.augment_cf_def Graph.E_def) []
+          apply (unfold Graph.E_def) []
+          apply (auto simp: cf'_alt cf.augment_cf_def) []
 
           using augmenting_edge_no_swap[OF AUG]
-          apply (fastforce simp: cf'_alt cf.augment_cf_def Graph.E_def) []
+          apply (fastforce simp: cf'_alt cf.augment_cf_def Graph.E_def simp del: cf.zero_cap_simp) []
           
-        apply (auto simp: cf'_alt cf.augment_cf_def Graph.E_def) []
+        apply (unfold Graph.E_def) []
+        apply (auto simp: cf'_alt cf.augment_cf_def) []
         using EIP ENIE' apply auto []
         done
     qed    
@@ -677,7 +680,8 @@ begin
           done
 
         have "cf = c"  
-          unfolding residualGraph_def by (auto intro!: ext simp: E_def)
+          unfolding residualGraph_def E_def
+          by auto
         hence "ek.uE = E\<union>E\<inverse>" unfolding ek.uE_def by simp
 
         from True have "ek.ekMeasure = (card cf.V - cf.min_dist s t) * (card ek.uE + 1) + (card (ek.spEdges))"

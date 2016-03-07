@@ -77,13 +77,13 @@ begin
             then obtain u v where obt: "e = (v, u)" by (metis nat_gcd.cases)
             then have fct_s: "u \<in> ?K' \<and> v \<notin> ?K' \<and> (v, u) \<in> E" 
               using `e \<in> incoming' ?K'` incoming'_def by auto
-            then have fct_s2: "(u, v) \<notin> E" using no_parallel_edge E_def by auto
+            then have fct_s2: "(u, v) \<notin> E" using no_parallel_edge by auto
               
             have "f e = 0"
               proof (rule ccontr)
                 assume "\<not> f e = 0"
                 then have "cf (u, v) \<noteq> 0" unfolding residualGraph_def
-                  using obt fct_s fct_s2 by (auto simp: E_def)
+                  using obt fct_s fct_s2 by auto
                 then have "(u, v) \<in> Graph.E cf" unfolding Graph.E_def by simp
                 then have "Graph.isPath cf u [(u, v)] v"
                   by (metis Graph.isPath.simps(1) Graph.isPath.simps(2))

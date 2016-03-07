@@ -1,7 +1,11 @@
 theory Augmenting
-imports ResidualGraph
+imports ResidualGraph Refine_Util
 begin
-
+  text \<open>
+    In this theory, we define the concept of an augmenting flow,
+    augmentation with a flow, and show that augmentation of a flow 
+    with an augmenting flow yields a valid flow again.
+    \<close>
 
 
 
@@ -10,6 +14,7 @@ begin
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context NFlow
   begin
+    (* TODO: Define in network locale, with \<up> syntax. *)
     definition augment :: "'capacity flow \<Rightarrow> 'capacity flow"
     where "augment f' \<equiv> \<lambda>(u, v).
       if (u, v) \<in> E then
@@ -96,6 +101,7 @@ text_raw \<open>}%EndSnippet\<close>
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context NFlow
   begin
+    (* TODO: Clean up! *)
     lemma augment_outflow_split: "Flow cf s t f' \<Longrightarrow> \<forall>v \<in> V. (\<Sum>e \<in> outgoing v. augment f' e) =
       (\<Sum>e\<in>{u |u. u \<in> V \<and> (v, u) \<in> E}. f (v, e)) + 
       (\<Sum>e\<in>{u |u. u \<in> V \<and> (v, u) \<in> E}. f' (v, e))-
@@ -263,7 +269,7 @@ text_raw \<open>}%EndSnippet\<close>
                     assume "u \<in> ?S_NN"
                     then have "(u, v) \<notin> E \<and> (v, u) \<notin> E" by auto
                     then have f1: "cf (u, v) = 0" and f2: "cf (v, u) = 0"
-                      unfolding residualGraph_def by (auto simp: E_def)
+                      unfolding residualGraph_def by (auto simp: )
                     have "f' (u, v) = 0" using f1
                       Flow.capacity_const[OF asm] by (metis (no_types) antisym)
                     moreover have "f' (v, u) = 0" using f2
@@ -316,7 +322,7 @@ text_raw \<open>}%EndSnippet\<close>
                     assume "u \<in> ?S_NN"
                     then have "(u, v) \<notin> E \<and> (v, u) \<notin> E" by auto
                     then have f1: "cf (u, v) = 0" and f2: "cf (v, u) = 0"
-                      unfolding residualGraph_def by (auto simp: E_def)
+                      unfolding residualGraph_def by auto
                     have "f' (u, v) = 0" using f1
                       Flow.capacity_const[OF asm] by (metis (no_types) antisym)
                     moreover have "f' (v, u) = 0" using f2
@@ -510,134 +516,77 @@ text_raw \<open>}%EndSnippet\<close>
   begin
     corollary augment_flow_presv: "Flow cf s t f' \<Longrightarrow> Flow c s t (augment f')"
       using augment_flow_presv_cap augment_flow_presv_con unfolding Flow_def by auto
-       
-    lemma augment_flow_value: "Flow cf s t f' \<Longrightarrow> Flow.val c s (augment f') = val + Flow.val cf s f'"
-      proof -
-        assume asm1: "Flow cf s t f'"
-        let ?S = "{u | u. u \<in> V}"
-        let ?S_OE = "{u |u. u \<in> V \<and> (s, u) \<in> E}"
-        let ?S_ON = "{u |u. u \<in> V \<and> (s, u) \<notin> E}"
-        let ?S_IE = "{u |u. u \<in> V \<and> (u, s) \<in> E}"
-        let ?FZ = "\<lambda>u. 0"
-        let ?FA = "\<lambda> x. (augment f') x"
-        let ?FO = "\<lambda> f x. f (s, x)"
-        let ?FI = "\<lambda> f x. f (x, s)"
-        let ?SUM = "\<lambda> S f. (\<Sum>e \<in> S. f e)"
-        let ?SUS = "?SUM ?S"
-        let ?SOE = "?SUM ?S_OE"
-        let ?SON = "?SUM ?S_ON"
-        let ?SIE = "?SUM ?S_IE"       
-        have "Flow.val c s (augment f') = (?SUM (outgoing s) ?FA) - (?SUM (incoming s) ?FA)"
-            using Flow.val_def[OF augment_flow_presv[OF asm1]] by auto
-        moreover {
-          moreover have "?SUM (outgoing s) ?FA = ?SOE (?FO f) + ?SOE (?FO f') -
-            ?SOE (?FI f')" using augment_outflow_split[OF asm1] s_node by auto
-          moreover {
-            have "NFlow c s t (augment f')" unfolding NFlow_def
-              using augment_flow_presv[OF asm1] Network_axioms by auto
-            then have "?SUM (incoming s) ?FA = 0"
-              using NFlow.no_inflow_s[of c s t "augment f'"] by auto 
-          }
-          ultimately have "(?SUM (outgoing s) ?FA) - (?SUM (incoming s) ?FA) =
-            ?SOE (?FO f) + ?SOE (?FO f') - ?SOE (?FI f') - ?SUM (incoming s) ?FA"
-            by auto
-        }
-        moreover {
-          have "?SUM (incoming s) ?FA = ?SIE (?FI f) + ?SIE (?FI f') -
-          ?SIE (?FO f')" using augment_inflow_split[OF asm1] s_node by auto
-        }
-        ultimately have "Flow.val c s (augment f') = (?SOE (?FO f) - ?SIE (?FI f)) + 
-          (?SOE (?FO f') + ?SIE (?FO f')) - (?SOE (?FI f') + ?SIE (?FI f'))" by auto  
-        moreover {
-          {
-            have "\<And>u. u \<in> ?S_IE \<Longrightarrow> (?FI f) u = 0" 
-              using capacity_const no_incoming_s by simp
-            then have "?SIE (?FI f) = 0" by auto
-          }
-          moreover {
-            have "?SOE (?FO f) = ?SOE (?FO f) + ?SON (?FO f) - ?SON (?FO f)" by auto
-            moreover {
-              {
-                have f1: "finite ?S_OE" using finite_V by auto
-                have f2: "finite ?S_ON" using finite_V by auto
-                have f3: "?S_OE \<inter> ?S_ON = {}" by auto
-                note setsum.union_disjoint[OF f1 f2 f3]
-              } 
-              note this[of "?FO f"]
-              moreover have "?S_OE \<union> ?S_ON = ?S" by auto
-              ultimately have "?SOE (?FO f) + ?SON (?FO f) = ?SUS (?FO f)" by auto
-            }
-            moreover {
-              have "\<And>u. u \<in> ?S_ON \<Longrightarrow> (?FO f) u = 0" unfolding E_def using capacity_const
-                 by (metis (mono_tags, lifting) antisym case_prodI2 mem_Collect_eq)
-              then have "?SON (?FO f) = 0" by auto
-            }
-            ultimately have "?SOE (?FO f) = ?SUS (?FO f)" by auto
-          }
-          ultimately have "?SOE (?FO f) - ?SIE (?FI f) = ?SUS (?FO f)" by auto
-        }
-        moreover { 
-          {
-            have f1: "finite ?S_OE" using finite_V by auto
-            have f2: "finite ?S_ON" using finite_V by auto
-            have f3: "?S_OE \<inter> ?S_ON = {}" by auto
-            note setsum.union_disjoint[OF f1 f2 f3]
-          }
-          note this[of "?FO f'"]
-          moreover have "?SIE (?FO f') = ?SON (?FO f')" 
-            using augment_res_outflow_alt[OF asm1] s_node by auto
-          moreover have "?S_OE \<union> ?S_ON = ?S" by auto
-          ultimately have "?SOE (?FO f') + ?SIE (?FO f') = ?SUS (?FO f')" by auto
-        }
-        moreover { 
-          {
-            have f1: "finite ?S_OE" using finite_V by auto
-            have f2: "finite ?S_ON" using finite_V by auto
-            have f3: "?S_OE \<inter> ?S_ON = {}" by auto
-            note setsum.union_disjoint[OF f1 f2 f3]
-          }
-          note this[of "?FI f'"]
-          moreover have "?SIE (?FI f') = ?SON (?FI f')" 
-            using augment_res_inflow_alt[OF asm1] s_node by auto
-          moreover have "?S_OE \<union> ?S_ON = ?S" by auto
-          ultimately have "?SOE (?FI f') + ?SIE (?FI f') = ?SUS (?FI f')" by auto
-        }
-        ultimately have "Flow.val c s (augment f') = ?SUS (?FO f) + 
-          ?SUS (?FO f') - ?SUS (?FI f')" by auto   
-        moreover {
-          have "?SUS (?FO f) =  val" using finite_V sum_outgoing_alt[of f] capacity_const
-            val_alt s_node by auto
-          moreover {
-            {
-              have f1: "finite (Graph.V cf)" using finite_V resV_netV by auto
-              have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm1 unfolding Flow_def by auto
-              note Graph.sum_outgoing_alt[OF f1 f2]
-              then have "?SUM (Graph.outgoing cf s) f' = ?SUS (?FO f')" 
-                using asm1 Flow_def s_node resV_netV by auto
-            }
-            moreover {
-              have f1: "finite (Graph.V cf)" using finite_V resV_netV by auto
-              have f2: "\<forall>e. 0 \<le> f' e \<and> f' e \<le> cf e" using asm1 unfolding Flow_def by auto
-              note Graph.sum_incoming_alt[OF f1 f2]
-              then have "?SUM (Graph.incoming cf s) f' = ?SUS (?FI f')" 
-                using asm1 Flow_def s_node resV_netV by auto
-            }
-            moreover note Flow.val_def[OF asm1]
-            ultimately have "?SUS (?FO f') - ?SUS (?FI f') = 
-              Flow.val cf s f'"  by auto
-          }
-          ultimately have
-            "?SUS (?FO f) + ?SUS (?FO f') - ?SUS (?FI f') = 
-              val + Flow.val cf s f'" by auto
-        }
-        ultimately show ?thesis by auto
-      qed      
+
+    lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
+      using no_parallel_edge by auto
+
+    lemma augment_flow_value:
+      assumes "Flow cf s t f'"
+      shows "Flow.val c s (augment f') = val + Flow.val cf s f'"
+      -- \<open>The value of the augmented flow matches the original flow value plus
+        the value of the augmenting flow.\<close>
+    proof -
+      interpret f'!: Flow cf s t f' by fact
+      interpret f''!: Flow c s t "augment f'" using augment_flow_presv[OF assms] . 
+
+      txt \<open>For this proof, we set up Isabelle's rewriting engine for rewriting of sums.
+        In particular, we add lemmas to convert sums over incoming or outgoing 
+        edges to sums over all vertices.\<close>
+      (*<*)
+      note setsum_simp_setup[simp] = 
+        sum_outgoing_alt[OF finite_V capacity_const] s_node
+        sum_incoming_alt[OF finite_V capacity_const]
+        cf.sum_outgoing_alt[OF _ f'.capacity_const]
+        cf.sum_incoming_alt[OF _ f'.capacity_const]
+        sum_outgoing_alt[OF finite_V f''.capacity_const]
+        sum_incoming_alt[OF finite_V f''.capacity_const]
+        setsum_subtractf setsum.distrib
+      (*>*)  
+      
+      txt \<open>Note that, if neither an edge nor its reverse is in the graph,
+        there is also no edge in the residual graph, and thus the flow value
+        is zero.\<close>  
+      {
+        fix u v
+        assume "(u,v)\<notin>E" "(v,u)\<notin>E"
+        with cfE_ss_invE have "(u,v)\<notin>cf.E" by auto
+        hence "f'(u,v) = 0" by auto
+      } note aux1 = this  
+
+      txt \<open>Now, the proposition follows by straightforward rewriting of 
+        the summations:\<close>
+      have "f''.val = (\<Sum>u\<in>V. augment f' (s, u) - augment f' (u, s))" 
+        unfolding f''.val_def by simp
+      also have "\<dots> = (\<Sum>u\<in>V. f (s, u) - f (u, s) + (f' (s, u) - f' (u, s)))"
+        by (rule setsum.cong) (auto simp: augment_def no_parallel_edge aux1)
+      also have "\<dots> = val + Flow.val cf s f'"  
+        unfolding val_def f'.val_def by simp
+      finally show ?thesis .  
+
+      txt \<open>Note, there is also an automatic proof. When creating the above 
+          explicit proof, this automatic one has been used to extract meaningful
+          subgoals, abusing Isabelle as a term rewriter.\<close>
+      have ?thesis
+        unfolding val_def f'.val_def f''.val_def
+        apply (simp del: setsum_simp_setup
+          add: 
+          sum_outgoing_alt[OF finite_V capacity_const] s_node
+          sum_incoming_alt[OF finite_V capacity_const]
+          sum_outgoing_alt[OF finite_V f''.capacity_const]
+          sum_incoming_alt[OF finite_V f''.capacity_const]
+          cf.sum_outgoing_alt[OF _ f'.capacity_const]
+          cf.sum_incoming_alt[OF _ f'.capacity_const]
+          setsum_subtractf[symmetric] setsum.distrib[symmetric]
+          )
+        apply (fo_rule arg_cong fun_cong)+
+        apply (rule ext)
+        apply (auto simp: augment_def no_parallel_edge aux1)
+        done
+    qed    
+
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
-  
-  
-  
   
 end

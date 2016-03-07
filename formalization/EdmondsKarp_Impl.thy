@@ -38,8 +38,8 @@ begin
         unfolding f_def[abs_def] flow_of_cf_def[abs_def]
         unfolding A residualGraph_def
         apply (rule ext)
-        using f'.capacity_const
-        apply (auto split: prod.split simp: E_def)
+        using f'.capacity_const unfolding E_def
+        apply (auto split: prod.split)
         by (metis antisym)
     qed
 
@@ -84,8 +84,8 @@ begin
       unfolding flow_of_cf_def[abs_def]
       unfolding residualGraph_def
       apply (rule ext)
-      using capacity_const
-      apply (clarsimp split: prod.split simp: E_def)
+      using capacity_const unfolding E_def
+      apply (clarsimp split: prod.split)
       by (metis antisym)
 
   end    
@@ -112,7 +112,7 @@ begin
     
     text \<open>Initially, the residual graph for the zero flow equals the original network\<close>
     lemma residualGraph_zero_flow: "residualGraph c (\<lambda>_. 0) = c" 
-      unfolding residualGraph_def by (auto intro!: ext simp: E_def)
+      unfolding residualGraph_def by (auto intro!: ext)
     lemma flow_of_c: "flow_of_cf c = (\<lambda>_. 0)"
       by (auto simp add: flow_of_cf_def[abs_def])
 
@@ -326,7 +326,8 @@ begin
         unfolding Graph.isSimplePath_def
         apply rule
         apply (rule transfer_path)
-        apply (auto simp: c'_def Graph.augment_edge_def Graph.E_def) []
+        unfolding Graph.E_def
+        apply (auto simp: c'_def Graph.augment_edge_def) []
         using P apply (auto simp: isSimplePath_def) []
         using P apply (auto simp: isSimplePath_def) []
         done
@@ -495,15 +496,12 @@ begin
       unfolding residualGraph_def Graph.E_def
       apply (clarsimp)
       using no_parallel_edge (* Speed optimization: Adding this directly takes very long *)
-      apply (simp add: Graph.E_def)
+      unfolding E_def
+      apply (simp add: )
       done
 
     lemma (in RGraph) E_ss_cfinvE: "E \<subseteq> cf.E \<union> cf.E\<inverse>"  
       using f.E_ss_cfinvE by simp
-
-    lemma (in NFlow) cfE_ss_invE: "Graph.E cf \<subseteq> E \<union> E\<inverse>"
-      unfolding residualGraph_def Graph.E_def
-      by auto
 
     lemma (in RGraph) cfE_ss_invE: "cf.E \<subseteq> E \<union> E\<inverse>"
       using f.cfE_ss_invE by simp
@@ -514,8 +512,10 @@ begin
 
     lemma (in RGraph) rg_succ_ref1: "\<lbrakk>is_pred_succ ps c\<rbrakk> 
       \<Longrightarrow> (rg_succ ps cf u, Graph.E cf``{u}) \<in> \<langle>Id\<rangle>list_set_rel"
-      apply (clarsimp simp: list_set_rel_def br_def rg_succ_def filter_rev_alt Graph.E_def; intro conjI)
-      using cfE_ss_invE resE_nonNegative apply (auto simp: is_pred_succ_def Graph.E_def simp: less_le) []
+      unfolding Graph.E_def
+      apply (clarsimp simp: list_set_rel_def br_def rg_succ_def filter_rev_alt; intro conjI)
+      using cfE_ss_invE resE_nonNegative 
+      apply (auto simp: is_pred_succ_def less_le Graph.E_def simp del: cf.zero_cap_simp zero_cap_simp) []
       apply (auto simp: is_pred_succ_def) []
       done
 

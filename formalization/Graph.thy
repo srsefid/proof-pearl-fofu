@@ -120,6 +120,18 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
       "pathVertices u [] = [u]"
     | "pathVertices u (e # es) = fst e # (pathVertices (snd e) es)"
     
+    (* TODO: This characterization is probably nicer to work with! Exchange! *)
+    definition (in Graph) pathVertices_fwd :: "node \<Rightarrow> edge list \<Rightarrow> node list" 
+      where "pathVertices_fwd u p = u#map snd p"
+
+    lemma (in Graph) pathVertices_fwd: 
+      assumes "isPath u p v"
+      shows "pathVertices u p = pathVertices_fwd u p"
+      unfolding pathVertices_fwd_def
+      using assms apply (induction p arbitrary: u)
+      by auto
+
+
     definition connected :: "node \<Rightarrow> node \<Rightarrow> bool" 
     where "connected u v \<equiv> \<exists>p. isPath u p v" 
     
@@ -238,6 +250,8 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
     lemma Efin_imp_Vfin: "finite E \<Longrightarrow> finite V"
       unfolding V_alt by auto
 
+    lemma zero_cap_simp[simp]: "(u,v)\<notin>E \<Longrightarrow> c (u,v) = 0"  
+      by (auto simp: E_def)
 
     lemma sum_outgoing_alt: "\<lbrakk>finite V; \<forall>e. 0 \<le> g e \<and> g e \<le> c e\<rbrakk> \<Longrightarrow>
       \<forall>v \<in> V. (\<Sum>e \<in> outgoing v. g e) = (\<Sum>u \<in> V. g (v, u))"
@@ -378,6 +392,8 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context Graph
   begin 
+    named_theorems split_path_simps \<open>Simplification lemmas to split paths\<close>
+
     lemma transfer_path:
       -- \<open>Transfer path to another graph\<close>
       assumes "set p\<inter>E \<subseteq> Graph.E c'"
@@ -388,10 +404,10 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
       apply (auto simp: Graph.isPath.simps)
       done
 
-    lemma isPath_append: "isPath u (p1 @ p2) v \<longleftrightarrow> (\<exists>w. isPath u p1 w \<and> isPath w p2 v)"  
+    lemma isPath_append[split_path_simps]: "isPath u (p1 @ p2) v \<longleftrightarrow> (\<exists>w. isPath u p1 w \<and> isPath w p2 v)"  
       by (induction p1 arbitrary: u) auto 
       
-    lemma isPath_head: "isPath u (e#p) v \<longleftrightarrow> fst e = u \<and> e \<in> E \<and> isPath (snd e) p v"
+    lemma isPath_head[split_path_simps]: "isPath u (e#p) v \<longleftrightarrow> fst e = u \<and> e \<in> E \<and> isPath (snd e) p v"
       by (cases e) auto
 
     lemma isPath_head2: "isPath u (e#p) v \<Longrightarrow> (p = [] \<or> (p \<noteq> [] \<and> fst (hd p) = snd e))"
@@ -405,7 +421,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
       
     (* TODO: Really needed? *)  
     lemma isPath_append_edge: "isPath v p v' \<Longrightarrow> (v',v'')\<in>E \<Longrightarrow> isPath v (p@[(v',v'')]) v''"  
-      by (auto simp: isPath_append E_def)
+      by (auto simp: isPath_append)
 
     lemma isPath_edgeset: "\<lbrakk>isPath u p v; e \<in> set p\<rbrakk> \<Longrightarrow> e \<in> E"
       using E_def 
@@ -420,7 +436,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
           obtain u1 u2 where "e = (u1, u2)" apply (cases e) by auto
           then have "u = u1 \<and> isPath u2 es v \<and> (u1, u2) \<in> E"
             using isPath.simps(2) Cons.prems by auto
-          then have "(u, u2) \<in> E" and "(u2, v) \<in> E\<^sup>*" using E_def Cons.IH by auto
+          then have "(u, u2) \<in> E" and "(u2, v) \<in> E\<^sup>*" using Cons.IH by auto
           thus ?case by auto 
       qed
       
@@ -498,6 +514,17 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context Graph
   begin   
+
+    lemma (in Graph) pathVertices_fwd_simps[simp]: 
+      "pathVertices_fwd s ([]) = [s]"  
+      "pathVertices_fwd s (e#p) = s#pathVertices_fwd (snd e) p"  
+      "pathVertices_fwd s (p@[e]) = pathVertices_fwd s p@[snd e]"
+      "pathVertices_fwd s (p1@e#p2) = pathVertices_fwd s p1 @ pathVertices_fwd (snd e) p2"
+      "s\<in>set (pathVertices_fwd s p)"
+      by (auto simp: pathVertices_fwd_def)
+
+
+
     lemma pathVertices_alt: "p \<noteq> [] \<Longrightarrow> pathVertices u p = map fst p @ [snd (last p)]"
       by (induction p arbitrary: u) auto
     
@@ -539,35 +566,59 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
           ultimately show ?case by (metis append_Cons)
       qed
     
-    lemma split_path_at_vertex:
-      assumes "isPath s p t" "pathVertices s p = pv1@u#pv2" 
+    lemma (in Graph) split_path_at_vertex: 
+      assumes "u\<in>set (pathVertices_fwd s p)"
+      assumes "isPath s p t"
+      obtains p1 p2 where "p=p1@p2" "isPath s p1 u" "isPath u p2 t"
+      using assms
+      apply -
+      (*unfolding pathVertices_fwd*)
+      unfolding pathVertices_fwd_def
+      apply (auto simp: in_set_conv_decomp isPath_append) 
+      apply force
+      by (metis Graph.isPath_append_edge append_Cons append_Nil append_assoc)
+
+
+    lemma split_path_at_vertex_complete: 
+      assumes "isPath s p t" "pathVertices_fwd s p = pv1@u#pv2" 
       obtains p1 p2 where 
         "p=p1@p2" 
-        "isPath s p1 u" "pathVertices s p1 = pv1@[u]" 
-        "isPath u p2 t" "pathVertices u p2 = u#pv2" 
+        "isPath s p1 u" "pathVertices_fwd s p1 = pv1@[u]" 
+        "isPath u p2 t" "pathVertices_fwd u p2 = u#pv2" 
     proof -
-      show thesis    
-        using assms
+      from assms have PV: "pathVertices s p = pv1@u#pv2" by (simp add: pathVertices_fwd)
+      then obtain p1 p2 where 
+        "p=p1@p2" 
+        "isPath s p1 u" "pathVertices s p1 = pv1@[u]" 
+        "isPath u p2 t" "pathVertices u p2 = u#pv2"
+      proof -
+        show thesis
+        using assms(1) PV
         apply (cases p rule: rev_cases; clarsimp simp: pathVertices_alt)
           apply (rule that[of "[]" "[]"]; simp)
 
           apply (cases pv2; clarsimp)
-          apply (rule that[of p "[]"]; auto simp add: isPath_append pathVertices_alt)      
-      
+          apply (rule that[of p "[]"]; 
+            auto simp add: isPath_append pathVertices_alt
+          )  
+
           apply (clarsimp simp: append_eq_append_conv2; 
             auto elim!: map_eq_concE map_eq_consE list_append_eq_Cons_cases
                 simp: isPath_append)
 
             apply (rename_tac l)
-            apply (erule that) apply auto [4]
+            apply (erule that) 
+            apply auto [4]
             apply (case_tac l rule: rev_cases; auto simp add: pathVertices_alt isPath_append)
 
             apply (rename_tac l)
-            apply (erule that) apply auto [4]
+            apply (erule that) 
+            apply auto [4]
             apply (case_tac l rule: rev_cases; auto simp add: pathVertices_alt isPath_append)
 
             apply (rename_tac l u1 u2 u3)
-            apply (erule that) apply auto [4]
+            apply (erule that)  
+            apply auto [4]
             apply (case_tac l rule: rev_cases; auto simp add: pathVertices_alt isPath_append)
             apply (auto simp: isPath_append) []
             apply (auto simp: pathVertices_alt) []
@@ -576,11 +627,35 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
             apply (erule that) apply auto [4]
             apply (case_tac l rule: rev_cases; auto simp add: pathVertices_alt isPath_append)
         done
+      qed
+      thus ?thesis apply - unfolding pathVertices_fwd using that .
     qed
+
+    lemma isPath_fwd_cases: 
+      assumes "isPath s p t"
+      obtains "p=[]" "t=s"
+        | p' u where "p=(s,u)#p'" "(s,u)\<in>E" "isPath u p' t"
+        using assms by (cases p) (auto)
+
+    lemma isPath_bwd_cases: 
+      assumes "isPath s p t"
+      obtains "p=[]" "t=s"
+        | p' u where "p=p'@[(u,t)]" "isPath s p' u" "(u,t)\<in>E"
+        using assms by (cases p rule: rev_cases) (auto simp: split_path_simps)
+
+
+    lemma pathVertices_edge: "isPath s p t \<Longrightarrow> e \<in> set p \<Longrightarrow> 
+      \<exists>vs1 vs2. pathVertices_fwd s p = vs1 @ fst e # snd e # vs2"
+      apply (cases e)
+      apply (auto simp: in_set_conv_decomp split_path_simps)
+      apply (erule isPath_bwd_cases[where s=s]; auto)
+      apply (erule isPath_fwd_cases[where t=t]; auto)
+      apply (erule isPath_fwd_cases[where t=t]; auto)
+      done  
 
 
     (* TODO: Really needed? *)
-    lemma pathVertices_edge: "isPath u p v \<Longrightarrow> e \<in> set p \<Longrightarrow> 
+    lemma pathVertices_edge_old: "isPath u p v \<Longrightarrow> e \<in> set p \<Longrightarrow> 
       \<exists>vs1 vs2. pathVertices u p = vs1 @ fst e # snd e # vs2"
       proof (induction p arbitrary: u)
         case Nil
@@ -636,7 +711,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
         then obtain p where "x \<in> {v. isPath s p v}"
           unfolding reachableNodes_def connected_def by blast
         thus "x \<in> V" using asm
-          by (induction p arbitrary: s) (auto simp: isPath_head E_def V_alt) 
+          by (induction p arbitrary: s) (auto simp: isPath_head V_alt) 
       qed
 
     lemma connected_refl[simp, intro!]: "connected v v" 
@@ -654,7 +729,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
       then obtain p where "isPath u p v" by (auto simp add: connected_def)
       thus "(u,v)\<in>E\<^sup>*"
         apply (induction p arbitrary: u)
-        apply (auto simp: E_def intro: converse_rtrancl_into_rtrancl)
+        apply (auto simp: intro: converse_rtrancl_into_rtrancl)
         done
     next
       assume "(u,v)\<in>E\<^sup>*"
@@ -662,7 +737,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
         proof (induction rule: converse_rtrancl_induct)
           case (step y z)
             from step.IH obtain p where "isPath z p v" by (auto simp add: connected_def)
-            moreover from step.hyps have "(y,z) \<in> E" by (simp add: E_def)
+            moreover from step.hyps have "(y,z) \<in> E" by (simp add: )
             ultimately have "isPath y ((y,z)#p) v" by (auto simp: isPath_head)
             thus ?case unfolding connected_def by blast
         qed simp
@@ -680,6 +755,25 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
   context Graph
   begin          
+
+    lemma isSimplePath_fwd: "isSimplePath s p t \<longleftrightarrow> isPath s p t \<and> distinct (pathVertices_fwd s p)"  
+      by (auto simp: isSimplePath_def pathVertices_fwd)
+
+    lemma isSimplePath_singelton[split_path_simps]: "isSimplePath u [e] v \<longleftrightarrow> (e=(u,v) \<and> u\<noteq>v \<and> (u,v)\<in>E)"
+      by (auto simp: isSimplePath_def isPath_head)
+
+    lemma (in Graph) isSimplePath_append[split_path_simps]: 
+      "isSimplePath s (p1@p2) t 
+        \<longleftrightarrow> (\<exists>u. isSimplePath s p1 u \<and> isSimplePath u p2 t \<and> set (pathVertices_fwd s p1) \<inter> set (pathVertices_fwd u p2) = {u})"  
+      (is "_ \<longleftrightarrow> ?R")
+      unfolding isSimplePath_fwd
+      apply (cases p1 rule: rev_cases; simp; cases p2; simp)
+      by (auto simp: split_path_simps)
+      
+    lemma (in Graph) isSimplePath_cons[split_path_simps]: 
+      "isSimplePath s (e#p) t \<longleftrightarrow> (\<exists>u. e=(s,u) \<and> s\<noteq>u \<and> (s,u)\<in>E \<and> isSimplePath u p t \<and> s\<notin>set (pathVertices_fwd u p))"
+      using isSimplePath_append[of s "[e]" p t, simplified]
+      by (auto simp: split_path_simps)
 
     lemma simplePath_length_less_V:
       assumes FIN: "finite V"
@@ -814,14 +908,15 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
         assume "\<not> (u1, u1) \<notin> set p"
         then have "(u1, u1) \<in> set p" by blast
         moreover have "isPath u p v" using asm isSimplePath_def by auto
-        ultimately have "\<exists>vs1 vs2. pathVertices u p = vs1 @ u1 # u1 # vs2" 
+        ultimately have "\<exists>vs1 vs2. pathVertices_fwd u p = vs1 @ u1 # u1 # vs2" 
           using pathVertices_edge by auto
-        then obtain vs1 vs2 where "pathVertices u p = vs1 @ u1 # u1 # vs2" by blast
-        then have "\<not> distinct (pathVertices u p)" 
+        then obtain vs1 vs2 where "pathVertices_fwd u p = vs1 @ u1 # u1 # vs2" by blast
+        then have "\<not> distinct (pathVertices_fwd u p)" 
           by (metis distinct_append distinct_length_2_or_more)
-        thus "False" using asm isSimplePath_def by auto
+        thus "False" using asm isSimplePath_fwd by auto
       qed
       
+    (* TODO: There should be a much simpler proof! *)  
     lemma isSPath_sg_outgoing: "\<lbrakk>isSimplePath u p v; (u1, v1) \<in> set p; v1 \<noteq> v2\<rbrakk> \<Longrightarrow> (u1, v2) \<notin> set p"
       proof -
         assume asm1: "isSimplePath u p v"
@@ -844,7 +939,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                   then obtain x where obt2: "isPath u w1 x" 
                     using obt1 isPath_append[of u w1 "(u1, v1) # w2"] by auto
                   then obtain vs1 vs2 where "pathVertices u w1 = vs1 @ u1 # v2 # vs2" 
-                    using pathVertices_edge[OF obt2 `(u1, v2) \<in> (set w1)`] by auto
+                    using pathVertices_edge_old[OF obt2 `(u1, v2) \<in> (set w1)`] by auto
                   then have "\<exists>vs1 vs2. butlast (pathVertices u w1) = vs1 @ u1 # vs2"
                     by (metis butlast.simps(2) butlast_append list.distinct(1))
                 }
@@ -870,7 +965,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                  moreover have "last (pathVertices u (w1 @ [(u1, v1)])) = v1" (is "?L = _")
                   using pathVertices_alt by auto
                  ultimately have "isPath ?L w2 v" using obt2 by auto
-                 note pathVertices_edge[OF this `(u1, v2) \<in> (set w2)`] 
+                 note pathVertices_edge_old[OF this `(u1, v2) \<in> (set w2)`] 
                  then have "\<exists> vs1 vs2. pathVertices (last (pathVertices u 
                   (w1 @ [(u1, v1)]))) w2 = vs1 @ u1 # v2 # vs2" by auto 
                 }
@@ -893,6 +988,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
           qed
       qed
       
+    (* TODO: There should be a much simpler proof! *)  
     lemma isSPath_sg_incoming: "\<lbrakk>isSimplePath u p v; (u1, v1) \<in> set p; u1 \<noteq> u2\<rbrakk> \<Longrightarrow> (u2, v1) \<notin> set p"
       proof -
         assume asm1: "isSimplePath u p v"
@@ -915,7 +1011,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                   then have "isPath u w1 u1" 
                     using obt1 isPath_append[of u w1 "(u1, v1) # w2"] by auto
                   then obtain vs1 vs2 where obt2: "pathVertices u w1 = vs1 @ u2 # v1 # vs2" 
-                    using pathVertices_edge[OF _ `(u2, v1) \<in> (set w1)`] by (metis fst_conv snd_conv)
+                    using pathVertices_edge_old[OF _ `(u2, v1) \<in> (set w1)`] by (metis fst_conv snd_conv)
                   moreover {
                     have "snd (last w1) = u1" using `isPath u w1 u1` `(u2, v1) \<in> set w1` 
                       by (metis isPath_tail append_butlast_last_id empty_iff list.set(1))
@@ -942,7 +1038,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                     have "isPath u p v" using asm1 isSimplePath_def by auto
                     then have "isPath u1 ((u1, v1) # w2) v" 
                       using obt1 isPath_append[of u w1 "(u1, v1) # w2"] by auto
-                    note pathVertices_edge[OF this]
+                    note pathVertices_edge_old[OF this]
                   }
                   then have "\<exists> vs1 vs2. ?L = vs1 @ u1 # v1 # vs2" by auto
                 }
@@ -972,7 +1068,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                     "w2 = (v1, x) # w2' \<and> (u2, v1) \<in> set w2'" by auto
                   then have "isPath x w2' v \<and> (u2, v1) \<in> set w2'" using `isPath v1 w2 v` by auto 
                   then have "\<exists>vs1 vs2. pathVertices x w2' = vs1 @ u2 # v1 # vs2"
-                    using pathVertices_edge by auto
+                    using pathVertices_edge_old by auto
                   moreover have "pathVertices (last (pathVertices u (w1 @ [(u1, v1)]))) w2 = 
                     v1 # pathVertices x w2'" (is "?L= _") using obt2 by auto
                   ultimately have "\<exists>vs1 vs2. ?L = v1 # vs1 @ u2 # v1 # vs2" by auto
@@ -986,6 +1082,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
           qed
       qed  
       
+    (* TODO: There should be a much simpler proof! *)  
     lemma isSPath_no_returning: "\<lbrakk>isSimplePath u p v; (u1, v1) \<in> set p\<rbrakk> \<Longrightarrow>
       (\<exists>es1 es2. p = es1 @ (v2, u1) # (u1, v1) # es2 \<or> (v2, u1) \<notin> set p)"
       proof -
@@ -1017,7 +1114,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                       {
                         obtain x where "isPath u w1 x" 
                           using obt1 asm1 isSimplePath_def isPath_append by auto
-                        note pathVertices_edge[OF this `(v2, u1) \<in> (set w1)`]
+                        note pathVertices_edge_old[OF this `(v2, u1) \<in> (set w1)`]
                       }
                       then obtain vs1 vs2 where 
                         obt2: "pathVertices u w1 = vs1 @ fst (v2, u1) # snd (v2, u1) # vs2" by auto
@@ -1071,7 +1168,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
                     moreover {
                       have "isPath v1 w2 v" using asm1 isSimplePath_def
                         by (metis Graph.isPath.simps(2) Graph.isPath_append obt1)
-                      note pathVertices_edge[OF this `(v2, u1) \<in> (set w2)`]
+                      note pathVertices_edge_old[OF this `(v2, u1) \<in> (set w2)`]
                       then have " \<exists>vs1 vs2. pathVertices v1 w2 = vs1 @ v2 # u1 # vs2" by auto
                     }
                     ultimately obtain vs1 vs2 vs3 where 
@@ -1083,6 +1180,7 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
           qed
       qed
       
+    (* TODO: There should be a much simpler proof! *)  
     lemma isSPath_nt_parallel: "isSimplePath u p v \<Longrightarrow> (\<forall>(u, v) \<in> set p. (v, u) \<notin> set p)"
       proof -
         assume asm: "isSimplePath u p v"
@@ -1352,20 +1450,21 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
         by (auto simp: isShortestPath_def)
 
       assume "\<not>isSimplePath s p t"  
-      with PATH have "\<not>distinct (pathVertices s p)" by (auto simp: isSimplePath_def)
+      with PATH have "\<not>distinct (pathVertices_fwd s p)" by (auto simp: isSimplePath_fwd)
 
-      then obtain pv1 u pv2 pv3 where PV: "pathVertices s p = pv1@u#pv2@u#pv3" 
+      then obtain pv1 u pv2 pv3 where PV: "pathVertices_fwd s p = pv1@u#pv2@u#pv3" 
         by (auto dest: not_distinct_decomp)
-      from split_path_at_vertex[OF PATH PV] obtain p1 p23 where
+
+      from split_path_at_vertex_complete[OF PATH PV] obtain p1 p23 where
         [simp]: "p=p1@p23" and 
-          P1: "isPath s p1 u" "pathVertices s p1 = pv1@[u]" and
-          P23: "isPath u p23 t" "pathVertices u p23 = (u#pv2)@u#pv3"
+          P1: "isPath s p1 u" "pathVertices_fwd s p1 = pv1@[u]" and
+          P23: "isPath u p23 t" "pathVertices_fwd u p23 = (u#pv2)@u#pv3"
           by auto
           
-      from split_path_at_vertex[OF P23] obtain p2 p3 where
+      from split_path_at_vertex_complete[OF P23] obtain p2 p3 where
         [simp]: "p23 = p2@p3" and
-        P2: "isPath u p2 u" "pathVertices u p2 = u#pv2@[u]" and
-        P3: "isPath u p3 t" "pathVertices u p3 = u#pv3"
+        P2: "isPath u p2 u" "pathVertices_fwd u p2 = u#pv2@[u]" and
+        P3: "isPath u p3 t" "pathVertices_fwd u p3 = u#pv3"
         by auto
 
       from P1(1) P3(1) have SHORTER_PATH: "isPath s (p1@p3) t" by (auto simp: isPath_append)
@@ -1441,4 +1540,11 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
     qed  
 
   end
+
+
+  lemma (in Flow) zero_flow_simp[simp]:
+    "(u,v)\<notin>E \<Longrightarrow> f(u,v) = 0"
+    by (metis capacity_const eq_iff zero_cap_simp)
+
+
 end
