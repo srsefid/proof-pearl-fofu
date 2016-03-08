@@ -145,6 +145,10 @@ begin
       
     lemma val_alt: "val = (\<Sum>e \<in> outgoing s. f e)"
       unfolding val_def by (auto simp: no_inflow_s)
+
+    lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
+      using no_parallel_edge by auto
+
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)

@@ -252,7 +252,31 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
 
     lemma zero_cap_simp[simp]: "(u,v)\<notin>E \<Longrightarrow> c (u,v) = 0"  
       by (auto simp: E_def)
+  
+    text \<open>We provide useful alternative characterizations for summation over 
+        all incoming or outgoing edges.\<close>
+    lemma sum_outgoing_pointwise: "(\<Sum>e\<in>outgoing u. g e) = (\<Sum>v\<in>E``{u}. g (u,v))"  
+    proof -
+      have "(\<Sum>e\<in>outgoing u. g e) = (\<Sum>e\<in>(\<lambda>v. (u,v))`(E``{u}). g e)"  
+        by (rule setsum.cong) (auto simp: outgoing_def)
+      also have "\<dots> = (\<Sum>v\<in>E``{u}. g (u,v))"  
+        by (subst setsum.reindex) auto
+      finally show ?thesis .
+    qed  
+  
+    lemma sum_incoming_pointwise: "(\<Sum>e\<in>incoming u. g e) = (\<Sum>v\<in>E\<inverse>``{u}. g (v,u))"  
+    proof -
+      have "(\<Sum>e\<in>incoming u. g e) = (\<Sum>e\<in>(\<lambda>v. (v,u))`(E\<inverse>``{u}). g e)"  
+        by (rule setsum.cong) (auto simp: incoming_def)
+      also have "\<dots> = (\<Sum>v\<in>E\<inverse>``{u}. g (v,u))"  
+        by (subst setsum.reindex) auto
+      finally show ?thesis .
+    qed  
 
+    text \<open>When summation is done over something that satisfies the capacity 
+      constraint, e.g., a flow, the summation can be extended to all 
+      outgoing/incoming edges, as the additional edges must have zero capacity.\<close>
+    (* TODO: Clean up proofs *)
     lemma sum_outgoing_alt: "\<lbrakk>finite V; \<forall>e. 0 \<le> g e \<and> g e \<le> c e\<rbrakk> \<Longrightarrow>
       \<forall>v \<in> V. (\<Sum>e \<in> outgoing v. g e) = (\<Sum>u \<in> V. g (v, u))"
       proof -
@@ -1541,10 +1565,34 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
 
   end
 
+  context Flow 
+  begin
+    lemma zero_flow_simp[simp]:
+      "(u,v)\<notin>E \<Longrightarrow> f(u,v) = 0"
+      by (metis capacity_const eq_iff zero_cap_simp)
 
-  lemma (in Flow) zero_flow_simp[simp]:
-    "(u,v)\<notin>E \<Longrightarrow> f(u,v) = 0"
-    by (metis capacity_const eq_iff zero_cap_simp)
+    lemma conservation_const_pointwise: 
+      assumes "u\<in>V - {s,t}"
+      shows "(\<Sum>v\<in>E``{u}. f (u,v)) = (\<Sum>v\<in>E\<inverse>``{u}. f (v,u))"
+      using conservation_const assms
+      by (auto simp: sum_incoming_pointwise sum_outgoing_pointwise)
 
+    lemma sum_outgoing_alt_flow:
+      fixes g :: "edge \<Rightarrow> 'capacity"
+      assumes "finite V" "u\<in>V"
+      shows "(\<Sum>e\<in>outgoing u. f e) = (\<Sum>v\<in>V. f (u,v))"
+      apply (subst sum_outgoing_alt)
+      using assms capacity_const
+      by auto
+      
+    lemma sum_incoming_alt_flow:
+      fixes g :: "edge \<Rightarrow> 'capacity"
+      assumes "finite V" "u\<in>V"
+      shows "(\<Sum>e\<in>incoming u. f e) = (\<Sum>v\<in>V. f (v,u))"
+      apply (subst sum_incoming_alt)
+      using assms capacity_const
+      by auto
+
+  end    
 
 end
