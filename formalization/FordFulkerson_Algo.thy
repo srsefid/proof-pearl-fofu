@@ -92,7 +92,7 @@ theorem fofu_partial_correct: "fofu \<le> (spec f. isMaxFlow f)"
     zero_flow 
     NFlow.augment_pres_nflow 
     NFlow.augmenting_path_not_empty
-    NFlow.maxFlow_iff_noAugPath[symmetric])
+    NFlow.noAugPath_iff_maxFlow[symmetric])
   done
 
 subsection \<open>Algorithm without Assertions\<close>
@@ -104,9 +104,12 @@ definition (in NFlow) "augment_with_path p \<equiv> augment (augmentingFlow p)"
 
 context begin
 
-private abbreviation (input) "augment \<equiv> NFlow.augment_with_path"
-private abbreviation (input) "is_augmenting_path f p \<equiv> NFlow.isAugmenting c s t f p"
+private abbreviation (input) "augment 
+  \<equiv> NFlow.augment_with_path"
+private abbreviation (input) "is_augmenting_path f p 
+  \<equiv> NFlow.isAugmenting c s t f p"
 
+text \<open> {} \<close>
 text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       
 definition "ford_fulkerson_method \<equiv> do {
   let f = (\<lambda>(u,v). 0);
@@ -123,12 +126,16 @@ definition "ford_fulkerson_method \<equiv> do {
 }"
 text_raw \<open>}%EndSnippet\<close>
 
+text \<open> {} \<close>
+
 end -- \<open>Anonymous context\<close> 
 end -- \<open>Network\<close> 
 
+text \<open> {} \<close>
 text_raw \<open>\DefineSnippet{ford_fulkerson_correct}{\<close>       
 theorem (in Network) "ford_fulkerson_method \<le> (spec f. isMaxFlow f)"
 text_raw \<open>}%EndSnippet\<close>
+text \<open> {} \<close>
 proof -
   have [simp]: "(\<lambda>(u,v). 0) = (\<lambda>_. 0)" by auto
   have "ford_fulkerson_method \<le> fofu"

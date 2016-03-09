@@ -71,15 +71,18 @@
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> incoming&#39;_def<span class="delimiter">)</span>
 
 
-  <span class="keyword1">have</span> fct1<span class="delimiter">:</span> <span class="string">&quot;netFlow =  ?SOG&#39; + (&sum;e &isin; ?LCL. f e) - (?SIN&#39; + (&sum;e &isin; ?LCL. f e))&quot;</span> 
-    <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;_  = ?SAOG - (?SAIN)&quot;</span><span class="delimiter">)</span> <span class="keyword1">using</span> netFlow_def <span class="keyword1">by</span> auto
+  <span class="keyword1">have</span> fct1<span class="delimiter">:</span> 
+    <span class="string">&quot;netFlow = ?SOG&#39; + (&sum;e &isin; ?LCL. f e) - (?SIN&#39; + (&sum;e &isin; ?LCL. f e))&quot;</span> 
+    <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;_   =        ?SAOG              -          ?SAIN&quot;</span><span class="delimiter">)</span> 
+    <span class="keyword1">using</span> netFlow_def <span class="keyword1">by</span> auto
   <span class="keyword1">{</span>
     <span class="keyword1">{</span>
       <span class="keyword1">note</span> f <span class="delimiter">=</span> setsum.union_disjoint<span class="delimiter">[</span>of <span class="var">?LCL</span> <span class="string">&quot;(outgoing&#39; k)&quot;</span> f<span class="delimiter">]</span>
       <span class="keyword1">have</span> f3<span class="delimiter">:</span> <span class="string">&quot;?LCL &cap; outgoing&#39; k = {}&quot;</span> <span class="keyword1">unfolding</span> outgoing&#39;_def <span class="keyword1">by</span> auto
       <span class="keyword1">have</span> <span class="string">&quot;?SAOG = (&sum;e &isin; ?LCL &cup; (outgoing&#39; k). f e)&quot;</span> 
         <span class="keyword1">using</span> f<span class="delimiter">[</span>OF _ _ f3<span class="delimiter">]</span> <span class="keyword1">by</span> auto
-      <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;?LCL &cup; (outgoing&#39; k) = ?AOG&quot;</span> <span class="keyword1">unfolding</span> outgoing&#39;_def <span class="keyword1">by</span> auto
+      <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;?LCL &cup; (outgoing&#39; k) = ?AOG&quot;</span> 
+        <span class="keyword1">unfolding</span> outgoing&#39;_def <span class="keyword1">by</span> auto
       <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;?SAOG = (&sum;e &isin; ?AOG. f e)&quot;</span> <span class="keyword1">by</span> simp
     <span class="keyword1">}</span> <span class="keyword1">note</span> fct1 <span class="delimiter">=</span> this 
     <span class="keyword1">{</span>
@@ -91,12 +94,16 @@
     <span class="keyword1">{</span>
       <span class="keyword1">note</span> f <span class="delimiter">=</span> setsumExt.decomp_1<span class="delimiter">[</span>of <span class="string">&quot;k - {s}&quot;</span> s <span class="var">?SOG</span><span class="delimiter">]</span>
       <span class="keyword1">have</span> f2<span class="delimiter">:</span> <span class="string">&quot;s &notin; k - {s}&quot;</span> <span class="keyword1">by</span> blast
-      <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k - {s} &cup; {s}. ?SOG y) = (&sum;y &isin; k - {s}. ?SOG y) + (&sum;y &isin; {s}. ?SOG y)&quot;</span>
+      <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k - {s} &cup; {s}. ?SOG y) 
+          = (&sum;y &isin; k - {s}. ?SOG y) + (&sum;y &isin; {s}. ?SOG y)&quot;</span>
         <span class="keyword1">using</span> f<span class="delimiter">[</span>OF _ f2<span class="delimiter">]</span> <span class="keyword1">by</span> auto
       <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;k - {s} &cup; {s} = k&quot;</span> <span class="keyword1">using</span> s_in_cut <span class="keyword1">by</span> force
-      <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k. ?SOG y) = (&sum;y &isin; k - {s}. ?SOG y) + ?SOG s&quot;</span> <span class="keyword1">by</span> auto
+      <span class="keyword1">ultimately</span> <span class="keyword1">have</span> 
+        <span class="string">&quot;(&sum;y &isin; k. ?SOG y) = (&sum;y &isin; k - {s}. ?SOG y) + ?SOG s&quot;</span> 
+        <span class="keyword1">by</span> auto
     <span class="keyword1">}</span> <span class="keyword1">note</span> fct3 <span class="delimiter">=</span> this
-    <span class="keyword1">have</span> <span class="string">&quot;?SAOG = (&sum;y &isin; k - {s}. ?SOG y) + ?SOG s&quot;</span> <span class="keyword1">using</span> fct1 fct2 fct3 <span class="keyword1">by</span> simp
+    <span class="keyword1">have</span> <span class="string">&quot;?SAOG = (&sum;y &isin; k - {s}. ?SOG y) + ?SOG s&quot;</span> 
+      <span class="keyword1">using</span> fct1 fct2 fct3 <span class="keyword1">by</span> simp
   <span class="keyword1">}</span> <span class="keyword1">note</span> fct2 <span class="delimiter">=</span> this
   <span class="keyword1">{</span>
     <span class="keyword1">{</span>
@@ -104,7 +111,8 @@
       <span class="keyword1">have</span> f3<span class="delimiter">:</span> <span class="string">&quot;?LCL &cap; incoming&#39; k = {}&quot;</span> <span class="keyword1">unfolding</span> incoming&#39;_def <span class="keyword1">by</span> auto
       <span class="keyword1">have</span> <span class="string">&quot;?SAIN = (&sum;e &isin; ?LCL &cup; (incoming&#39; k). f e)&quot;</span> 
         <span class="keyword1">using</span> f<span class="delimiter">[</span>OF _ _ f3<span class="delimiter">]</span> <span class="keyword1">by</span> auto
-      <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;?LCL &cup; (incoming&#39; k) = ?AIN&quot;</span> <span class="keyword1">unfolding</span> incoming&#39;_def <span class="keyword1">by</span> auto
+      <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;?LCL &cup; (incoming&#39; k) = ?AIN&quot;</span> 
+        <span class="keyword1">unfolding</span> incoming&#39;_def <span class="keyword1">by</span> auto
       <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;?SAIN = (&sum;e &isin; ?AIN. f e)&quot;</span> <span class="keyword1">by</span> simp
     <span class="keyword1">}</span> <span class="keyword1">note</span> fct1 <span class="delimiter">=</span> this 
     <span class="keyword1">{</span>
@@ -116,24 +124,31 @@
     <span class="keyword1">{</span>
       <span class="keyword1">note</span> f <span class="delimiter">=</span> setsumExt.decomp_1<span class="delimiter">[</span>of <span class="string">&quot;k - {s}&quot;</span> s <span class="var">?SIN</span><span class="delimiter">]</span>
       <span class="keyword1">have</span> f2<span class="delimiter">:</span> <span class="string">&quot;s &notin; k - {s}&quot;</span> <span class="keyword1">by</span> blast
-      <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k - {s} &cup; {s}. ?SIN y) = (&sum;y &isin; k - {s}. ?SIN y) + (&sum;y &isin; {s}. ?SIN y)&quot;</span>
+      <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k - {s} &cup; {s}. ?SIN y) 
+          = (&sum;y &isin; k - {s}. ?SIN y) + (&sum;y &isin; {s}. ?SIN y)&quot;</span>
         <span class="keyword1">using</span> f<span class="delimiter">[</span>OF _ f2<span class="delimiter">]</span> <span class="keyword1">by</span> auto
       <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;k - {s} &cup; {s} = k&quot;</span> <span class="keyword1">using</span> s_in_cut <span class="keyword1">by</span> force
-      <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k. ?SIN y) = (&sum;y &isin; k - {s}. ?SIN y) + ?SIN s&quot;</span> <span class="keyword1">by</span> auto
+      <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k. ?SIN y) = (&sum;y &isin; k - {s}. ?SIN y) + ?SIN s&quot;</span> 
+        <span class="keyword1">by</span> auto
     <span class="keyword1">}</span> <span class="keyword1">note</span> fct3 <span class="delimiter">=</span> this
-    <span class="keyword1">have</span> <span class="string">&quot;?SAIN = (&sum;y &isin; k - {s}. ?SIN y) + ?SIN s&quot;</span> <span class="keyword1">using</span> fct1 fct2 fct3 <span class="keyword1">by</span> simp
+    <span class="keyword1">have</span> <span class="string">&quot;?SAIN = (&sum;y &isin; k - {s}. ?SIN y) + ?SIN s&quot;</span> 
+      <span class="keyword1">using</span> fct1 fct2 fct3 <span class="keyword1">by</span> simp
   <span class="keyword1">}</span> <span class="keyword1">note</span> fct3 <span class="delimiter">=</span> this 
-  <span class="keyword1">have</span> <span class="string">&quot;netFlow =  ((&sum;y &isin; k - {s}. ?SOG y) + ?SOG s) - ((&sum;y &isin; k - {s}. ?SIN y) + ?SIN s)&quot;</span>
-     <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;_ = ?R&quot;</span><span class="delimiter">)</span> <span class="keyword1">using</span> fct1 fct2 fct3 <span class="keyword1">by</span> auto
+  <span class="keyword1">have</span> <span class="string">&quot;netFlow =  
+      ((&sum;y &isin; k - {s}. ?SOG y) + ?SOG s) 
+    - ((&sum;y &isin; k - {s}. ?SIN y) + ?SIN s)&quot;</span>
+    <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;netFlow = ?R&quot;</span><span class="delimiter">)</span> 
+    <span class="keyword1">using</span> fct1 fct2 fct3 <span class="keyword1">by</span> auto
   <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;?R = ?SOG s - ?SIN s&quot;</span>
-    <span class="keyword1">proof</span> -
-      <span class="keyword1">note</span> f <span class="delimiter">=</span> setsum.cong<span class="delimiter">[</span>of <span class="string">&quot;k - {s}&quot;</span> <span class="string">&quot;k - {s}&quot;</span> <span class="var">?SOG</span> <span class="var">?SIN</span><span class="delimiter">]</span>
-      <span class="keyword1">have</span> f1<span class="delimiter">:</span> <span class="string">&quot;k - {s} = k - {s}&quot;</span> <span class="keyword1">by</span> blast
-      <span class="keyword1">have</span> f2<span class="delimiter">:</span> <span class="string">&quot;(!!u. u &isin; k - {s} ==&gt; ?SOG u = ?SIN u)&quot;</span> 
-        <span class="keyword1">using</span> conservation_const cut_ss_V t_ni_cut <span class="keyword1">by</span> force
-      <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k - {s}. ?SOG y) = (&sum;y &isin; k - {s}. ?SIN y)&quot;</span> <span class="keyword1">using</span> f<span class="delimiter">[</span>OF f1 f2<span class="delimiter">]</span> <span class="keyword1">by</span> blast
-      <span class="keyword3">thus</span> <span class="var">?thesis</span> <span class="keyword1">by</span> auto
-    <span class="keyword1">qed</span>
+  <span class="keyword1">proof</span> -
+    <span class="keyword1">note</span> f <span class="delimiter">=</span> setsum.cong<span class="delimiter">[</span>of <span class="string">&quot;k - {s}&quot;</span> <span class="string">&quot;k - {s}&quot;</span> <span class="var">?SOG</span> <span class="var">?SIN</span><span class="delimiter">]</span>
+    <span class="keyword1">have</span> f1<span class="delimiter">:</span> <span class="string">&quot;k - {s} = k - {s}&quot;</span> <span class="keyword1">by</span> blast
+    <span class="keyword1">have</span> f2<span class="delimiter">:</span> <span class="string">&quot;(!!u. u &isin; k - {s} ==&gt; ?SOG u = ?SIN u)&quot;</span> 
+      <span class="keyword1">using</span> conservation_const cut_ss_V t_ni_cut <span class="keyword1">by</span> force
+    <span class="keyword1">have</span> <span class="string">&quot;(&sum;y &isin; k - {s}. ?SOG y) = (&sum;y &isin; k - {s}. ?SIN y)&quot;</span> 
+      <span class="keyword1">using</span> f<span class="delimiter">[</span>OF f1 f2<span class="delimiter">]</span> <span class="keyword1">by</span> blast
+    <span class="keyword3">thus</span> <span class="var">?thesis</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">qed</span>
   <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">unfolding</span> val_def <span class="keyword1">by</span> simp
 <span class="keyword1">qed</span>
 
@@ -292,7 +307,7 @@
 
 <span class="keyword1">text</span> <span class="cartouche">&#8249;As an immediate consequence of the Ford-Fulkerson theorem, we get that
   there is no augmenting path if and only if the flow is maximal.&#8250;</span>
-<span class="keyword1">lemma</span> maxFlow_iff_noAugPath<span class="delimiter">:</span> <span class="string">&quot;&not; (&exist; p. isAugmenting p) &lt;-&gt; isMaxFlow f&quot;</span>
+<span class="keyword1">lemma</span> noAugPath_iff_maxFlow<span class="delimiter">:</span> <span class="string">&quot;&not; (&exist; p. isAugmenting p) &lt;-&gt; isMaxFlow f&quot;</span>
   <span class="keyword1">using</span> ford_fulkerson <span class="keyword1">by</span> blast
 
 <span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Network with flow&#8250;</span>

@@ -164,7 +164,7 @@ lemma sum_incoming_alt_flow:
   using assms capacity_const
   by auto
 
-end    
+end -- \<open>Flow\<close>   
 
 subsubsection \<open>Networks\<close>  
 context Network
@@ -199,7 +199,7 @@ lemma cap_positive: "e \<in> E \<Longrightarrow> c e > 0"
 lemma V_not_empty: "V\<noteq>{}" using s_node by auto
 lemma E_not_empty: "E\<noteq>{}" using V_not_empty by (auto simp: V_def)
 
-end
+end -- \<open>Network\<close>
 
 subsubsection \<open>Networks with Flow\<close>
 
@@ -231,6 +231,6 @@ text \<open>For an edge, there is no reverse edge, and thus, no flow in the reve
 lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
   using no_parallel_edge by auto
 
-end
+end -- \<open>Network with flow\<close>
   
-end
+end -- \<open>Theory\<close>

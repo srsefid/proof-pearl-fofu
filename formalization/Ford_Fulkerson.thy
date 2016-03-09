@@ -54,15 +54,18 @@ proof -
     by (auto simp: incoming'_def)
 
 
-  have fct1: "netFlow =  ?SOG' + (\<Sum>e \<in> ?LCL. f e) - (?SIN' + (\<Sum>e \<in> ?LCL. f e))" 
-    (is "_  = ?SAOG - (?SAIN)") using netFlow_def by auto
+  have fct1: 
+    "netFlow = ?SOG' + (\<Sum>e \<in> ?LCL. f e) - (?SIN' + (\<Sum>e \<in> ?LCL. f e))" 
+    (is "_   =        ?SAOG              -          ?SAIN") 
+    using netFlow_def by auto
   {
     {
       note f = setsum.union_disjoint[of ?LCL "(outgoing' k)" f]
       have f3: "?LCL \<inter> outgoing' k = {}" unfolding outgoing'_def by auto
       have "?SAOG = (\<Sum>e \<in> ?LCL \<union> (outgoing' k). f e)" 
         using f[OF _ _ f3] by auto
-      moreover have "?LCL \<union> (outgoing' k) = ?AOG" unfolding outgoing'_def by auto
+      moreover have "?LCL \<union> (outgoing' k) = ?AOG" 
+        unfolding outgoing'_def by auto
       ultimately have "?SAOG = (\<Sum>e \<in> ?AOG. f e)" by simp
     } note fct1 = this 
     {
@@ -74,12 +77,16 @@ proof -
     {
       note f = setsumExt.decomp_1[of "k - {s}" s ?SOG]
       have f2: "s \<notin> k - {s}" by blast
-      have "(\<Sum>y \<in> k - {s} \<union> {s}. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SOG y) + (\<Sum>y \<in> {s}. ?SOG y)"
+      have "(\<Sum>y \<in> k - {s} \<union> {s}. ?SOG y) 
+          = (\<Sum>y \<in> k - {s}. ?SOG y) + (\<Sum>y \<in> {s}. ?SOG y)"
         using f[OF _ f2] by auto
       moreover have "k - {s} \<union> {s} = k" using s_in_cut by force
-      ultimately have "(\<Sum>y \<in> k. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s" by auto
+      ultimately have 
+        "(\<Sum>y \<in> k. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s" 
+        by auto
     } note fct3 = this
-    have "?SAOG = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s" using fct1 fct2 fct3 by simp
+    have "?SAOG = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s" 
+      using fct1 fct2 fct3 by simp
   } note fct2 = this
   {
     {
@@ -87,7 +94,8 @@ proof -
       have f3: "?LCL \<inter> incoming' k = {}" unfolding incoming'_def by auto
       have "?SAIN = (\<Sum>e \<in> ?LCL \<union> (incoming' k). f e)" 
         using f[OF _ _ f3] by auto
-      moreover have "?LCL \<union> (incoming' k) = ?AIN" unfolding incoming'_def by auto
+      moreover have "?LCL \<union> (incoming' k) = ?AIN" 
+        unfolding incoming'_def by auto
       ultimately have "?SAIN = (\<Sum>e \<in> ?AIN. f e)" by simp
     } note fct1 = this 
     {
@@ -99,24 +107,31 @@ proof -
     {
       note f = setsumExt.decomp_1[of "k - {s}" s ?SIN]
       have f2: "s \<notin> k - {s}" by blast
-      have "(\<Sum>y \<in> k - {s} \<union> {s}. ?SIN y) = (\<Sum>y \<in> k - {s}. ?SIN y) + (\<Sum>y \<in> {s}. ?SIN y)"
+      have "(\<Sum>y \<in> k - {s} \<union> {s}. ?SIN y) 
+          = (\<Sum>y \<in> k - {s}. ?SIN y) + (\<Sum>y \<in> {s}. ?SIN y)"
         using f[OF _ f2] by auto
       moreover have "k - {s} \<union> {s} = k" using s_in_cut by force
-      ultimately have "(\<Sum>y \<in> k. ?SIN y) = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s" by auto
+      ultimately have "(\<Sum>y \<in> k. ?SIN y) = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s" 
+        by auto
     } note fct3 = this
-    have "?SAIN = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s" using fct1 fct2 fct3 by simp
+    have "?SAIN = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s" 
+      using fct1 fct2 fct3 by simp
   } note fct3 = this 
-  have "netFlow =  ((\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s) - ((\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s)"
-     (is "_ = ?R") using fct1 fct2 fct3 by auto
+  have "netFlow =  
+      ((\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s) 
+    - ((\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s)"
+    (is "netFlow = ?R") 
+    using fct1 fct2 fct3 by auto
   moreover have "?R = ?SOG s - ?SIN s"
-    proof -
-      note f = setsum.cong[of "k - {s}" "k - {s}" ?SOG ?SIN]
-      have f1: "k - {s} = k - {s}" by blast
-      have f2: "(\<And>u. u \<in> k - {s} \<Longrightarrow> ?SOG u = ?SIN u)" 
-        using conservation_const cut_ss_V t_ni_cut by force
-      have "(\<Sum>y \<in> k - {s}. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SIN y)" using f[OF f1 f2] by blast
-      thus ?thesis by auto
-    qed
+  proof -
+    note f = setsum.cong[of "k - {s}" "k - {s}" ?SOG ?SIN]
+    have f1: "k - {s} = k - {s}" by blast
+    have f2: "(\<And>u. u \<in> k - {s} \<Longrightarrow> ?SOG u = ?SIN u)" 
+      using conservation_const cut_ss_V t_ni_cut by force
+    have "(\<Sum>y \<in> k - {s}. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SIN y)" 
+      using f[OF f1 f2] by blast
+    thus ?thesis by auto
+  qed
   ultimately show ?thesis unfolding val_def by simp
 qed
 
@@ -275,7 +290,7 @@ qed
 
 text \<open>As an immediate consequence of the Ford-Fulkerson theorem, we get that
   there is no augmenting path if and only if the flow is maximal.\<close>
-lemma maxFlow_iff_noAugPath: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow f"
+lemma noAugPath_iff_maxFlow: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow f"
   using ford_fulkerson by blast
 
 end -- \<open>Network with flow\<close>

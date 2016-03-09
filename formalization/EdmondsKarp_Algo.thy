@@ -35,7 +35,9 @@ lemma find_shortest_augmenting_refine[refine]:
   "(f',f)\<in>Id \<Longrightarrow> find_shortest_augmenting_spec f' \<le> \<Down>Id (find_augmenting_spec f)"  
   unfolding find_shortest_augmenting_spec_def find_augmenting_spec_def
   apply (refine_vcg)
-  apply (auto simp: NFlow.shortest_is_augmenting dest: NFlow.augmenting_path_imp_shortest)
+  apply (auto 
+    simp: NFlow.shortest_is_augmenting 
+    dest: NFlow.augmenting_path_imp_shortest)
   done
 
 text \<open>Next, we specify the Edmonds-Karp algorithm. 
@@ -105,7 +107,9 @@ lemma isShortestPath_flip_edge:
   using assms
 proof -
   from \<open>isShortestPath s p t\<close> have 
-    MIN: "min_dist s t = length p" and P: "isPath s p t" and DV: "distinct (pathVertices s p)"
+    MIN: "min_dist s t = length p" and 
+      P: "isPath s p t" and 
+     DV: "distinct (pathVertices s p)"
     by (auto simp: isShortestPath_alt isSimplePath_def)
     
   from \<open>(u,v)\<in>set p\<close> obtain p1 p2 where [simp]: "p=p1@(u,v)#p2"
@@ -128,10 +132,11 @@ proof -
   from \<open>(v,u)\<in>set p'\<close> obtain p1' p2' where [simp]: "p'=p1'@(v,u)#p2'"
     by (auto simp: in_set_conv_decomp)
 
-  from \<open>isPath s p' t\<close> have DISTS': "dist s (length p1') v" "dist v 1 u" "dist u (length p2') t"
-    by (auto simp: isPath_append dist_def intro: exI[where x="[(v,u)]"])
+  from \<open>isPath s p' t\<close> have 
+    DISTS': "dist s (length p1') v" "dist u (length p2') t"
+    by (auto simp: isPath_append dist_def)
   
-  from DISTS'(1,3)[THEN min_dist_minD, unfolded MDSV MDUT] show
+  from DISTS'[THEN min_dist_minD, unfolded MDSV MDUT] show
     "length p + 2 \<le> length p'" by auto
 qed    
 
@@ -165,7 +170,8 @@ proof -
       proof -
         from P1 have "length p1 \<ge> min_dist s v"
           using min_dist_minD by (auto simp: dist_def)
-        moreover from \<open>(u,v)\<in>edges\<close> EDGES_SS have "min_dist s v = Suc (min_dist s u)"
+        moreover from \<open>(u,v)\<in>edges\<close> EDGES_SS 
+        have "min_dist s v = Suc (min_dist s u)"
           using isShortestPath_level_edge[OF SP] by auto
         ultimately show ?thesis by auto
       qed  
@@ -190,8 +196,9 @@ proof -
       next
         case False
         -- \<open>Obtain first swapped edge on suffix path\<close>
-        obtain p21' e' p22' where [simp]: "p2'=p21'@e'#p22'"
-            and E_IN_EDGES: "e'\<in>prod.swap`edges" and P1_NO_EDGES: "prod.swap`edges \<inter> set p21' = {}"
+        obtain p21' e' p22' where [simp]: "p2'=p21'@e'#p22'" and 
+           E_IN_EDGES: "e'\<in>prod.swap`edges" and 
+          P1_NO_EDGES: "prod.swap`edges \<inter> set p21' = {}"
           apply (rule split_list_first_propE[of p2' "\<lambda>e. e\<in>prod.swap`edges"])
           using \<open>prod.swap ` edges \<inter> set p2' \<noteq> {}\<close> apply auto []
           apply (rprems, assumption)
@@ -203,12 +210,21 @@ proof -
         from P2' have P21': "g'.isPath u p21' v'" and P22': "g'.isPath u' p22' t"
           by (auto simp: g'.isPath_append)
         -- \<open>As we chose the first edge, the prefix of the suffix path is also a path in the original graph\<close>  
-        from g'.transfer_path[OF _ P21', of c] \<open>g'.E \<subseteq> E \<union> prod.swap ` edges\<close> P1_NO_EDGES
+        from 
+          g'.transfer_path[OF _ P21', of c] 
+          \<open>g'.E \<subseteq> E \<union> prod.swap ` edges\<close> 
+          P1_NO_EDGES
         have P21: "isPath u p21' v'" by auto
         from min_dist_is_dist[OF \<open>connected s u\<close>] 
-        obtain psu where PSU: "isPath s psu u" and LEN_PSU: "length psu = min_dist s u" by (auto simp: dist_def)
-        from PSU P21 have P1n: "isPath s (psu@p21') v'" by (auto simp: isPath_append)
-        from IH[OF _ _ P1n P22'] E_IN_EDGES have "min_dist s t < length psu + length p21' + length p22'" by auto
+        obtain psu where 
+              PSU: "isPath s psu u" and 
+          LEN_PSU: "length psu = min_dist s u" 
+          by (auto simp: dist_def)
+        from PSU P21 have P1n: "isPath s (psu@p21') v'" 
+          by (auto simp: isPath_append)
+        from IH[OF _ _ P1n P22'] E_IN_EDGES have 
+          "min_dist s t < length psu + length p21' + length p22'" 
+          by auto
         moreover note \<open>length p1 > min_dist s u\<close>
         ultimately show ?thesis by (auto simp: LEN_PSU)
       qed
@@ -218,8 +234,9 @@ proof -
   (* TODO: This step is analogous to what we do in the False-case of the induction.
     Can we somehow remove the redundancy? *)
   -- \<open>Obtain first swapped edge on path\<close>
-  obtain p1' e p2' where [simp]: "p'=p1'@e#p2'"
-      and E_IN_EDGES: "e\<in>prod.swap`edges" and P1_NO_EDGES: "prod.swap`edges \<inter> set p1' = {}"
+  obtain p1' e p2' where [simp]: "p'=p1'@e#p2'" and 
+    E_IN_EDGES: "e\<in>prod.swap`edges" and 
+    P1_NO_EDGES: "prod.swap`edges \<inter> set p1' = {}"
     apply (rule split_list_first_propE[of p' "\<lambda>e. e\<in>prod.swap`edges"])
     using \<open>prod.swap ` edges \<inter> set p' \<noteq> {}\<close> apply auto []
     apply (rprems, assumption)
@@ -228,13 +245,19 @@ proof -
   obtain u v where [simp]: "e=(v,u)" by (cases e)      
 
   -- \<open>Split the new path accordingly\<close>
-  from \<open>g'.isPath s p' t\<close> have P1': "g'.isPath s p1' v" and P2': "g'.isPath u p2' t"
+  from \<open>g'.isPath s p' t\<close> have 
+    P1': "g'.isPath s p1' v" and 
+    P2': "g'.isPath u p2' t"
     by (auto simp: g'.isPath_append)
   -- \<open>As we chose the first edge, the prefix of the path is also a path in the original graph\<close>  
-  from g'.transfer_path[OF _ P1', of c] \<open>g'.E \<subseteq> E \<union> prod.swap ` edges\<close> P1_NO_EDGES
+  from 
+    g'.transfer_path[OF _ P1', of c] 
+    \<open>g'.E \<subseteq> E \<union> prod.swap ` edges\<close> 
+    P1_NO_EDGES
   have P1: "isPath s p1' v" by auto
   
-  from aux[OF _ P1 P2'] E_IN_EDGES have "min_dist s t < length p1' + length p2'"
+  from aux[OF _ P1 P2'] E_IN_EDGES 
+  have "min_dist s t < length p1' + length p2'"
     by auto
   thus ?thesis using SP 
     by (auto simp: isShortestPath_min_dist_def)
@@ -250,7 +273,8 @@ locale ek_analysis_defs = Graph +
 locale ek_analysis = ek_analysis_defs + Finite_Graph
 begin
 
-definition (in ek_analysis_defs) "spEdges \<equiv> {e. \<exists>p. e\<in>set p \<and> isShortestPath s p t}"
+definition (in ek_analysis_defs) 
+  "spEdges \<equiv> {e. \<exists>p. e\<in>set p \<and> isShortestPath s p t}"
 
 lemma spEdges_ss_E: "spEdges \<subseteq> E"
   using isPath_edgeset unfolding spEdges_def isShortestPath_def by auto
@@ -288,9 +312,12 @@ lemma measure_decr:
   assumes SV: "s\<in>V"
   assumes SP: "isShortestPath s p t"
   assumes SP_EDGES: "edges\<subseteq>set p"
-  assumes Ebounds: "Graph.E c' \<supseteq> E - edges \<union> prod.swap`edges" "Graph.E c' \<subseteq> E \<union> prod.swap`edges"
+  assumes Ebounds: 
+    "Graph.E c' \<supseteq> E - edges \<union> prod.swap`edges" 
+    "Graph.E c' \<subseteq> E \<union> prod.swap`edges"
   shows "ek_analysis_defs.ekMeasure c' s t \<le> ekMeasure"
-    and "edges - Graph.E c' \<noteq> {} \<Longrightarrow> ek_analysis_defs.ekMeasure c' s t < ekMeasure"
+    and "edges - Graph.E c' \<noteq> {} 
+         \<Longrightarrow> ek_analysis_defs.ekMeasure c' s t < ekMeasure"
 proof -
   interpret g'!: ek_analysis_defs c' s t .
 
@@ -308,9 +335,11 @@ proof -
   from Ebounds \<open>edges \<subseteq> E\<close> have uE_eq[simp]: "g'.uE = uE"  
     by (force simp: ek_analysis_defs.uE_def)
 
-  from SP have LENP: "length p = min_dist s t" by (auto simp: isShortestPath_min_dist_def) 
+  from SP have LENP: "length p = min_dist s t" 
+    by (auto simp: isShortestPath_min_dist_def) 
 
-  from SP have CONN: "connected s t" by (auto simp: isShortestPath_def connected_def)
+  from SP have CONN: "connected s t" 
+    by (auto simp: isShortestPath_def connected_def)
 
   {
     assume NCONN2: "\<not>g'.connected s t"
@@ -350,8 +379,9 @@ proof -
       unfolding g'.ekMeasure_def ekMeasure_def
       apply (simp only: Veq uE_eq CONN CONN2 if_True)
       apply (rule mlex_fst_decrI)
-      using card_spEdges_less g'.card_spEdges_less g'.min_dist_less_V[OF _ _ CONN2] SV
-      using LONGER
+      using card_spEdges_less g'.card_spEdges_less 
+        and g'.min_dist_less_V[OF _ _ CONN2] SV
+        and LONGER
       apply auto
       done
   } moreover {
@@ -364,9 +394,12 @@ proof -
       have "prod.swap`edges \<inter> set p' = {}" 
       proof (rule ccontr) 
         assume EIP': "prod.swap`edges \<inter> set p' \<noteq> {}"
-        from P' have P': "g'.isPath s p' t" and LENP': "length p' = g'.min_dist s t"
+        from P' have 
+             P': "g'.isPath s p' t" and 
+          LENP': "length p' = g'.min_dist s t"
           by (auto simp: g'.isShortestPath_min_dist_def)
-        from isShortestPath_flip_edges[OF _ _ SP SP_EDGES P' EIP'] Ebounds have "length p + 2 \<le> length p'" by auto
+        from isShortestPath_flip_edges[OF _ _ SP SP_EDGES P' EIP'] Ebounds 
+        have "length p + 2 \<le> length p'" by auto
         with LENP LENP' EQ show False by auto
       qed  
       with g'.transfer_path[of p' c s t] P' Ebounds have "isShortestPath s p' t"
@@ -557,7 +590,9 @@ proof -
       apply (auto simp: cf'_alt cf.augment_cf_def) []
 
       using augmenting_edge_no_swap[OF AUG]
-      apply (fastforce simp: cf'_alt cf.augment_cf_def Graph.E_def simp del: cf.zero_cap_simp) []
+      apply (fastforce 
+        simp: cf'_alt cf.augment_cf_def Graph.E_def 
+        simp del: cf.zero_cap_simp) []
       
     apply (unfold Graph.E_def) []
     apply (auto simp: cf'_alt cf.augment_cf_def) []
@@ -631,9 +666,10 @@ subsubsection \<open>Complexity Analysis\<close>
 text \<open>For the complexity analysis, we additionally show that the measure
   function is bounded by $O(VE)$. Note that our absolute bound is not as 
   precise as possible, but clearly $O(VE)$.\<close>
-lemma ekMeasure_upper_bound: 
   (* TODO: #edgesSp even bound by |E|, as either e or swap e lays on shortest path! *)
-  "ek_analysis_defs.ekMeasure (residualGraph c (\<lambda>_. 0)) s t < 2 * card V * card E + card V"
+lemma ekMeasure_upper_bound: 
+  "ek_analysis_defs.ekMeasure (residualGraph c (\<lambda>_. 0)) s t 
+   < 2 * card V * card E + card V"
 proof -  
   interpret NFlow c s t "(\<lambda>_. 0)"
     unfolding NFlow_def Flow_def using Network_axioms 
@@ -664,9 +700,12 @@ proof -
       by auto
     hence "ek.uE = E\<union>E\<inverse>" unfolding ek.uE_def by simp
 
-    from True have "ek.ekMeasure = (card cf.V - cf.min_dist s t) * (card ek.uE + 1) + (card (ek.spEdges))"
+    from True have "ek.ekMeasure 
+      = (card cf.V - cf.min_dist s t) * (card ek.uE + 1) + (card (ek.spEdges))"
       unfolding ek.ekMeasure_def by simp
-    also from mlex_bound[of "card cf.V - cf.min_dist s t" "card V", OF _ ek.card_spEdges_less]
+    also from 
+      mlex_bound[of "card cf.V - cf.min_dist s t" "card V", 
+                 OF _ ek.card_spEdges_less]
     have "\<dots> < card V * (card ek.uE+1)" 
       using \<open>cf.min_dist s t > 0\<close> \<open>card V > 0\<close>
       by (auto simp: resV_netV)
@@ -688,7 +727,8 @@ text \<open>Finally, we present a version of the Edmonds-Karp algorithm
 text \<open>The refinement is achieved by a refinement relation, coupling the 
   instrumented loop state with the uninstrumented one\<close>
 definition "edkac_rel \<equiv> {((f,brk,itc), (f,brk)) | f brk itc.
-  itc + ek_analysis_defs.ekMeasure (residualGraph c f) s t < 2 * card V * card E + card V
+    itc + ek_analysis_defs.ekMeasure (residualGraph c f) s t 
+  < 2 * card V * card E + card V
 }"
 
 definition "edka_complexity \<equiv> do {

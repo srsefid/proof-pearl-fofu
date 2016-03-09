@@ -52,7 +52,9 @@
   <span class="string">&quot;(f&#39;,f)&isin;Id ==&gt; find_shortest_augmenting_spec f&#39; &le; \&lt;Down&gt;Id (find_augmenting_spec f)&quot;</span>  
   <span class="keyword1">unfolding</span> find_shortest_augmenting_spec_def find_augmenting_spec_def
   <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg<span class="delimiter">)</span>
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> NFlow.shortest_is_augmenting dest<span class="delimiter">:</span> NFlow.augmenting_path_imp_shortest<span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto 
+    simp<span class="delimiter">:</span> NFlow.shortest_is_augmenting 
+    dest<span class="delimiter">:</span> NFlow.augmenting_path_imp_shortest<span class="delimiter">)</span>
   <span class="keyword1"><span class="improper">done</span></span>
 
 <span class="keyword1">text</span> <span class="cartouche">&#8249;Next, we specify the Edmonds-Karp algorithm. 
@@ -122,7 +124,9 @@
   <span class="keyword1">using</span> assms
 <span class="keyword1">proof</span> -
   <span class="keyword1">from</span> <span class="cartouche">&#8249;isShortestPath s p t&#8250;</span> <span class="keyword1">have</span> 
-    MIN<span class="delimiter">:</span> <span class="string">&quot;min_dist s t = length p&quot;</span> <span class="keyword2">and</span> P<span class="delimiter">:</span> <span class="string">&quot;isPath s p t&quot;</span> <span class="keyword2">and</span> DV<span class="delimiter">:</span> <span class="string">&quot;distinct (pathVertices s p)&quot;</span>
+    MIN<span class="delimiter">:</span> <span class="string">&quot;min_dist s t = length p&quot;</span> <span class="keyword2">and</span> 
+      P<span class="delimiter">:</span> <span class="string">&quot;isPath s p t&quot;</span> <span class="keyword2">and</span> 
+     DV<span class="delimiter">:</span> <span class="string">&quot;distinct (pathVertices s p)&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isShortestPath_alt isSimplePath_def<span class="delimiter">)</span>
     
   <span class="keyword1">from</span> <span class="cartouche">&#8249;(u,v)&isin;set p&#8250;</span> <span class="keyword3">obtain</span> p1 p2 <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p=p1@(u,v)#p2&quot;</span>
@@ -145,10 +149,11 @@
   <span class="keyword1">from</span> <span class="cartouche">&#8249;(v,u)&isin;set p&#39;&#8250;</span> <span class="keyword3">obtain</span> p1&#39; p2&#39; <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p&#39;=p1&#39;@(v,u)#p2&#39;&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> in_set_conv_decomp<span class="delimiter">)</span>
 
-  <span class="keyword1">from</span> <span class="cartouche">&#8249;isPath s p&#39; t&#8250;</span> <span class="keyword1">have</span> DISTS&#39;<span class="delimiter">:</span> <span class="string">&quot;dist s (length p1&#39;) v&quot;</span> <span class="string">&quot;dist v 1 u&quot;</span> <span class="string">&quot;dist u (length p2&#39;) t&quot;</span>
-    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isPath_append dist_def intro<span class="delimiter">:</span> exI<span class="delimiter">[</span><span class="keyword2">where</span> x<span class="delimiter">=</span><span class="string">&quot;[(v,u)]&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
+  <span class="keyword1">from</span> <span class="cartouche">&#8249;isPath s p&#39; t&#8250;</span> <span class="keyword1">have</span> 
+    DISTS&#39;<span class="delimiter">:</span> <span class="string">&quot;dist s (length p1&#39;) v&quot;</span> <span class="string">&quot;dist u (length p2&#39;) t&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isPath_append dist_def<span class="delimiter">)</span>
   
-  <span class="keyword1">from</span> DISTS&#39;<span class="delimiter">(</span>1<span class="delimiter">,</span>3<span class="delimiter">)</span><span class="delimiter">[</span>THEN min_dist_minD<span class="delimiter">,</span> unfolded MDSV MDUT<span class="delimiter">]</span> <span class="keyword3">show</span>
+  <span class="keyword1">from</span> DISTS&#39;<span class="delimiter">[</span>THEN min_dist_minD<span class="delimiter">,</span> unfolded MDSV MDUT<span class="delimiter">]</span> <span class="keyword3">show</span>
     <span class="string">&quot;length p + 2 &le; length p&#39;&quot;</span> <span class="keyword1">by</span> auto
 <span class="keyword1">qed</span>    
 
@@ -182,7 +187,8 @@
       <span class="keyword1">proof</span> -
         <span class="keyword1">from</span> P1 <span class="keyword1">have</span> <span class="string">&quot;length p1 &ge; min_dist s v&quot;</span>
           <span class="keyword1">using</span> min_dist_minD <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> dist_def<span class="delimiter">)</span>
-        <span class="keyword1">moreover</span> <span class="keyword1">from</span> <span class="cartouche">&#8249;(u,v)&isin;edges&#8250;</span> EDGES_SS <span class="keyword1">have</span> <span class="string">&quot;min_dist s v = Suc (min_dist s u)&quot;</span>
+        <span class="keyword1">moreover</span> <span class="keyword1">from</span> <span class="cartouche">&#8249;(u,v)&isin;edges&#8250;</span> EDGES_SS 
+        <span class="keyword1">have</span> <span class="string">&quot;min_dist s v = Suc (min_dist s u)&quot;</span>
           <span class="keyword1">using</span> isShortestPath_level_edge<span class="delimiter">[</span>OF SP<span class="delimiter">]</span> <span class="keyword1">by</span> auto
         <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">by</span> auto
       <span class="keyword1">qed</span>  
@@ -207,8 +213,9 @@
       <span class="keyword1">next</span>
         <span class="keyword3">case</span> False
         <span class="delimiter">--</span> <span class="cartouche">&#8249;Obtain first swapped edge on suffix path&#8250;</span>
-        <span class="keyword3">obtain</span> p21&#39; e&#39; p22&#39; <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p2&#39;=p21&#39;@e&#39;#p22&#39;&quot;</span>
-            <span class="keyword2">and</span> E_IN_EDGES<span class="delimiter">:</span> <span class="string">&quot;e&#39;&isin;prod.swap`edges&quot;</span> <span class="keyword2">and</span> P1_NO_EDGES<span class="delimiter">:</span> <span class="string">&quot;prod.swap`edges &cap; set p21&#39; = {}&quot;</span>
+        <span class="keyword3">obtain</span> p21&#39; e&#39; p22&#39; <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p2&#39;=p21&#39;@e&#39;#p22&#39;&quot;</span> <span class="keyword2">and</span> 
+           E_IN_EDGES<span class="delimiter">:</span> <span class="string">&quot;e&#39;&isin;prod.swap`edges&quot;</span> <span class="keyword2">and</span> 
+          P1_NO_EDGES<span class="delimiter">:</span> <span class="string">&quot;prod.swap`edges &cap; set p21&#39; = {}&quot;</span>
           <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule split_list_first_propE<span class="delimiter">[</span>of p2&#39; <span class="string">&quot;&lambda;e. e&isin;prod.swap`edges&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
           <span class="keyword1">using</span> <span class="cartouche">&#8249;prod.swap ` edges &cap; set p2&#39; &ne; {}&#8250;</span> <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
           <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rprems<span class="delimiter">,</span> assumption<span class="delimiter">)</span>
@@ -220,12 +227,21 @@
         <span class="keyword1">from</span> P2&#39; <span class="keyword1">have</span> P21&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath u p21&#39; v&#39;&quot;</span> <span class="keyword2">and</span> P22&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath u&#39; p22&#39; t&quot;</span>
           <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> g&#39;.isPath_append<span class="delimiter">)</span>
         <span class="delimiter">--</span> <span class="cartouche">&#8249;As we chose the first edge, the prefix of the suffix path is also a path in the original graph&#8250;</span>  
-        <span class="keyword1">from</span> g&#39;.transfer_path<span class="delimiter">[</span>OF _ P21&#39;<span class="delimiter">,</span> of c<span class="delimiter">]</span> <span class="cartouche">&#8249;g&#39;.E &sube; E &cup; prod.swap ` edges&#8250;</span> P1_NO_EDGES
+        <span class="keyword1">from</span> 
+          g&#39;.transfer_path<span class="delimiter">[</span>OF _ P21&#39;<span class="delimiter">,</span> of c<span class="delimiter">]</span> 
+          <span class="cartouche">&#8249;g&#39;.E &sube; E &cup; prod.swap ` edges&#8250;</span> 
+          P1_NO_EDGES
         <span class="keyword1">have</span> P21<span class="delimiter">:</span> <span class="string">&quot;isPath u p21&#39; v&#39;&quot;</span> <span class="keyword1">by</span> auto
         <span class="keyword1">from</span> min_dist_is_dist<span class="delimiter">[</span>OF <span class="cartouche">&#8249;connected s u&#8250;</span><span class="delimiter">]</span> 
-        <span class="keyword3">obtain</span> psu <span class="keyword2">where</span> PSU<span class="delimiter">:</span> <span class="string">&quot;isPath s psu u&quot;</span> <span class="keyword2">and</span> LEN_PSU<span class="delimiter">:</span> <span class="string">&quot;length psu = min_dist s u&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> dist_def<span class="delimiter">)</span>
-        <span class="keyword1">from</span> PSU P21 <span class="keyword1">have</span> P1n<span class="delimiter">:</span> <span class="string">&quot;isPath s (psu@p21&#39;) v&#39;&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isPath_append<span class="delimiter">)</span>
-        <span class="keyword1">from</span> IH<span class="delimiter">[</span>OF _ _ P1n P22&#39;<span class="delimiter">]</span> E_IN_EDGES <span class="keyword1">have</span> <span class="string">&quot;min_dist s t &lt; length psu + length p21&#39; + length p22&#39;&quot;</span> <span class="keyword1">by</span> auto
+        <span class="keyword3">obtain</span> psu <span class="keyword2">where</span> 
+              PSU<span class="delimiter">:</span> <span class="string">&quot;isPath s psu u&quot;</span> <span class="keyword2">and</span> 
+          LEN_PSU<span class="delimiter">:</span> <span class="string">&quot;length psu = min_dist s u&quot;</span> 
+          <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> dist_def<span class="delimiter">)</span>
+        <span class="keyword1">from</span> PSU P21 <span class="keyword1">have</span> P1n<span class="delimiter">:</span> <span class="string">&quot;isPath s (psu@p21&#39;) v&#39;&quot;</span> 
+          <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isPath_append<span class="delimiter">)</span>
+        <span class="keyword1">from</span> IH<span class="delimiter">[</span>OF _ _ P1n P22&#39;<span class="delimiter">]</span> E_IN_EDGES <span class="keyword1">have</span> 
+          <span class="string">&quot;min_dist s t &lt; length psu + length p21&#39; + length p22&#39;&quot;</span> 
+          <span class="keyword1">by</span> auto
         <span class="keyword1">moreover</span> <span class="keyword1">note</span> <span class="cartouche">&#8249;length p1 &gt; min_dist s u&#8250;</span>
         <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> LEN_PSU<span class="delimiter">)</span>
       <span class="keyword1">qed</span>
@@ -235,8 +251,9 @@
   <span class="comment">(* TODO: This step is analogous to what we do in the False-case of the induction.
     Can we somehow remove the redundancy? *)</span>
   <span class="delimiter">--</span> <span class="cartouche">&#8249;Obtain first swapped edge on path&#8250;</span>
-  <span class="keyword3">obtain</span> p1&#39; e p2&#39; <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p&#39;=p1&#39;@e#p2&#39;&quot;</span>
-      <span class="keyword2">and</span> E_IN_EDGES<span class="delimiter">:</span> <span class="string">&quot;e&isin;prod.swap`edges&quot;</span> <span class="keyword2">and</span> P1_NO_EDGES<span class="delimiter">:</span> <span class="string">&quot;prod.swap`edges &cap; set p1&#39; = {}&quot;</span>
+  <span class="keyword3">obtain</span> p1&#39; e p2&#39; <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p&#39;=p1&#39;@e#p2&#39;&quot;</span> <span class="keyword2">and</span> 
+    E_IN_EDGES<span class="delimiter">:</span> <span class="string">&quot;e&isin;prod.swap`edges&quot;</span> <span class="keyword2">and</span> 
+    P1_NO_EDGES<span class="delimiter">:</span> <span class="string">&quot;prod.swap`edges &cap; set p1&#39; = {}&quot;</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule split_list_first_propE<span class="delimiter">[</span>of p&#39; <span class="string">&quot;&lambda;e. e&isin;prod.swap`edges&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
     <span class="keyword1">using</span> <span class="cartouche">&#8249;prod.swap ` edges &cap; set p&#39; &ne; {}&#8250;</span> <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rprems<span class="delimiter">,</span> assumption<span class="delimiter">)</span>
@@ -245,13 +262,19 @@
   <span class="keyword3">obtain</span> u v <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;e=(v,u)&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>cases e<span class="delimiter">)</span>      
 
   <span class="delimiter">--</span> <span class="cartouche">&#8249;Split the new path accordingly&#8250;</span>
-  <span class="keyword1">from</span> <span class="cartouche">&#8249;g&#39;.isPath s p&#39; t&#8250;</span> <span class="keyword1">have</span> P1&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath s p1&#39; v&quot;</span> <span class="keyword2">and</span> P2&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath u p2&#39; t&quot;</span>
+  <span class="keyword1">from</span> <span class="cartouche">&#8249;g&#39;.isPath s p&#39; t&#8250;</span> <span class="keyword1">have</span> 
+    P1&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath s p1&#39; v&quot;</span> <span class="keyword2">and</span> 
+    P2&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath u p2&#39; t&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> g&#39;.isPath_append<span class="delimiter">)</span>
   <span class="delimiter">--</span> <span class="cartouche">&#8249;As we chose the first edge, the prefix of the path is also a path in the original graph&#8250;</span>  
-  <span class="keyword1">from</span> g&#39;.transfer_path<span class="delimiter">[</span>OF _ P1&#39;<span class="delimiter">,</span> of c<span class="delimiter">]</span> <span class="cartouche">&#8249;g&#39;.E &sube; E &cup; prod.swap ` edges&#8250;</span> P1_NO_EDGES
+  <span class="keyword1">from</span> 
+    g&#39;.transfer_path<span class="delimiter">[</span>OF _ P1&#39;<span class="delimiter">,</span> of c<span class="delimiter">]</span> 
+    <span class="cartouche">&#8249;g&#39;.E &sube; E &cup; prod.swap ` edges&#8250;</span> 
+    P1_NO_EDGES
   <span class="keyword1">have</span> P1<span class="delimiter">:</span> <span class="string">&quot;isPath s p1&#39; v&quot;</span> <span class="keyword1">by</span> auto
   
-  <span class="keyword1">from</span> aux<span class="delimiter">[</span>OF _ P1 P2&#39;<span class="delimiter">]</span> E_IN_EDGES <span class="keyword1">have</span> <span class="string">&quot;min_dist s t &lt; length p1&#39; + length p2&#39;&quot;</span>
+  <span class="keyword1">from</span> aux<span class="delimiter">[</span>OF _ P1 P2&#39;<span class="delimiter">]</span> E_IN_EDGES 
+  <span class="keyword1">have</span> <span class="string">&quot;min_dist s t &lt; length p1&#39; + length p2&#39;&quot;</span>
     <span class="keyword1">by</span> auto
   <span class="keyword3">thus</span> <span class="var">?thesis</span> <span class="keyword1">using</span> SP 
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isShortestPath_min_dist_def<span class="delimiter">)</span>
@@ -267,7 +290,8 @@
 <span class="keyword1">locale</span> ek_analysis <span class="delimiter">=</span> ek_analysis_defs <span class="delimiter">+</span> Finite_Graph
 <span class="keyword2">begin</span>
 
-<span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> ek_analysis_defs<span class="delimiter">)</span> <span class="string">&quot;spEdges &equiv; {e. &exist;p. e&isin;set p &and; isShortestPath s p t}&quot;</span>
+<span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> ek_analysis_defs<span class="delimiter">)</span> 
+  <span class="string">&quot;spEdges &equiv; {e. &exist;p. e&isin;set p &and; isShortestPath s p t}&quot;</span>
 
 <span class="keyword1">lemma</span> spEdges_ss_E<span class="delimiter">:</span> <span class="string">&quot;spEdges &sube; E&quot;</span>
   <span class="keyword1">using</span> isPath_edgeset <span class="keyword1">unfolding</span> spEdges_def isShortestPath_def <span class="keyword1">by</span> auto
@@ -305,9 +329,12 @@
   <span class="keyword2">assumes</span> SV<span class="delimiter">:</span> <span class="string">&quot;s&isin;V&quot;</span>
   <span class="keyword2">assumes</span> SP<span class="delimiter">:</span> <span class="string">&quot;isShortestPath s p t&quot;</span>
   <span class="keyword2">assumes</span> SP_EDGES<span class="delimiter">:</span> <span class="string">&quot;edges&sube;set p&quot;</span>
-  <span class="keyword2">assumes</span> Ebounds<span class="delimiter">:</span> <span class="string">&quot;Graph.E c&#39; &supe; E - edges &cup; prod.swap`edges&quot;</span> <span class="string">&quot;Graph.E c&#39; &sube; E &cup; prod.swap`edges&quot;</span>
+  <span class="keyword2">assumes</span> Ebounds<span class="delimiter">:</span> 
+    <span class="string">&quot;Graph.E c&#39; &supe; E - edges &cup; prod.swap`edges&quot;</span> 
+    <span class="string">&quot;Graph.E c&#39; &sube; E &cup; prod.swap`edges&quot;</span>
   <span class="keyword2">shows</span> <span class="string">&quot;ek_analysis_defs.ekMeasure c&#39; s t &le; ekMeasure&quot;</span>
-    <span class="keyword2">and</span> <span class="string">&quot;edges - Graph.E c&#39; &ne; {} ==&gt; ek_analysis_defs.ekMeasure c&#39; s t &lt; ekMeasure&quot;</span>
+    <span class="keyword2">and</span> <span class="string">&quot;edges - Graph.E c&#39; &ne; {} 
+         ==&gt; ek_analysis_defs.ekMeasure c&#39; s t &lt; ekMeasure&quot;</span>
 <span class="keyword1">proof</span> -
   <span class="keyword1">interpret</span> g&#39;<span class="delimiter">!</span><span class="delimiter">:</span> ek_analysis_defs c&#39; s t <span class="keyword1">.</span>
 
@@ -325,9 +352,11 @@
   <span class="keyword1">from</span> Ebounds <span class="cartouche">&#8249;edges &sube; E&#8250;</span> <span class="keyword1">have</span> uE_eq<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;g&#39;.uE = uE&quot;</span>  
     <span class="keyword1">by</span> <span class="delimiter">(</span>force simp<span class="delimiter">:</span> ek_analysis_defs.uE_def<span class="delimiter">)</span>
 
-  <span class="keyword1">from</span> SP <span class="keyword1">have</span> LENP<span class="delimiter">:</span> <span class="string">&quot;length p = min_dist s t&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isShortestPath_min_dist_def<span class="delimiter">)</span> 
+  <span class="keyword1">from</span> SP <span class="keyword1">have</span> LENP<span class="delimiter">:</span> <span class="string">&quot;length p = min_dist s t&quot;</span> 
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isShortestPath_min_dist_def<span class="delimiter">)</span> 
 
-  <span class="keyword1">from</span> SP <span class="keyword1">have</span> CONN<span class="delimiter">:</span> <span class="string">&quot;connected s t&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isShortestPath_def connected_def<span class="delimiter">)</span>
+  <span class="keyword1">from</span> SP <span class="keyword1">have</span> CONN<span class="delimiter">:</span> <span class="string">&quot;connected s t&quot;</span> 
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isShortestPath_def connected_def<span class="delimiter">)</span>
 
   <span class="keyword1">{</span>
     <span class="keyword3">assume</span> NCONN2<span class="delimiter">:</span> <span class="string">&quot;&not;g&#39;.connected s t&quot;</span>
@@ -367,8 +396,9 @@
       <span class="keyword1">unfolding</span> g&#39;.ekMeasure_def ekMeasure_def
       <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp only<span class="delimiter">:</span> Veq uE_eq CONN CONN2 if_True<span class="delimiter">)</span>
       <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule mlex_fst_decrI<span class="delimiter">)</span>
-      <span class="keyword1">using</span> card_spEdges_less g&#39;.card_spEdges_less g&#39;.min_dist_less_V<span class="delimiter">[</span>OF _ _ CONN2<span class="delimiter">]</span> SV
-      <span class="keyword1">using</span> LONGER
+      <span class="keyword1">using</span> card_spEdges_less g&#39;.card_spEdges_less 
+        <span class="keyword2">and</span> g&#39;.min_dist_less_V<span class="delimiter">[</span>OF _ _ CONN2<span class="delimiter">]</span> SV
+        <span class="keyword2">and</span> LONGER
       <span class="keyword1"><span class="improper">apply</span></span> auto
       <span class="keyword1"><span class="improper">done</span></span>
   <span class="keyword1">}</span> <span class="keyword1">moreover</span> <span class="keyword1">{</span>
@@ -381,9 +411,12 @@
       <span class="keyword1">have</span> <span class="string">&quot;prod.swap`edges &cap; set p&#39; = {}&quot;</span> 
       <span class="keyword1">proof</span> <span class="delimiter">(</span>rule ccontr<span class="delimiter">)</span> 
         <span class="keyword3">assume</span> EIP&#39;<span class="delimiter">:</span> <span class="string">&quot;prod.swap`edges &cap; set p&#39; &ne; {}&quot;</span>
-        <span class="keyword1">from</span> P&#39; <span class="keyword1">have</span> P&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath s p&#39; t&quot;</span> <span class="keyword2">and</span> LENP&#39;<span class="delimiter">:</span> <span class="string">&quot;length p&#39; = g&#39;.min_dist s t&quot;</span>
+        <span class="keyword1">from</span> P&#39; <span class="keyword1">have</span> 
+             P&#39;<span class="delimiter">:</span> <span class="string">&quot;g&#39;.isPath s p&#39; t&quot;</span> <span class="keyword2">and</span> 
+          LENP&#39;<span class="delimiter">:</span> <span class="string">&quot;length p&#39; = g&#39;.min_dist s t&quot;</span>
           <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> g&#39;.isShortestPath_min_dist_def<span class="delimiter">)</span>
-        <span class="keyword1">from</span> isShortestPath_flip_edges<span class="delimiter">[</span>OF _ _ SP SP_EDGES P&#39; EIP&#39;<span class="delimiter">]</span> Ebounds <span class="keyword1">have</span> <span class="string">&quot;length p + 2 &le; length p&#39;&quot;</span> <span class="keyword1">by</span> auto
+        <span class="keyword1">from</span> isShortestPath_flip_edges<span class="delimiter">[</span>OF _ _ SP SP_EDGES P&#39; EIP&#39;<span class="delimiter">]</span> Ebounds 
+        <span class="keyword1">have</span> <span class="string">&quot;length p + 2 &le; length p&#39;&quot;</span> <span class="keyword1">by</span> auto
         <span class="keyword1">with</span> LENP LENP&#39; EQ <span class="keyword3">show</span> False <span class="keyword1">by</span> auto
       <span class="keyword1">qed</span>  
       <span class="keyword1">with</span> g&#39;.transfer_path<span class="delimiter">[</span>of p&#39; c s t<span class="delimiter">]</span> P&#39; Ebounds <span class="keyword1">have</span> <span class="string">&quot;isShortestPath s p&#39; t&quot;</span>
@@ -574,7 +607,9 @@
       <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cf&#39;_alt cf.augment_cf_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
 
       <span class="keyword1">using</span> augmenting_edge_no_swap<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span>
-      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fastforce simp<span class="delimiter">:</span> cf&#39;_alt cf.augment_cf_def Graph.E_def simp del<span class="delimiter">:</span> cf.zero_cap_simp<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fastforce 
+        simp<span class="delimiter">:</span> cf&#39;_alt cf.augment_cf_def Graph.E_def 
+        simp del<span class="delimiter">:</span> cf.zero_cap_simp<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
       
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>unfold Graph.E_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cf&#39;_alt cf.augment_cf_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
@@ -648,9 +683,10 @@
 <span class="keyword1">text</span> <span class="cartouche">&#8249;For the complexity analysis, we additionally show that the measure
   function is bounded by $O(VE)$. Note that our absolute bound is not as 
   precise as possible, but clearly $O(VE)$.&#8250;</span>
-<span class="keyword1">lemma</span> ekMeasure_upper_bound<span class="delimiter">:</span> 
   <span class="comment">(* TODO: #edgesSp even bound by |E|, as either e or swap e lays on shortest path! *)</span>
-  <span class="string">&quot;ek_analysis_defs.ekMeasure (residualGraph c (&lambda;_. 0)) s t &lt; 2 * card V * card E + card V&quot;</span>
+<span class="keyword1">lemma</span> ekMeasure_upper_bound<span class="delimiter">:</span> 
+  <span class="string">&quot;ek_analysis_defs.ekMeasure (residualGraph c (&lambda;_. 0)) s t 
+   &lt; 2 * card V * card E + card V&quot;</span>
 <span class="keyword1">proof</span> -  
   <span class="keyword1">interpret</span> NFlow c s t <span class="string">&quot;(&lambda;_. 0)&quot;</span>
     <span class="keyword1">unfolding</span> NFlow_def Flow_def <span class="keyword1">using</span> Network_axioms 
@@ -681,9 +717,12 @@
       <span class="keyword1">by</span> auto
     <span class="keyword1">hence</span> <span class="string">&quot;ek.uE = E&cup;E&macr;&quot;</span> <span class="keyword1">unfolding</span> ek.uE_def <span class="keyword1">by</span> simp
 
-    <span class="keyword1">from</span> True <span class="keyword1">have</span> <span class="string">&quot;ek.ekMeasure = (card cf.V - cf.min_dist s t) * (card ek.uE + 1) + (card (ek.spEdges))&quot;</span>
+    <span class="keyword1">from</span> True <span class="keyword1">have</span> <span class="string">&quot;ek.ekMeasure 
+      = (card cf.V - cf.min_dist s t) * (card ek.uE + 1) + (card (ek.spEdges))&quot;</span>
       <span class="keyword1">unfolding</span> ek.ekMeasure_def <span class="keyword1">by</span> simp
-    <span class="keyword1">also</span> <span class="keyword1">from</span> mlex_bound<span class="delimiter">[</span>of <span class="string">&quot;card cf.V - cf.min_dist s t&quot;</span> <span class="string">&quot;card V&quot;</span><span class="delimiter">,</span> OF _ ek.card_spEdges_less<span class="delimiter">]</span>
+    <span class="keyword1">also</span> <span class="keyword1">from</span> 
+      mlex_bound<span class="delimiter">[</span>of <span class="string">&quot;card cf.V - cf.min_dist s t&quot;</span> <span class="string">&quot;card V&quot;</span><span class="delimiter">,</span> 
+                 OF _ ek.card_spEdges_less<span class="delimiter">]</span>
     <span class="keyword1">have</span> <span class="string">&quot;&hellip; &lt; card V * (card ek.uE+1)&quot;</span> 
       <span class="keyword1">using</span> <span class="cartouche">&#8249;cf.min_dist s t &gt; 0&#8250;</span> <span class="cartouche">&#8249;card V &gt; 0&#8250;</span>
       <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> resV_netV<span class="delimiter">)</span>
@@ -705,7 +744,8 @@
 <span class="keyword1">text</span> <span class="cartouche">&#8249;The refinement is achieved by a refinement relation, coupling the 
   instrumented loop state with the uninstrumented one&#8250;</span>
 <span class="keyword1">definition</span> <span class="string">&quot;edkac_rel &equiv; {((f,brk,itc), (f,brk)) | f brk itc.
-  itc + ek_analysis_defs.ekMeasure (residualGraph c f) s t &lt; 2 * card V * card E + card V
+    itc + ek_analysis_defs.ekMeasure (residualGraph c f) s t 
+  &lt; 2 * card V * card E + card V
 }&quot;</span>
 
 <span class="keyword1">definition</span> <span class="string">&quot;edka_complexity &equiv; do {

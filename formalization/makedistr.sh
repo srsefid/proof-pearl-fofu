@@ -28,7 +28,6 @@ follow_roots "."
 
 EXTRA=""
 EXTRA="$EXTRA `find evaluation -type f -not -name '*~' -not -path '*/samples/*' -not -name '*.log' -not -name '*.class'`"
-EXTRA="$EXTRA `find evaluation -iname "README*"`"
 EXTRA="$EXTRA README.md"
 
 FILES="$THYS $ROOTS $EXTRA"
@@ -36,6 +35,6 @@ FILES="$THYS $ROOTS $EXTRA"
 OUTNAME="edmonds_karp.tgz"
 
 echo 'Making archive'
-tar --transform 's,^,edmonds_karp/,' -czf $OUTNAME $FILES
+tar --transform 's,^\./,,;s,^,edmonds_karp/,' -czf $OUTNAME $FILES
 
 cp $OUTNAME html

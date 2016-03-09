@@ -251,6 +251,10 @@ begin
     by (cases xs rule: rev_cases) auto
 
 
+  lemma zero_comp_diff_simps[simp]: 
+    "(0::'a::linordered_idom) \<le> a - b \<longleftrightarrow> b \<le> a" 
+    "(0::'a::linordered_idom) < a - b \<longleftrightarrow> b < a" 
+    by auto
 
   (* TODO: Move: Misc, or even HOL/Finite_set *)  
   lemma (in -) card_inverse[simp]: "card (R\<inverse>) = card R"

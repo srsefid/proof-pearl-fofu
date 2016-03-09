@@ -80,7 +80,8 @@ text \<open>As all edges of the augmenting flow have the same value, we can fact
   this out from a summation:\<close>
 lemma setsum_augmenting_alt:
   assumes "finite A"          
-  shows "(\<Sum>e \<in> A. (augmentingFlow p) e) = bottleNeck p * of_nat (card (A\<inter>set p))"
+  shows "(\<Sum>e \<in> A. (augmentingFlow p) e) 
+        = bottleNeck p * of_nat (card (A\<inter>set p))"
 proof -
   have "(\<Sum>e \<in> A. (augmentingFlow p) e) = setsum (\<lambda>_. bottleNeck p) (A\<inter>set p)"
     apply (subst setsum.inter_restrict)
@@ -129,11 +130,11 @@ proof (unfold_locales; intro allI ballI)
       from 2 obtain p2' u2 where [simp]: "p2=(v,u2)#p2'"    
         using asm_s by (cases p2) (auto)
       from 
-        cf.isSPath_sg_outgoing[OF SPATH, of v u2]  cf.isSPath_sg_incoming[OF SPATH, of u1 v]
+        cf.isSPath_sg_outgoing[OF SPATH, of v u2]  
+        cf.isSPath_sg_incoming[OF SPATH, of u1 v]
         cf.isPath_edgeset[OF PATH] 
       have "cf.outgoing v \<inter> set p = {(v,u2)}" "cf.incoming v \<inter> set p = {(u1,v)}"
         by (fastforce simp: P_FMT cf.outgoing_def cf.incoming_def)+
-
       thus ?thesis by auto
     next
       assume "v\<notin>set (cf.pathVertices_fwd s p)"
@@ -166,7 +167,8 @@ proof -
   then obtain v p' where "p=(s,v)#p'" "(s,v)\<in>cf.E" 
     using s_not_t by (cases p) auto
   hence "cf.outgoing s \<inter> set p = {(s,v)}"  
-    using cf.isSPath_sg_outgoing[OF SPATH, of s v] cf.isPath_edgeset[OF PATH] 
+    using cf.isSPath_sg_outgoing[OF SPATH, of s v] 
+    using cf.isPath_edgeset[OF PATH] 
     by (fastforce simp: cf.outgoing_def)
   moreover have "cf.incoming s \<inter> set p = {}" using SPATH no_incoming_s
     by (auto 

@@ -43,7 +43,8 @@
     0&quot;</span>
 
 <span class="keyword1">text</span> <span class="cartouche">&#8249;We define a syntax similar to Cormen et el.:&#8250;</span>    
-<span class="keyword1">abbreviation</span> <span class="delimiter">(</span>input<span class="delimiter">)</span> augment_syntax <span class="delimiter">(</span><span class="keyword2">infix</span> <span class="string">&quot;\&lt;up&gt;&quot;</span> 55<span class="delimiter">)</span> <span class="keyword2">where</span> <span class="string">&quot;augment_syntax &equiv; NFlow.augment c&quot;</span>
+<span class="keyword1">abbreviation</span> <span class="delimiter">(</span>input<span class="delimiter">)</span> augment_syntax <span class="delimiter">(</span><span class="keyword2">infix</span> <span class="string">&quot;\&lt;up&gt;&quot;</span> 55<span class="delimiter">)</span> 
+  <span class="keyword2">where</span> <span class="string">&quot;!!f f&#39;. f\&lt;up&gt;f&#39; &equiv; NFlow.augment c f f&#39;&quot;</span>
 <span class="keyword1">text</span> <span class="cartouche">&#8249;such that we can write @{term [source] &quot;f\&lt;up&gt;f&#39;&quot;} for the flow @{term f} 
   augmented by @{term f&#39;}.&#8250;</span>
 
@@ -114,6 +115,7 @@
   we can split summations of the residual flow over outgoing/incoming edges in the 
   residual graph to summations over outgoing/incoming edges in the network.
 &#8250;</span>
+<span class="comment">(* TODO: Introduce pred/succ functions on Graph *)</span>
 <span class="keyword2">private</span> <span class="keyword1">lemma</span> split_rflow_outgoing<span class="delimiter">:</span> 
   <span class="string">&quot;(&sum;v&isin;cf.E``{u}. f&#39; (u,v)) = (&sum;v&isin;E``{u}. f&#39;(u,v)) + (&sum;v&isin;E&macr;``{u}. f&#39;(u,v))&quot;</span>
   <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;?LHS = ?RHS&quot;</span><span class="delimiter">)</span>
@@ -172,7 +174,8 @@
   <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;(&sum;v&isin;cf.E``{u}. f&#39; (u, v)) = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u))&quot;</span>  
     <span class="keyword1">using</span> U_ASM
     <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> f&#39;.conservation_const_pointwise<span class="delimiter">)</span>
-  <span class="keyword1">finally</span> <span class="keyword1">have</span> <span class="string">&quot;?A = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u)) - (&sum;v&isin;E&macr;``{u}. f&#39; (u, v))&quot;</span> <span class="keyword1">.</span>
+  <span class="keyword1">finally</span> <span class="keyword1">have</span> <span class="string">&quot;?A = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u)) - (&sum;v&isin;E&macr;``{u}. f&#39; (u, v))&quot;</span> 
+    <span class="keyword1">by</span> simp
   <span class="keyword1">moreover</span>
   <span class="keyword1">have</span> <span class="string">&quot;?B = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u)) - (&sum;v&isin;E&macr;``{u}. f&#39; (v, u))&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> split_rflow_incoming<span class="delimiter">)</span>
@@ -193,28 +196,33 @@
     the proof is straightforward:&#8250;</span>
   <span class="keyword1">have</span> <span class="string">&quot;?LHS = (&sum;v&isin;?Vo. augment f&#39; (u,v))&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> sum_outgoing_pointwise<span class="delimiter">)</span>
-  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vo. f (u,v) + f&#39;(u,v) - f&#39;(v,u))&quot;</span>  
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; 
+    = (&sum;v&isin;?Vo. f (u,v) + f&#39;(u,v) - f&#39;(v,u))&quot;</span>  
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def<span class="delimiter">)</span>
-  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vo. f (u,v)) + (&sum;v&isin;?Vo. f&#39; (u,v)) - (&sum;v&isin;?Vo. f&#39; (v,u))&quot;</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; 
+    = (&sum;v&isin;?Vo. f (u,v)) + (&sum;v&isin;?Vo. f&#39; (u,v)) - (&sum;v&isin;?Vo. f&#39; (v,u))&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> setsum_subtractf setsum.distrib<span class="delimiter">)</span>
-  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vi. f (v,u)) + (&sum;v&isin;?Vi. f&#39; (v,u)) - (&sum;v&isin;?Vi. f&#39; (u,v))&quot;</span> 
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; 
+    = (&sum;v&isin;?Vi. f (v,u)) + (&sum;v&isin;?Vi. f&#39; (v,u)) - (&sum;v&isin;?Vi. f&#39; (u,v))&quot;</span> 
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> conservation_const_pointwise<span class="delimiter">[</span>OF U_ASM<span class="delimiter">]</span> flow_summation_aux<span class="delimiter">)</span>
-  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vi. f (v,u) + f&#39; (v,u) - f&#39; (u,v))&quot;</span> 
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; 
+    = (&sum;v&isin;?Vi. f (v,u) + f&#39; (v,u) - f&#39; (u,v))&quot;</span> 
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> setsum_subtractf setsum.distrib<span class="delimiter">)</span>
-  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vi. augment f&#39; (v,u))&quot;</span>  
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; 
+    = (&sum;v&isin;?Vi. augment f&#39; (v,u))&quot;</span>  
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def<span class="delimiter">)</span>
-  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = ?RHS&quot;</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; 
+    = ?RHS&quot;</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> sum_incoming_pointwise<span class="delimiter">)</span>
   <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="string">&quot;?LHS = ?RHS&quot;</span> <span class="keyword1">.</span>
-
-  <span class="keyword1">text</span> <span class="cartouche">&#8249;Note that we tried to follow the proof presented by Cormen et al.~\cite{CLRS09} 
-    as closely as possible. Unfortunately, this proof generalizes the summation to all 
-    nodes immediately, rendering the first equation invalid.
-    Trying to fix this error, we encountered that the step that uses the conservation 
-    constraints on the augmenting flow is more subtle as indicated in the original proof.
-    Thus, we moved this argument to an auxiliary lemma. &#8250;</span>
-
 <span class="keyword1">qed</span>  
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Note that we tried to follow the proof presented by Cormen et al.~\cite{CLRS09} 
+  as closely as possible. Unfortunately, this proof generalizes the summation to all 
+  nodes immediately, rendering the first equation invalid.
+  Trying to fix this error, we encountered that the step that uses the conservation 
+  constraints on the augmenting flow is more subtle as indicated in the original proof.
+  Thus, we moved this argument to an auxiliary lemma. &#8250;</span>
+
 
 <span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;@{term u} is node&#8250;</span>
 
@@ -267,8 +275,8 @@
   <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = val + Flow.val cf s f&#39;&quot;</span>  
     <span class="keyword1">unfolding</span> val_def f&#39;.val_def <span class="keyword1">by</span> simp
   <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">.</span>  
-
   <span class="comment">(*&lt;*)</span>
+
   <span class="keyword1">txt</span> <span class="cartouche">&#8249;Note, there is also an automatic proof. When creating the above 
       explicit proof, this automatic one has been used to extract meaningful
       subgoals, abusing Isabelle as a term rewriter.&#8250;</span>
@@ -288,6 +296,7 @@
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def no_parallel_edge aux1<span class="delimiter">)</span>
     <span class="keyword1"><span class="improper">done</span></span>
   <span class="comment">(*&gt;*)</span>
+
 <span class="keyword1">qed</span>    
 
 <span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Augmenting flow&#8250;</span>

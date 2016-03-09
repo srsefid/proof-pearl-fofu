@@ -97,7 +97,8 @@
   this out from a summation:&#8250;</span>
 <span class="keyword1">lemma</span> setsum_augmenting_alt<span class="delimiter">:</span>
   <span class="keyword2">assumes</span> <span class="string">&quot;finite A&quot;</span>          
-  <span class="keyword2">shows</span> <span class="string">&quot;(&sum;e &isin; A. (augmentingFlow p) e) = bottleNeck p * of_nat (card (A&cap;set p))&quot;</span>
+  <span class="keyword2">shows</span> <span class="string">&quot;(&sum;e &isin; A. (augmentingFlow p) e) 
+        = bottleNeck p * of_nat (card (A&cap;set p))&quot;</span>
 <span class="keyword1">proof</span> -
   <span class="keyword1">have</span> <span class="string">&quot;(&sum;e &isin; A. (augmentingFlow p) e) = setsum (&lambda;_. bottleNeck p) (A&cap;set p)&quot;</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst setsum.inter_restrict<span class="delimiter">)</span>
@@ -146,11 +147,11 @@
       <span class="keyword1">from</span> 2 <span class="keyword3">obtain</span> p2&#39; u2 <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;p2=(v,u2)#p2&#39;&quot;</span>    
         <span class="keyword1">using</span> asm_s <span class="keyword1">by</span> <span class="delimiter">(</span>cases p2<span class="delimiter">)</span> <span class="delimiter">(</span>auto<span class="delimiter">)</span>
       <span class="keyword1">from</span> 
-        cf.isSPath_sg_outgoing<span class="delimiter">[</span>OF SPATH<span class="delimiter">,</span> of v u2<span class="delimiter">]</span>  cf.isSPath_sg_incoming<span class="delimiter">[</span>OF SPATH<span class="delimiter">,</span> of u1 v<span class="delimiter">]</span>
+        cf.isSPath_sg_outgoing<span class="delimiter">[</span>OF SPATH<span class="delimiter">,</span> of v u2<span class="delimiter">]</span>  
+        cf.isSPath_sg_incoming<span class="delimiter">[</span>OF SPATH<span class="delimiter">,</span> of u1 v<span class="delimiter">]</span>
         cf.isPath_edgeset<span class="delimiter">[</span>OF PATH<span class="delimiter">]</span> 
       <span class="keyword1">have</span> <span class="string">&quot;cf.outgoing v &cap; set p = {(v,u2)}&quot;</span> <span class="string">&quot;cf.incoming v &cap; set p = {(u1,v)}&quot;</span>
         <span class="keyword1">by</span> <span class="delimiter">(</span>fastforce simp<span class="delimiter">:</span> P_FMT cf.outgoing_def cf.incoming_def<span class="delimiter">)</span><span class="delimiter">+</span>
-
       <span class="keyword3">thus</span> <span class="var">?thesis</span> <span class="keyword1">by</span> auto
     <span class="keyword1">next</span>
       <span class="keyword3">assume</span> <span class="string">&quot;v&notin;set (cf.pathVertices_fwd s p)&quot;</span>
@@ -183,7 +184,8 @@
   <span class="keyword1">then</span> <span class="keyword3">obtain</span> v p&#39; <span class="keyword2">where</span> <span class="string">&quot;p=(s,v)#p&#39;&quot;</span> <span class="string">&quot;(s,v)&isin;cf.E&quot;</span> 
     <span class="keyword1">using</span> s_not_t <span class="keyword1">by</span> <span class="delimiter">(</span>cases p<span class="delimiter">)</span> auto
   <span class="keyword1">hence</span> <span class="string">&quot;cf.outgoing s &cap; set p = {(s,v)}&quot;</span>  
-    <span class="keyword1">using</span> cf.isSPath_sg_outgoing<span class="delimiter">[</span>OF SPATH<span class="delimiter">,</span> of s v<span class="delimiter">]</span> cf.isPath_edgeset<span class="delimiter">[</span>OF PATH<span class="delimiter">]</span> 
+    <span class="keyword1">using</span> cf.isSPath_sg_outgoing<span class="delimiter">[</span>OF SPATH<span class="delimiter">,</span> of s v<span class="delimiter">]</span> 
+    <span class="keyword1">using</span> cf.isPath_edgeset<span class="delimiter">[</span>OF PATH<span class="delimiter">]</span> 
     <span class="keyword1">by</span> <span class="delimiter">(</span>fastforce simp<span class="delimiter">:</span> cf.outgoing_def<span class="delimiter">)</span>
   <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;cf.incoming s &cap; set p = {}&quot;</span> <span class="keyword1">using</span> SPATH no_incoming_s
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto 

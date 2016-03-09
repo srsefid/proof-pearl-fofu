@@ -26,7 +26,8 @@ where "augment f' \<equiv> \<lambda>(u, v).
     0"
 
 text \<open>We define a syntax similar to Cormen et el.:\<close>    
-abbreviation (input) augment_syntax (infix "\<up>" 55) where "augment_syntax \<equiv> NFlow.augment c"
+abbreviation (input) augment_syntax (infix "\<up>" 55) 
+  where "\<And>f f'. f\<up>f' \<equiv> NFlow.augment c f f'"
 text \<open>such that we can write @{term [source] "f\<up>f'"} for the flow @{term f} 
   augmented by @{term f'}.\<close>
 
@@ -97,6 +98,7 @@ text \<open>As there are no parallel edges in the network, and all edges
   we can split summations of the residual flow over outgoing/incoming edges in the 
   residual graph to summations over outgoing/incoming edges in the network.
 \<close>
+(* TODO: Introduce pred/succ functions on Graph *)
 private lemma split_rflow_outgoing: 
   "(\<Sum>v\<in>cf.E``{u}. f' (u,v)) = (\<Sum>v\<in>E``{u}. f'(u,v)) + (\<Sum>v\<in>E\<inverse>``{u}. f'(u,v))"
   (is "?LHS = ?RHS")
@@ -155,7 +157,8 @@ proof -
   also have "(\<Sum>v\<in>cf.E``{u}. f' (u, v)) = (\<Sum>v\<in>cf.E\<inverse>``{u}. f' (v, u))"  
     using U_ASM
     by (simp add: f'.conservation_const_pointwise)
-  finally have "?A = (\<Sum>v\<in>cf.E\<inverse>``{u}. f' (v, u)) - (\<Sum>v\<in>E\<inverse>``{u}. f' (u, v))" .
+  finally have "?A = (\<Sum>v\<in>cf.E\<inverse>``{u}. f' (v, u)) - (\<Sum>v\<in>E\<inverse>``{u}. f' (u, v))" 
+    by simp
   moreover
   have "?B = (\<Sum>v\<in>cf.E\<inverse>``{u}. f' (v, u)) - (\<Sum>v\<in>E\<inverse>``{u}. f' (v, u))"
     by (simp add: split_rflow_incoming)
@@ -176,28 +179,33 @@ proof -
     the proof is straightforward:\<close>
   have "?LHS = (\<Sum>v\<in>?Vo. augment f' (u,v))"
     by (auto simp: sum_outgoing_pointwise)
-  also have "\<dots> = (\<Sum>v\<in>?Vo. f (u,v) + f'(u,v) - f'(v,u))"  
+  also have "\<dots> 
+    = (\<Sum>v\<in>?Vo. f (u,v) + f'(u,v) - f'(v,u))"  
     by (auto simp: augment_def)
-  also have "\<dots> = (\<Sum>v\<in>?Vo. f (u,v)) + (\<Sum>v\<in>?Vo. f' (u,v)) - (\<Sum>v\<in>?Vo. f' (v,u))"
+  also have "\<dots> 
+    = (\<Sum>v\<in>?Vo. f (u,v)) + (\<Sum>v\<in>?Vo. f' (u,v)) - (\<Sum>v\<in>?Vo. f' (v,u))"
     by (auto simp: setsum_subtractf setsum.distrib)
-  also have "\<dots> = (\<Sum>v\<in>?Vi. f (v,u)) + (\<Sum>v\<in>?Vi. f' (v,u)) - (\<Sum>v\<in>?Vi. f' (u,v))" 
+  also have "\<dots> 
+    = (\<Sum>v\<in>?Vi. f (v,u)) + (\<Sum>v\<in>?Vi. f' (v,u)) - (\<Sum>v\<in>?Vi. f' (u,v))" 
     by (auto simp: conservation_const_pointwise[OF U_ASM] flow_summation_aux)
-  also have "\<dots> = (\<Sum>v\<in>?Vi. f (v,u) + f' (v,u) - f' (u,v))" 
+  also have "\<dots> 
+    = (\<Sum>v\<in>?Vi. f (v,u) + f' (v,u) - f' (u,v))" 
     by (auto simp: setsum_subtractf setsum.distrib)
-  also have "\<dots> = (\<Sum>v\<in>?Vi. augment f' (v,u))"  
+  also have "\<dots> 
+    = (\<Sum>v\<in>?Vi. augment f' (v,u))"  
     by (auto simp: augment_def)
-  also have "\<dots> = ?RHS"
+  also have "\<dots> 
+    = ?RHS"
     by (auto simp: sum_incoming_pointwise)
   finally show "?LHS = ?RHS" .
-
-  text \<open>Note that we tried to follow the proof presented by Cormen et al.~\cite{CLRS09} 
-    as closely as possible. Unfortunately, this proof generalizes the summation to all 
-    nodes immediately, rendering the first equation invalid.
-    Trying to fix this error, we encountered that the step that uses the conservation 
-    constraints on the augmenting flow is more subtle as indicated in the original proof.
-    Thus, we moved this argument to an auxiliary lemma. \<close>
-
 qed  
+text \<open>Note that we tried to follow the proof presented by Cormen et al.~\cite{CLRS09} 
+  as closely as possible. Unfortunately, this proof generalizes the summation to all 
+  nodes immediately, rendering the first equation invalid.
+  Trying to fix this error, we encountered that the step that uses the conservation 
+  constraints on the augmenting flow is more subtle as indicated in the original proof.
+  Thus, we moved this argument to an auxiliary lemma. \<close>
+
 
 end -- \<open>@{term u} is node\<close>
 
@@ -250,8 +258,8 @@ proof -
   also have "\<dots> = val + Flow.val cf s f'"  
     unfolding val_def f'.val_def by simp
   finally show ?thesis .  
-
   (*<*)
+
   txt \<open>Note, there is also an automatic proof. When creating the above 
       explicit proof, this automatic one has been used to extract meaningful
       subgoals, abusing Isabelle as a term rewriter.\<close>
@@ -271,6 +279,7 @@ proof -
     apply (auto simp: augment_def no_parallel_edge aux1)
     done
   (*>*)
+
 qed    
 
 end -- \<open>Augmenting flow\<close>

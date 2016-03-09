@@ -6,7 +6,7 @@ text \<open>
   In this theory, we define the residual graph.
   \<close>
 
-subsection \<open>definition\<close>
+subsection \<open>Definition\<close>
 text \<open>The \emph{residual graph} of a network and a flow indicates how much 
   flow can be effectively pushed along or reverse to a network edge,
   by increasing or decreasing the flow on that edge:\<close>
@@ -107,40 +107,31 @@ lemma finite_cf_outgoing[simp, intro!]: "finite (cf.outgoing v)"
 
 text \<open>The capacities on the edges of the residual graph are non-negative\<close>
 lemma resE_nonNegative: "cf e \<ge> 0"
-proof -
-  obtain u v where obt: "e = (u, v)" by (cases e)
-  have "((u, v) \<in> E \<or> (v, u) \<in> E) \<or> ((u, v) \<notin> E \<and> (v, u) \<notin> E)" by blast
-  thus ?thesis
-  proof
-    assume "(u, v) \<in> E \<or> (v, u) \<in> E"
-    thus ?thesis
-    proof
-      assume "(u, v) \<in> E"
-      then have "cf e = c e - f e" using cf_def obt by auto
-      thus ?thesis using capacity_const cap_positive obt 
-        by (metis diff_0_right diff_eq_diff_less_eq eq_iff 
-          eq_iff_diff_eq_0 linear)
-    next
-      assume "(v, u) \<in> E"
-      then have "cf e = f (v, u)" using cf_def no_parallel_edge obt by auto
-      thus ?thesis using obt capacity_const using le_less by fastforce 
-    qed
-  next
-    assume "(u, v) \<notin> E \<and> (v, u) \<notin> E"
-    thus ?thesis unfolding residualGraph_def using obt by simp
-  qed
+proof (cases e; simp)
+  fix u v
+  {
+    assume "(u, v) \<in> E"
+    then have "cf (u, v) = c (u, v) - f (u, v)" unfolding cf_def by auto
+    hence "cf (u,v) \<ge> 0" 
+      using capacity_const cap_non_negative by auto
+  } moreover {
+    assume "(v, u) \<in> E"
+    then have "cf (u,v) = f (v, u)" 
+      using no_parallel_edge unfolding cf_def by auto
+    hence "cf (u,v) \<ge> 0" 
+      using capacity_const by auto
+  } moreover {
+    assume "(u, v) \<notin> E" "(v, u) \<notin> E"
+    hence "cf (u,v) \<ge> 0" unfolding residualGraph_def by simp
+  } ultimately show "cf (u,v) \<ge> 0" by blast
 qed
 
-text \<open>Again, there is an almost automatic proof, which can be easily found 
-  using the sledgehammer tool for the final arithmetic argument.\<close>
+text \<open>Again, there is an automatic proof\<close>
 lemma "cf e \<ge> 0"
   apply (cases e)
   unfolding residualGraph_def
   using no_parallel_edge capacity_const cap_positive
-  apply clarsimp
-  by (metis diff_0_right diff_eq_diff_less_eq eq_iff 
-    eq_iff_diff_eq_0 linear)
-
+  by auto
 
 text \<open>All edges of the residual graph are labeled with positive capacities:\<close>
 corollary resE_positive: "e \<in> cf.E \<Longrightarrow> cf e > 0"
