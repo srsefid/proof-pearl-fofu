@@ -1,8 +1,15 @@
+section \<open>Breadth First Search\<close>
 theory Augmenting_Path_BFS
 imports Refine_Add_Fofu Graph_Impl 
   Refine_Monadic_Syntax_Sugar
 begin
+  text \<open>
+    In this theory, we present a verified breadth-first search
+    with an efficient imperative implementation.
+    It is parametric over the successor function.
+    \<close>
 
+  subsection \<open>Algorithm\<close>
   locale pre_bfs_invar = Graph +    
     fixes src dst :: node
   begin  
@@ -88,7 +95,7 @@ begin
         ASSERT (v\<in>V);
         let succ = (E``{v});
         ASSERT (finite succ);
-        ASSERT (N \<subseteq> dom PRED); (* Required for refinement of add_succ_spec. TODO: Move intom add_succ_spec! *)
+        ASSERT (N \<subseteq> dom PRED); (* Required for refinement of add_succ_spec. TODO: Move into add_succ_spec! *)
         (f,PRED,N) \<leftarrow> add_succ_spec dst succ v PRED N;
         if f then
           RETURN (f,PRED,C,N,d+1)
@@ -608,7 +615,7 @@ begin
     apply vc_solve
     done
 
-
+subsection \<open>Imperative Implementation\<close>
 
   context Impl_Succ begin
     definition op_bfs :: "'ga \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres" where [simp]: "op_bfs c s t \<equiv> Graph.bfs2 (absG c) (succ c) s t"

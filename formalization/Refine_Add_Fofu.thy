@@ -434,5 +434,32 @@ lemma hn_monadic_nfoldli_rl'[sepref_comb_rules]:
   instance integer :: heap ..
   *)
 
+  lemma int_of_integer_less_iff: "int_of_integer x < int_of_integer y \<longleftrightarrow> x<y"
+    by (simp add: less_integer_def)
+
+  lemma nat_of_integer_less_iff: "x\<ge>0 \<Longrightarrow> y\<ge>0 \<Longrightarrow> nat_of_integer x < nat_of_integer y \<longleftrightarrow> x<y"
+    unfolding nat_of_integer.rep_eq
+    by (auto simp: int_of_integer_less_iff nat_less_eq_zless int_of_integer_less_iff[of 0, simplified])
+    
+  (*(* TODO: Move *)
+  lemma param_integer[param]:
+    "(0, 0::integer) \<in> Id"
+    "(1, 1::integer) \<in> Id"
+    "(numeral n::integer,numeral n::integer) \<in> Id"
+    "(op <, op <::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
+    "(op \<le>, op \<le>::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
+    "(op =, op =::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
+    "(op +::integer\<Rightarrow>_,op +)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+    "(op -::integer\<Rightarrow>_,op -)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+    "(op *::integer\<Rightarrow>_,op * )\<in>Id\<rightarrow>Id\<rightarrow>Id"
+    "(op div::integer\<Rightarrow>_,op div)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+    "(op mod::integer\<Rightarrow>_,op mod)\<in>Id\<rightarrow>Id\<rightarrow>Id"
+    by auto
+  
+  lemmas [sepref_import_param] = param_integer  
+  
+  lemmas [id_rules] = 
+    itypeI[Pure.of 0 "TYPE (integer)"]
+  *)  
 
 end

@@ -12,6 +12,9 @@ begin
     notation FOREACH ("foreach")
     notation WHILE ("while")
     notation WHILET ("while\<^sub>T")
+    notation WHILEI ("while\<^bsup>_\<^esup>")
+    notation WHILET ("while\<^sub>T")
+    notation WHILEIT ("while\<^sub>T\<^bsup>_\<^esup>")
 
   end
 end

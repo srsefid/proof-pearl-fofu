@@ -188,52 +188,6 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
-    
-  
-  
-  
-  (* Flow definitions *)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  type_synonym 'capacity flow = "edge \<Rightarrow> 'capacity"
-  
-  locale Flow = Graph c for c :: "'capacity::linordered_idom graph" +
-    fixes s t :: node
-    fixes f :: "'capacity::linordered_idom flow"
-    (* TODO: Move \<forall>-quantifiers to meta-level! *)
-    assumes capacity_const: "\<forall>e. 0 \<le> f e \<and> f e \<le> c e"
-    assumes conservation_const: "\<forall>v \<in> V - {s, t}. (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
-  begin
-    definition val :: "'capacity"
-    where "val \<equiv> (\<Sum>e \<in> outgoing s. f e) - (\<Sum>e \<in> incoming s. f e)"
-  end
-
-  context Graph_Syntax begin    
-    abbreviation Flow_val :: "'capacity::linordered_idom graph \<Rightarrow> node \<Rightarrow> 'capacity flow \<Rightarrow> 'capacity"
-      ("\<lbrace>_,/ _/ \<parallel>\<^sub>F/ |_|\<rbrace>" 1000) 
-    where "\<lbrace>c, s \<parallel>\<^sub>F |f|\<rbrace> \<equiv> Flow.val c s f"
-  end  
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
-    
-    
-    
-  
-  (* Cut definitions *)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  type_synonym cut = "node set"
-  
-  locale Cut = Graph +
-    fixes k :: cut
-    assumes cut_ss_V: "k \<subseteq> V"
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
-  
-  
-  
   
   (* Graph lemmas *)
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
@@ -727,19 +681,11 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
   (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)  
   context Graph
   begin
-    lemma reachable_ss_V: "s \<in> V \<Longrightarrow> reachableNodes s \<subseteq> V"
-      proof
-        assume asm: "s \<in> V"
-        fix x
-        assume "x \<in> reachableNodes s"
-        then obtain p where "x \<in> {v. isPath s p v}"
-          unfolding reachableNodes_def connected_def by blast
-        thus "x \<in> V" using asm
-          by (induction p arbitrary: s) (auto simp: isPath_head V_alt) 
-      qed
-
     lemma connected_refl[simp, intro!]: "connected v v" 
       unfolding connected_def by (force intro: exI[where x="[]"])
+
+    lemma connected_append_edge: "connected u v \<Longrightarrow> (v,w)\<in>E \<Longrightarrow> connected u w"
+      unfolding connected_def by (auto intro: isPath_append_edge)
 
     lemma connected_inV_iff: "\<lbrakk>connected u v\<rbrakk> \<Longrightarrow> v\<in>V \<longleftrightarrow> u\<in>V"
       apply (auto simp: connected_def)
@@ -766,6 +712,26 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
             thus ?case unfolding connected_def by blast
         qed simp
     qed    
+
+
+    lemma reachable_ss_V: "s \<in> V \<Longrightarrow> reachableNodes s \<subseteq> V"
+      proof
+        assume asm: "s \<in> V"
+        fix x
+        assume "x \<in> reachableNodes s"
+        then obtain p where "x \<in> {v. isPath s p v}"
+          unfolding reachableNodes_def connected_def by blast
+        thus "x \<in> V" using asm
+          by (induction p arbitrary: s) (auto simp: isPath_head V_alt) 
+      qed
+
+    lemma reachableNodes_E_closed: "E``reachableNodes s \<subseteq> reachableNodes s"  
+      unfolding reachableNodes_def by (auto intro: connected_append_edge)
+
+    corollary reachableNodes_append_edge: 
+      "u\<in>reachableNodes s \<Longrightarrow> (u,v)\<in>E \<Longrightarrow> v\<in>reachableNodes s"
+      using reachableNodes_E_closed by blast
+
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -1204,58 +1170,29 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
           qed
       qed
       
-    (* TODO: There should be a much simpler proof! *)  
-    lemma isSPath_nt_parallel: "isSimplePath u p v \<Longrightarrow> (\<forall>(u, v) \<in> set p. (v, u) \<notin> set p)"
-      proof -
-        assume asm: "isSimplePath u p v"
-        {
-          fix x y
-          assume asm_s: "(x, y) \<in> set p"
-          have "\<exists>es1 es2. p = es1 @ (y, x) # (x, y) # es2 \<or> (y, x) \<notin> set p"
-            using isSPath_no_returning[OF asm asm_s] by auto
-          moreover have "\<not> (\<exists>es1 es2. p = es1 @ (y, x) # (x, y) # es2)"
-            proof (rule ccontr)
-              assume "\<not> \<not>(\<exists>es1 es2. p = es1 @ (y, x) # (x, y) # es2)"
-              then obtain es1 es2 where obt: "p = es1 @ (y, x) # (x, y) # es2" by blast
-              moreover have "isPath u p v" using asm isSimplePath_def[of u p v] by metis
-              ultimately obtain w where "isPath w ((y, x) # (x, y) # es2) v"
-                using isPath_append by auto
-              then have "es2 = [] \<or> (es2 \<noteq> [] \<and> fst (hd es2) = y)"
-                using isPath_head2[of x "(x, y)" es2] by auto
-              then show "False"
-                proof
-                  assume "es2 = []"
-                  have "pathVertices (last (pathVertices u es1)) [(y, x), (x, y)] = [y, x, y]"
-                    by (metis pathVertices.simps(1) pathVertices.simps(2) fst_conv snd_conv)
-                  moreover note pathVertices_append[of u es1 "(y, x) # (x, y) # []"]
-                  ultimately have "pathVertices u p = butlast (pathVertices u es1) @ [y, x, y]"
-                    using obt `es2 = []` by auto
-                  then have "\<not> distinct (pathVertices u p)" by (metis distinct.simps(2)
-                    distinct_append last.simps last_in_set list.distinct(1))
-                  thus ?thesis using asm isSimplePath_def by auto
-                next
-                  assume "es2 \<noteq> [] \<and> fst (hd es2) = y"
-                  {
-                    have "pathVertices (last (pathVertices u es1)) ((y, x) # (x, y) # es2) =
-                      y # x # pathVertices y es2" (is "?L = _") by auto
-                    moreover have "pathVertices y es2 = fst (hd es2) # pathVertices 
-                      (snd (hd es2)) (tl es2)" using `es2 \<noteq> [] \<and> fst (hd es2) = y` 
-                      by (metis pathVertices.simps(2) list.collapse)
-                    ultimately have "?L = y # x # y # pathVertices (snd (hd es2)) (tl es2)"
-                      using `es2 \<noteq> [] \<and> fst (hd es2) = y` by auto
-                  }
-                  moreover note pathVertices_append[of u es1 "(y, x) # (x, y) # es2"]
-                  ultimately have "pathVertices u p = butlast (pathVertices u es1) @ (y # x # y # 
-                    pathVertices (snd (hd es2)) (tl es2))" using obt by auto
-                  then have "\<not> distinct (pathVertices u p)"
-                    by (metis (mono_tags) distinct_append distinct_length_2_or_more)
-                  thus ?thesis using asm isSimplePath_def by auto
-                qed
-            qed
-          ultimately have "(y, x) \<notin> set p" by blast
-        }
-        thus ?thesis by auto
-      qed
+    lemma isSPath_nt_parallel:
+      assumes SP: "isSimplePath s p t"
+      assumes EIP: "e\<in>set p"
+      shows "prod.swap e \<notin> set p"
+    proof -  
+      from SP have P: "isPath s p t" and D: "distinct (pathVertices_fwd s p)"
+        by (auto simp: isSimplePath_fwd)
+    
+      show "prod.swap e \<notin> set p"  
+        apply (cases e) using D EIP
+        by (auto 
+          dest!: pathVertices_edge[OF P] 
+          elim!: list_match_lel_lel list_Cons_eq_append_cases)
+    
+    qed
+
+    lemma isSPath_nt_parallel_old: 
+      "isSimplePath u p v \<Longrightarrow> (\<forall>(u, v) \<in> set p. (v, u) \<notin> set p)"
+      using isSPath_nt_parallel[of u p v] by auto
+
+    corollary isSPath_nt_parallel_pf: 
+      "isSimplePath s p t \<Longrightarrow> set p \<inter> (set p)\<inverse> = {}"
+      by (auto dest: isSPath_nt_parallel)
       
     lemma isSPath_distinct: "isSimplePath u p v \<Longrightarrow> distinct p"
       proof (rule ccontr)
@@ -1273,6 +1210,62 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
         then have "\<not> distinct (pathVertices u p)" by auto
         thus "False" using asm isSimplePath_def by auto
       qed
+
+
+    text \<open>Edges adjacent to a node that does not lie on a path 
+      are not contained in that path:\<close>  
+    lemma adjacent_edges_not_on_path:
+      assumes PATH: "isPath s p t"
+      assumes VNV: "v\<notin>set (pathVertices_fwd s p)"
+      shows "adjacent v \<inter> set p = {}" 
+    proof -
+      from VNV have "\<forall>u. (u,v)\<notin>set p \<and> (v,u)\<notin>set p"
+        by (auto dest: pathVertices_edge[OF PATH])
+      thus "adjacent v \<inter> set p = {}"
+        by (auto simp: incoming_def outgoing_def adjacent_def)
+    qed    
+
+    corollary 
+      assumes "isPath s p t"
+      assumes "v\<notin>set (pathVertices_fwd s p)"
+      shows incoming_edges_not_on_path: "incoming v \<inter> set p = {}" 
+        and outgoing_edges_not_on_path: "outgoing v \<inter> set p = {}"
+      using adjacent_edges_not_on_path[OF assms]
+      unfolding adjacent_def by auto
+
+    text \<open>A simple path over a vertex can be split at this vertex, 
+      and there are exactly two edges on the path touching this vertex.\<close>  
+    lemma adjacent_edges_on_simple_path:
+      assumes SPATH: "isSimplePath s p t"
+      assumes VNV: "v\<in>set (pathVertices_fwd s p)" "v\<noteq>s" "v\<noteq>t"
+      obtains p1 u w p2 where 
+        "p = p1@(u,v)#(v,w)#p2" 
+        "incoming v \<inter> set p = {(u,v)}" 
+        "outgoing v \<inter> set p = {(v,w)}"
+    proof -
+      from SPATH have PATH: "isPath s p t" and DIST: "distinct (pathVertices_fwd s p)" 
+        by (auto simp: isSimplePath_def pathVertices_fwd)
+      from split_path_at_vertex[OF VNV(1) PATH] obtain p1 p2 where 
+        [simp]: "p=p1@p2" and P1: "isPath s p1 v" and P2: "isPath v p2 t" .
+      from \<open>v\<noteq>s\<close> P1 obtain p1' u where 
+        [simp]: "p1=p1'@[(u,v)]" and P1': "isPath s p1' u" and UV: "(u,v)\<in>E"
+        by (cases p1 rule: rev_cases) (auto simp: split_path_simps)
+      from \<open>v\<noteq>t\<close> P2 obtain w p2' where 
+        [simp]: "p2=(v,w)#p2'" and VW: "(v,w)\<in>E" and P2': "isPath w p2' t"
+        by (cases p2) (auto)
+      show thesis
+        apply (rule that[of p1' u w p2'])
+        apply simp
+        using 
+          isSPath_sg_outgoing[OF SPATH, of v w] 
+          isSPath_sg_incoming[OF SPATH, of u v]
+          isPath_edgeset[OF PATH]
+        apply (fastforce simp: incoming_def outgoing_def)+
+        done
+    qed
+
+
+
   end
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
   (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
@@ -1503,6 +1496,8 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
       using shortestPath_is_simple isShortestPath_min_dist_def
       unfolding isSimplePath_def by auto
 
+    lemma shortestPath_is_path: "isShortestPath u p v \<Longrightarrow> isPath u p v"
+      by (auto simp: isShortestPath_def)
       
     text \<open>In a finite graph, the length of a shortest path is less 
       than the number of nodes\<close>  
@@ -1565,34 +1560,5 @@ locale Graph = fixes c :: "'capacity::linordered_idom graph"
 
   end
 
-  context Flow 
-  begin
-    lemma zero_flow_simp[simp]:
-      "(u,v)\<notin>E \<Longrightarrow> f(u,v) = 0"
-      by (metis capacity_const eq_iff zero_cap_simp)
-
-    lemma conservation_const_pointwise: 
-      assumes "u\<in>V - {s,t}"
-      shows "(\<Sum>v\<in>E``{u}. f (u,v)) = (\<Sum>v\<in>E\<inverse>``{u}. f (v,u))"
-      using conservation_const assms
-      by (auto simp: sum_incoming_pointwise sum_outgoing_pointwise)
-
-    lemma sum_outgoing_alt_flow:
-      fixes g :: "edge \<Rightarrow> 'capacity"
-      assumes "finite V" "u\<in>V"
-      shows "(\<Sum>e\<in>outgoing u. f e) = (\<Sum>v\<in>V. f (u,v))"
-      apply (subst sum_outgoing_alt)
-      using assms capacity_const
-      by auto
-      
-    lemma sum_incoming_alt_flow:
-      fixes g :: "edge \<Rightarrow> 'capacity"
-      assumes "finite V" "u\<in>V"
-      shows "(\<Sum>e\<in>incoming u. f e) = (\<Sum>v\<in>V. f (v,u))"
-      apply (subst sum_incoming_alt)
-      using assms capacity_const
-      by auto
-
-  end    
 
 end

@@ -11,7 +11,37 @@ session Edka_BFS = "Edka_Base" +
 session Edka = "Edka_BFS" +
   theories Edka_Checked_Impl
 
-session Snippets = Edka_BFS +
+session Edka_Document = "Edka_Base" +
+  options [ 
+    document = "pdf",
+    document_variants = "document:outline=/proof,/ML",
+    document_output = "generated"]
+  theories [document = false]
+    Graph
+  theories [document = false]  
+    Augmenting_Path_BFS
+    Fofu_Abs_Base
+    Fofu_Impl_Base
+    Refine_Add_Fofu
+    Capacity_Matrix_Impl
+  theories  
+    Network
+    ResidualGraph
+    Augmenting_Flow
+    Augmenting_Path
+    Ford_Fulkerson
+    FordFulkerson_Algo
+    EdmondsKarp_Algo
+    EdmondsKarp_Impl
+  theories [document = false]  
+    NetCheck
+  theories  
+    Edka_Checked_Impl
+
+   document_files
+     "root.tex" "root.bib"
+
+(*session Snippets = Edka_BFS +
    options [
      document = "pdf",
      document_output = "generated"]
@@ -19,3 +49,4 @@ session Snippets = Edka_BFS +
      Edka_Checked_Impl
    document_files
      build
+*)

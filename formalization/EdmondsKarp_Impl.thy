@@ -802,26 +802,6 @@ begin
     lemma [def_pat_rules]: "Network.compute_rflow$c$s$t \<equiv> UNPROTECT compute_rflow" by simp
     sepref_register "PR_CONST compute_rflow" "capacity_impl i_mtx \<Rightarrow> i_rflow nres"
 
-    (*(* TODO: Move *)
-    lemma param_integer[param]:
-      "(0, 0::integer) \<in> Id"
-      "(1, 1::integer) \<in> Id"
-      "(numeral n::integer,numeral n::integer) \<in> Id"
-      "(op <, op <::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
-      "(op \<le>, op \<le>::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
-      "(op =, op =::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
-      "(op +::integer\<Rightarrow>_,op +)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-      "(op -::integer\<Rightarrow>_,op -)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-      "(op *::integer\<Rightarrow>_,op * )\<in>Id\<rightarrow>Id\<rightarrow>Id"
-      "(op div::integer\<Rightarrow>_,op div)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-      "(op mod::integer\<Rightarrow>_,op mod)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-      by auto
-
-    lemmas [sepref_import_param] = param_integer  
-
-    lemmas [id_rules] = 
-      itypeI[Pure.of 0 "TYPE (integer)"]
-    *)  
 
     schematic_lemma rg_succ2_impl:
       fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
@@ -924,15 +904,6 @@ begin
       apply (rule hfref_cons[OF succ_imp_refine[unfolded PR_CONST_def]])
       by auto
       
-    (*lemmas bfs_impl_def = bfs.bfs_impl_def
-
-    concrete_definition (in -) bfsi uses Edka_Impl.bfs_impl_def
-    (*lemmas [sepref_fr_rules] = bfs.bfs_impl_fr_rule[unfolded bfsi.refine[OF this_loc,abs_def]]*)
-    prepare_code_thms (in -) bfsi_def*)
-   
-    (*thm bfs.bfs_impl_fr_rule[unfolded bfsi.refine[OF this_loc,abs_def]]*)
-    thm bfs.bfs_impl_fr_rule
-    term bfs_impl
     definition (in -) "bfsi' N s t psi cfi \<equiv> bfs_impl (\<lambda>(ps, cf). succ_imp N ps cf) (psi,cfi) s t"
 
     lemma [sepref_fr_rules]: "(uncurry (bfsi' N s t),uncurry (PR_CONST bfs2_op)) \<in> is_ps\<^sup>k *\<^sub>a (is_mtx N)\<^sup>k \<rightarrow>\<^sub>a hn_option_aux is_path"
@@ -1030,6 +1001,7 @@ begin
   export_code edka_imp checking SML_imp
 
   context Network_Impl begin
+    text \<open>Correctness theorem of the final implementation\<close>
     theorem edka_imp_correct: 
       assumes VN: "Graph.V c \<subseteq> {0..<N}"
       assumes ABS_PS: "is_pred_succ ps c"

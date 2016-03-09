@@ -15,8 +15,9 @@ check:
 	done; true
 #	egrep -o "[[:alpha:]]+-[[:alpha:]-]+" *.tex | tr "[:upper:]" "[:lower:]" | sed -re "s/:/: /g" | sort -k2 -u | egrep -v --file allow_hyphen | sort | egrep --color "[[:alpha:]]+-[[:alpha:]-]+"; true
 
-snippets/snippets.tex:
-	isabelle build -d ../formalization Snippets && cp ../formalization/generated/snippets.tex snippets/snippets.tex
+# Note: Diabled, until we have solution how to build snippets and document
+#snippets/snippets.tex:
+#	isabelle build -d ../formalization Snippets && cp ../formalization/generated/snippets.tex snippets/snippets.tex
 
 snippets/snippets.out.tex: snippets/snippets.tex massage_snippets.sed
 	sed -rf massage_snippets.sed snippets/snippets.tex > snippets/snippets.out.tex
@@ -27,5 +28,5 @@ $(TEX).pdf: *.tex snippets/snippets.out.tex *.bib
 clean:
 	@rm -f *.toc *.aux *.dvi *.log *.lof *.bbl *.blg *.hix *.tid *.tde *~ snippets/*.out.tex
 
-clean_snippets: clean
-	@rm -rf snippets/*.tex
+#clean_snippets: clean
+#	@rm -rf snippets/*.tex

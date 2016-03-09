@@ -1,187 +1,301 @@
+section \<open>The Ford-Fulkerson Theorem\<close>
 theory Ford_Fulkerson
-imports Augmenting ResidualGraph
+imports Augmenting_Flow Augmenting_Path
 begin
+text \<open>In this theory, we prove the Ford-Fulkerson theorem, 
+  and its well-known corollary, the min-cut max-flow theorem.
+\<close>
+
+text \<open>We fix a network with a flow and a cut\<close>
+locale NFlowCut = NFlow c s t f + NCut c s t k 
+  for c :: "'capacity::linordered_idom graph" and s t f k
+begin
+  
+subsection \<open>Net Flow\<close>
+text \<open>We define the \emph{net flow} to be the amount of flow effectively 
+  passed over the cut from the source to the sink:\<close>
+definition netFlow :: "'capacity"
+  where "netFlow \<equiv> (\<Sum>e \<in> outgoing' k. f e) - (\<Sum>e \<in> incoming' k. f e)"
+
+text \<open>We can show that the net flow equals the value of the flow.
+  Note: Cormen et al.~\cite{CLRS09} present a whole page full of 
+  summation calculations for this proof, and our formal proof also 
+  looks quite complicated.
+\<close>
+lemma flow_value: "netFlow = val"
+proof -
+  let ?LCL = "{(u, v) | u v. u \<in> k \<and> v \<in> k \<and> (u, v) \<in> E}"
+  let ?AOG = "{(u, v) | u v. u \<in> k \<and> (u, v) \<in> E}"
+  let ?AIN = "{(v, u) | u v. u \<in> k \<and> (v, u) \<in> E}"
+  let ?SOG = "\<lambda>u. (\<Sum>e \<in> outgoing u. f e)"
+  let ?SIN = "\<lambda>u. (\<Sum>e \<in> incoming u. f e)"
+  let ?SOG' = "(\<Sum>e \<in> outgoing' k. f e)"
+  let ?SIN' = "(\<Sum>e \<in> incoming' k. f e)"
+
+  text \<open>Some setup to make finiteness reasoning implicit\<close>
+  have [simp, intro!]: "finite ?LCL" 
+    using finite_subset[of ?LCL E] finite_E by auto
+
+  have [simp, intro!]: "finite {(u, v). u \<in> k \<and> v \<in> k \<and> (u, v) \<in> E}" 
+    using finite_subset[of ?LCL E] finite_E by auto
+
+  have [simp, intro!]: "finite {(a, y) |y a. (a, y) \<in> E}" 
+    by (rule finite_subset[of _ E]) auto
+
+  have [simp, intro!]: "finite (outgoing' k)" (* TODO: Move to locale *)
+    using finite_subset[of "(outgoing' k)" E] finite_E 
+    by (auto simp: outgoing'_def)
+
+  have [simp, intro!]: "finite k" (* TODO: Move to locale *)
+    using cut_ss_V finite_V finite_subset[of k V] by blast
+
+  have [simp, intro!]: "finite (incoming' k)" (* TODO: Move to locale *)
+    using finite_subset[of "(incoming' k)" E] finite_E 
+    by (auto simp: incoming'_def)
 
 
+  have fct1: "netFlow =  ?SOG' + (\<Sum>e \<in> ?LCL. f e) - (?SIN' + (\<Sum>e \<in> ?LCL. f e))" 
+    (is "_  = ?SAOG - (?SAIN)") using netFlow_def by auto
+  {
+    {
+      note f = setsum.union_disjoint[of ?LCL "(outgoing' k)" f]
+      have f3: "?LCL \<inter> outgoing' k = {}" unfolding outgoing'_def by auto
+      have "?SAOG = (\<Sum>e \<in> ?LCL \<union> (outgoing' k). f e)" 
+        using f[OF _ _ f3] by auto
+      moreover have "?LCL \<union> (outgoing' k) = ?AOG" unfolding outgoing'_def by auto
+      ultimately have "?SAOG = (\<Sum>e \<in> ?AOG. f e)" by simp
+    } note fct1 = this 
+    {
+      note f = setsumExt.decomp_2[of k Pair "\<lambda>y a. (y, a) \<in> E" f]
+      have f3: "\<forall>x y a b. x \<noteq> y \<longrightarrow> (x, a) \<noteq> (y, b)" by simp
+      have "(\<Sum>e \<in> ?AOG. f e) = (\<Sum>y \<in> k. (\<Sum>x \<in> outgoing y. f x))"
+        using f[OF _ _ f3] outgoing_def by auto
+    } note fct2 = this
+    {
+      note f = setsumExt.decomp_1[of "k - {s}" s ?SOG]
+      have f2: "s \<notin> k - {s}" by blast
+      have "(\<Sum>y \<in> k - {s} \<union> {s}. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SOG y) + (\<Sum>y \<in> {s}. ?SOG y)"
+        using f[OF _ f2] by auto
+      moreover have "k - {s} \<union> {s} = k" using s_in_cut by force
+      ultimately have "(\<Sum>y \<in> k. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s" by auto
+    } note fct3 = this
+    have "?SAOG = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s" using fct1 fct2 fct3 by simp
+  } note fct2 = this
+  {
+    {
+      note f = setsum.union_disjoint[of ?LCL "(incoming' k)" f]
+      have f3: "?LCL \<inter> incoming' k = {}" unfolding incoming'_def by auto
+      have "?SAIN = (\<Sum>e \<in> ?LCL \<union> (incoming' k). f e)" 
+        using f[OF _ _ f3] by auto
+      moreover have "?LCL \<union> (incoming' k) = ?AIN" unfolding incoming'_def by auto
+      ultimately have "?SAIN = (\<Sum>e \<in> ?AIN. f e)" by simp
+    } note fct1 = this 
+    {
+      note f = setsumExt.decomp_2[of k "\<lambda>y a. Pair a y" "\<lambda>y a. (a, y) \<in> E" f]
+      have f3: "\<forall>x y a b. x \<noteq> y \<longrightarrow> (a, x) \<noteq> (b, y)" by simp
+      have "(\<Sum>e \<in> ?AIN. f e) = (\<Sum>y \<in> k. (\<Sum>x \<in> incoming y. f x))"
+        using f[OF _ _ f3] incoming_def by auto
+    } note fct2 = this
+    {
+      note f = setsumExt.decomp_1[of "k - {s}" s ?SIN]
+      have f2: "s \<notin> k - {s}" by blast
+      have "(\<Sum>y \<in> k - {s} \<union> {s}. ?SIN y) = (\<Sum>y \<in> k - {s}. ?SIN y) + (\<Sum>y \<in> {s}. ?SIN y)"
+        using f[OF _ f2] by auto
+      moreover have "k - {s} \<union> {s} = k" using s_in_cut by force
+      ultimately have "(\<Sum>y \<in> k. ?SIN y) = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s" by auto
+    } note fct3 = this
+    have "?SAIN = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s" using fct1 fct2 fct3 by simp
+  } note fct3 = this 
+  have "netFlow =  ((\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s) - ((\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s)"
+     (is "_ = ?R") using fct1 fct2 fct3 by auto
+  moreover have "?R = ?SOG s - ?SIN s"
+    proof -
+      note f = setsum.cong[of "k - {s}" "k - {s}" ?SOG ?SIN]
+      have f1: "k - {s} = k - {s}" by blast
+      have f2: "(\<And>u. u \<in> k - {s} \<Longrightarrow> ?SOG u = ?SIN u)" 
+        using conservation_const cut_ss_V t_ni_cut by force
+      have "(\<Sum>y \<in> k - {s}. ?SOG y) = (\<Sum>y \<in> k - {s}. ?SIN y)" using f[OF f1 f2] by blast
+      thus ?thesis by auto
+    qed
+  ultimately show ?thesis unfolding val_def by simp
+qed
 
+text \<open>The value of any flow is bounded by the capacity of any cut.
+  This is intuitively clear, as all flow from the source to the sink has to go
+  over the cut.\<close>
+corollary weak_duality: "val \<le> cap"
+proof -
+  have "(\<Sum>e \<in> outgoing' k. f e) \<le> (\<Sum>e \<in> outgoing' k. c e)" (is "?L \<le> ?R") 
+    using capacity_const by (metis setsum_mono)
+  then have "(\<Sum>e \<in> outgoing' k. f e) \<le> cap" unfolding cap_def  by simp
+  moreover have "val \<le> (\<Sum>e \<in> outgoing' k. f e)" using netFlow_def
+    by (simp add: capacity_const flow_value setsum_nonneg)
+  ultimately show ?thesis by simp
+qed
 
-  (* Ford-Fulkerson theorem *)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  context FoFu
-  begin
-    lemma fofu_I_II: "isMaxFlow f \<Longrightarrow> \<not> (\<exists> p. isAugmenting p)"
-      unfolding isMaxFlow_def
-      proof (rule ccontr)
-        assume asm: "NFlow c s t f \<and> (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
-        assume asm_c: "\<not> \<not> (\<exists> p. isAugmenting p)"
-        then obtain p where obt: "isAugmenting p" by blast
-        have fct1: "Flow cf s t (augmentingFlow p)" using obt augFlow_resFlow by auto
-        have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
-          bottleNeck_gzero isAugmenting_def cf.isSimplePath_def by auto
-        have "NFlow c s t (augment (augmentingFlow p))" 
-          using fct1 augment_flow_presv Network_axioms unfolding NFlow_def by auto
-        moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 
-          using fct1 fct2 augment_flow_value by auto
-        ultimately show "False" using asm by auto
-      qed
+end -- \<open>Cut\<close>
+
+subsection \<open>Ford-Fulkerson Theorem\<close>
+context NFlow begin
+
+text \<open>We prove three auxiliary lemmas first, and the state the theorem as a corollary\<close>
+lemma fofu_I_II: "isMaxFlow f \<Longrightarrow> \<not> (\<exists> p. isAugmenting p)"
+unfolding isMaxFlow_alt
+proof (rule ccontr)
+  assume asm: "NFlow c s t f 
+    \<and> (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
+  assume asm_c: "\<not> \<not> (\<exists> p. isAugmenting p)"
+  then obtain p where obt: "isAugmenting p" by blast
+  have fct1: "Flow cf s t (augmentingFlow p)" using obt augFlow_resFlow by auto
+  have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
+    bottleNeck_gzero isAugmenting_def cf.isSimplePath_def by auto
+  have "NFlow c s t (augment (augmentingFlow p))" 
+    using fct1 augment_flow_presv Network_axioms unfolding NFlow_def by auto
+  moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 
+    using fct1 fct2 augment_flow_value by auto
+  ultimately show "False" using asm by auto
+qed
+
+lemma fofu_II_III: 
+  "\<not> (\<exists> p. isAugmenting p) \<Longrightarrow> \<exists>k'. NCut c s t k' \<and> val = NCut.cap c k'" 
+proof (intro exI conjI)
+  let ?S = "cf.reachableNodes s"
+  assume asm: "\<not> (\<exists> p. isAugmenting p)"
+  hence "t\<notin>?S"
+    unfolding isAugmenting_def cf.reachableNodes_def cf.connected_def
+    by (auto dest: cf.isSPath_pathLE)
+  then show CUT: "NCut c s t ?S"
+  proof unfold_locales
+    show "Graph.reachableNodes cf s \<subseteq> V"  
+      using cf.reachable_ss_V s_node resV_netV by auto
+    show "s \<in> Graph.reachableNodes cf s" 
+      unfolding Graph.reachableNodes_def Graph.connected_def 
+      by (metis Graph.isPath.simps(1) mem_Collect_eq)
+  qed
+  then interpret NCut c s t ?S .
+  interpret NFlowCut c s t f ?S by intro_locales
+
+  have "\<forall>(u,v)\<in>outgoing' ?S. f (u,v) = c (u,v)"
+  proof (rule ballI, rule ccontr, clarify) -- \<open>Proof by contradiction\<close>
+    fix u v
+    assume "(u,v)\<in>outgoing' ?S" 
+    hence "(u,v)\<in>E" "u\<in>?S" "v\<notin>?S"
+      by (auto simp: outgoing'_def)
+    assume "f (u,v) \<noteq> c (u,v)"
+    hence "f (u,v) < c (u,v)" 
+      using capacity_const by (metis (no_types) eq_iff not_le)
+    hence "cf (u, v) \<noteq> 0" 
+      unfolding residualGraph_def using \<open>(u,v)\<in>E\<close> by auto
+    hence "(u, v) \<in> cf.E" unfolding cf.E_def by simp
+    hence "v\<in>?S" using \<open>u\<in>?S\<close> by (auto intro: cf.reachableNodes_append_edge)
+    thus False using \<open>v\<notin>?S\<close> by auto
+  qed  
+  hence "(\<Sum>e \<in> outgoing' ?S. f e) = cap"
+    unfolding cap_def by auto
+  moreover 
+  have "\<forall>(u,v)\<in>incoming' ?S. f (u,v) = 0"  
+  proof (rule ballI, rule ccontr, clarify) -- \<open>Proof by contradiction\<close>
+    fix u v
+    assume "(u,v)\<in>incoming' ?S"
+    hence "(u,v)\<in>E" "u\<notin>?S" "v\<in>?S" by (auto simp: incoming'_def)
+    hence "(v,u)\<notin>E" using no_parallel_edge by auto
+
+    assume "f (u,v) \<noteq> 0"
+    hence "cf (v, u) \<noteq> 0" 
+      unfolding residualGraph_def using \<open>(u,v)\<in>E\<close> \<open>(v,u)\<notin>E\<close> by auto
+    hence "(v, u) \<in> cf.E" unfolding cf.E_def by simp
+    hence "u\<in>?S" using \<open>v\<in>?S\<close> cf.reachableNodes_append_edge by auto
+    thus False using \<open>u\<notin>?S\<close> by auto
+  qed  
+  hence "(\<Sum>e \<in> incoming' ?S. f e) = 0"
+    unfolding cap_def by auto
+  ultimately show "val = cap"
+    unfolding flow_value[symmetric] netFlow_def by simp
+qed
       
-    lemma fofu_II_III: "\<not> (\<exists> p. isAugmenting p) \<Longrightarrow> \<exists>k'. NCut c s t k' \<and> val = NCut.cap c k'" 
-      proof -
-        assume asm: "\<not> (\<exists> p. isAugmenting p) "
-        then have fct1: "\<not> (\<exists> p. Graph.isPath cf s p t)" using
-          isAugmenting_def Graph.isSPath_pathLE by metis
-        {
-          have "Graph.reachableNodes cf s \<subseteq> V"  using cf.reachable_ss_V s_node resV_netV by auto
-          moreover have "s \<in> Graph.reachableNodes cf s" unfolding Graph.reachableNodes_def 
-            Graph.connected_def by (metis Graph.isPath.simps(1) mem_Collect_eq)
-          moreover have "t \<notin> Graph.reachableNodes cf s" unfolding Graph.reachableNodes_def
-            Graph.connected_def using fct1 by auto
-          ultimately have "NCut c s t (Graph.reachableNodes cf s)" unfolding NCut_def Cut_def 
-            NCut_axioms_def using Network_axioms by auto
-        } note fct2 = this
-        then have "FoFu c s t (Graph.reachableNodes cf s) f" (is "FoFu c s t ?K' f")
-          unfolding FoFu_def using NFlow_axioms by auto
-        then have "val = (\<Sum>e \<in> outgoing' ?K'. f e) - (\<Sum>e \<in> incoming' ?K'. f e)" 
-          using FoFu.flow_value FoFu.netFlow_def by fastforce
-        moreover {
-          {
-            fix e
-            assume "e \<in> outgoing' ?K'"
-            then obtain u v where obt: "e = (u, v)" by (metis nat_gcd.cases)
-            then have fct_s: "u \<in> ?K' \<and> v \<notin> ?K' \<and> (u, v) \<in> E" 
-              using `e \<in> outgoing' ?K'` outgoing'_def by auto
-            
-            have "f e = c e"
-              proof (rule ccontr)
-                assume "\<not> f e = c e"
-                then have "f e < c e" using capacity_const by (metis (no_types) eq_iff not_le)
-                then have "cf (u, v) \<noteq> 0" unfolding residualGraph_def using obt fct_s by auto
-                then have "(u, v) \<in> Graph.E cf" unfolding Graph.E_def by simp
-                then have "Graph.isPath cf u [(u, v)] v"
-                  by (metis (poly_guards_query) Graph.isPath.simps(1) Graph.isPath.simps(2))
-                moreover obtain p where "Graph.isPath cf s p u" 
-                  using fct_s cf.reachableNodes_def cf.connected_def by auto
-                ultimately have "Graph.isPath cf s (p @ [(u, v)]) v" 
-                  using cf.isPath_append by auto
-                thus "False" using fct_s cf.reachableNodes_def cf.connected_def by auto
-              qed
-          }
-          then have "(\<Sum>e \<in> outgoing' ?K'. f e) = NCut.cap c ?K'"
-            using NCut.cap_def[OF fct2] by auto
-        }
-        moreover {
-          {
-            fix e
-            assume "e \<in> incoming' ?K'"
-            then obtain u v where obt: "e = (v, u)" by (metis nat_gcd.cases)
-            then have fct_s: "u \<in> ?K' \<and> v \<notin> ?K' \<and> (v, u) \<in> E" 
-              using `e \<in> incoming' ?K'` incoming'_def by auto
-            then have fct_s2: "(u, v) \<notin> E" using no_parallel_edge by auto
-              
-            have "f e = 0"
-              proof (rule ccontr)
-                assume "\<not> f e = 0"
-                then have "cf (u, v) \<noteq> 0" unfolding residualGraph_def
-                  using obt fct_s fct_s2 by auto
-                then have "(u, v) \<in> Graph.E cf" unfolding Graph.E_def by simp
-                then have "Graph.isPath cf u [(u, v)] v"
-                  by (metis Graph.isPath.simps(1) Graph.isPath.simps(2))
-                moreover obtain p where "Graph.isPath cf s p u" 
-                  using fct_s cf.reachableNodes_def cf.connected_def by auto
-                ultimately have "Graph.isPath cf s (p @ [(u, v)]) v" 
-                  using cf.isPath_append by auto
-                thus "False" using fct_s cf.reachableNodes_def cf.connected_def by auto   
-              qed
-          }
-          then have "(\<Sum>e \<in> incoming' ?K'. f e) = 0" using NCut.cap_def[OF fct2] by auto
-        }
-        ultimately have "NCut c s t ?K' \<and> val = NCut.cap c (Graph.reachableNodes cf s)" 
-          using fct2 by auto
-        thus ?thesis by auto
-      qed
-      
-    lemma fofu_III_I: "val = cap \<Longrightarrow> isMaxFlow f"
-      proof -
-        assume asm: "val = cap"
-        {
-          fix f'
-          assume "NFlow c s t f'"
-          then have "FoFu c s t k f'" unfolding FoFu_def using NCut_axioms by auto
-          then have "Flow.val c s f' \<le> cap" using FoFu.weak_duality by fastforce
-          then have "Flow.val c s f' \<le> val" using asm by auto
-        }
-        moreover have "NFlow c s t f" using FoFu_def FoFu_axioms by blast
-        ultimately show ?thesis unfolding isMaxFlow_def by auto
-      qed
+lemma fofu_III_I: 
+  "\<exists>k. NCut c s t k \<and> val = NCut.cap c k \<Longrightarrow> isMaxFlow f"
+proof clarify
+  fix k
+  assume "NCut c s t k"
+  then interpret NCut c s t k .
+  interpret NFlowCut c s t f k by intro_locales
 
-    (* Snippet for presentation. 
-      Needs explanation on II: We are in a context with a fixed cut and flow. *)  
-    theorem ford_fulkerson:
-      "isMaxFlow f \<Longrightarrow> \<not> Ex isAugmenting"
-      "\<not> Ex isAugmenting \<Longrightarrow> \<exists>k'. NCut c s t k' \<and> val = NCut.cap c k'"
-      "val = cap \<Longrightarrow> isMaxFlow f"
-      using fofu_I_II fofu_II_III fofu_III_I by auto
+  assume "val = cap"
+  {
+    fix f'
+    assume "Flow c s t f'"
+    then interpret fc'!: NFlow c s t f' by intro_locales
+    interpret fc'!: NFlowCut c s t f' k by intro_locales
 
+    have "fc'.val \<le> cap" using fc'.weak_duality .
+    also note \<open>val = cap\<close>[symmetric]
+    finally have "fc'.val \<le> val" .
+  }
+  thus "isMaxFlow f" unfolding isMaxFlow_def
+    by simp unfold_locales
+qed
 
-  end
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
+text \<open>Finally we can state the Ford-Fulkerson theorem: \<close>
+theorem ford_fulkerson: shows
+  "isMaxFlow f \<longleftrightarrow> 
+  \<not> Ex isAugmenting" and "\<not> Ex isAugmenting \<longleftrightarrow> 
+  (\<exists>k. NCut c s t k \<and> val = NCut.cap c k)"
+  using fofu_I_II fofu_II_III fofu_III_I by auto
+  
+subsection \<open>Corollaries\<close>
+
+text \<open>In this subsection we present a few corollaries of the 
+  flow-cut relation and the Ford-Fulkerson theorem.
+\<close>
+
+text \<open>The outgoing flow of the source is the same as the incoming flow of 
+  the sink. Intuitively, this means that no flow is generated or lost in the 
+  network, except at the source and sink.\<close>
+lemma inflow_t_outflow_s: "(\<Sum>e \<in> incoming t. f e) = (\<Sum>e \<in> outgoing s. f e)"
+proof -
+  txt \<open>We choose a cut between the sink and all other nodes\<close>
+  let ?K = "V - {t}"
+  interpret NFlowCut c s t f ?K
+    using s_node s_not_t by unfold_locales auto
+
+  txt \<open>The cut is chosen such that its outgoing edges are the incoming edges
+    to the sink, and its incoming edges are the outgoing edges from the sink.
+    Note that the sink has no outgoing edges.\<close>
+  have "outgoing' ?K = incoming t"
+   and "incoming' ?K = {}"
+    using no_self_loop no_outgoing_t
+    unfolding outgoing'_def incoming_def incoming'_def outgoing_def V_def  
+    by auto
+  hence "(\<Sum>e \<in> incoming t. f e) = netFlow" unfolding netFlow_def by auto
+  also have "netFlow = val" by (rule flow_value)
+  also have "val = (\<Sum>e \<in> outgoing s. f e)" by (auto simp: val_alt)
+  finally show ?thesis .
+qed
+
+text \<open>As an immediate consequence of the Ford-Fulkerson theorem, we get that
+  there is no augmenting path if and only if the flow is maximal.\<close>
+lemma maxFlow_iff_noAugPath: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow f"
+  using ford_fulkerson by blast
+
+end -- \<open>Network with flow\<close>
+
+text \<open>The value of the maximum flow equals the capacity of the minimum cut\<close>
+lemma (in Network) maxFlow_minCut: "\<lbrakk>isMaxFlow f; isMinCut c s t k\<rbrakk> 
+  \<Longrightarrow> Flow.val c s f = NCut.cap c k"
+proof -
+  assume "isMaxFlow f" "isMinCut c s t k"
+  then interpret Flow c s t f + NCut c s t k
+    unfolding isMaxFlow_def isMinCut_def by simp_all
+  interpret NFlowCut c s t f k by intro_locales 
   
   
-  
-  
-  (* Extra results *)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  (*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*)
-  context NFlow
-  begin
-    lemma maxFlow_iff_noAugPath: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow f"
-      proof -
-        let ?S = "{s}"
-        have "?S \<subseteq> V" using s_node by blast
-        moreover have "s \<in> ?S" by blast
-        moreover have "t \<notin> ?S" using s_not_t by blast
-        ultimately have "NCut c s t ?S" unfolding NCut_def NCut_axioms_def Cut_def 
-          using Network_axioms by auto
-        then interpret nc'!: FoFu c s t ?S f unfolding FoFu_def using NFlow_axioms by auto
-        show ?thesis
-          proof
-            assume "\<not> (\<exists> p. isAugmenting p)"
-            from nc'.fofu_II_III[OF this] obtain k' where 
-              "NCut c s t k'" and 1: "val = NCut.cap c k'" by blast
-            then interpret nc''!: NCut c s t k' by simp
-            interpret nc''!: FoFu c s t k' f by unfold_locales
-            from nc''.fofu_III_I[OF 1] show "isMaxFlow f" .
-          qed (blast dest: nc'.fofu_I_II)
-      qed
-  end
-  
-  
-  context FoFu
-  begin
-    lemma maxFlow_minCut: "\<lbrakk>isMaxFlow f; isMinCut c s t k\<rbrakk> \<Longrightarrow> val = cap"
-      proof -
-        assume asm1: "isMaxFlow f"
-        assume asm2: "isMinCut c s t k"
-        note f1 = fofu_I_II[OF asm1]
-        note f2 = fofu_II_III[OF f1]
-        obtain k' where obt1: "NCut c s t k'" and obt2: "val = NCut.cap c k'" using f2 by blast
-        {
-          fix k''
-          assume asm3: "NCut c s t k''"
-          then interpret ff_k''!: FoFu c s t k'' f using FoFu_axioms unfolding FoFu_def by simp
-          interpret ff_k'!: FoFu c s t k' f using obt1 FoFu_axioms unfolding FoFu_def by simp
-          have "val \<le> ff_k''.cap" using ff_k''.weak_duality by simp
-          then have "ff_k'.cap \<le> ff_k''.cap" using obt2 by simp 
-        }
-        then have "isMinCut c s t k'" unfolding isMinCut_def using obt1 by simp
-        then have "NCut.cap c k' = cap" using asm2 unfolding isMinCut_def by force
-        thus ?thesis using obt2 by simp
-      qed
-  end
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
-end
+  from ford_fulkerson \<open>isMaxFlow f\<close>
+  obtain k' where K': "NCut c s t k'" "val = NCut.cap c k'"
+    by blast
+  show "val = cap"
+    using \<open>isMinCut c s t k\<close> K' weak_duality
+    unfolding isMinCut_def by auto
+qed    
+
+end -- \<open>Theory\<close>

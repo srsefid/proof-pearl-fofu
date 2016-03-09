@@ -28,13 +28,13 @@ fun test_bit x n =
 end; (* struct Uint *)
 
 
-      structure stat = struct
-        val outer_c = ref 0;
-        fun outer_c_incr () = (outer_c := !outer_c + 1; ())
-        val inner_c = ref 0;
-        fun inner_c_incr () = (inner_c := !inner_c + 1; ())
-      end
-      
+    structure stat = struct
+      val outer_c = ref 0;
+      fun outer_c_incr () = (outer_c := !outer_c + 1; ())
+      val inner_c = ref 0;
+      fun inner_c_incr () = (inner_c := !inner_c + 1; ())
+    end
+    
 
 (* Test that words can handle numbers between 0 and 31 *)
 val _ = if 5 <= Word.wordSize then () else raise (Fail ("wordSize less than 5"));
