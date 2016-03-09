@@ -1,0 +1,1047 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Theory EdmondsKarp_Impl (Isabelle2015: May 2015)</title>
+<link media="all" rel="stylesheet" type="text/css" href="isabelle.css"/>
+</head>
+
+<body>
+<div class="head"><h1>Theory EdmondsKarp_Impl</h1>
+
+<span class="command">theory</span> <span class="name">EdmondsKarp_Impl</span><br/>
+<span class="keyword">imports</span> <a href="EdmondsKarp_Algo.html"><span class="name">EdmondsKarp_Algo</span></a> <a href="Augmenting_Path_BFS.html"><span class="name">Augmenting_Path_BFS</span></a> <a href="Capacity_Matrix_Impl.html"><span class="name">Capacity_Matrix_Impl</span></a><br/>
+
+</div>
+<div class="source">
+<pre><span class="keyword1">section</span> <span class="cartouche">&#8249;Implementation of the Edmonds-Karp Algorithm&#8250;</span>
+<span class="keyword1">theory</span> EdmondsKarp_Impl
+<span class="keyword2">imports</span> 
+  EdmondsKarp_Algo
+  <span class="string">&quot;Augmenting_Path_BFS&quot;</span>
+  <span class="string">&quot;Capacity_Matrix_Impl&quot;</span>
+<span class="keyword2">begin</span>
+
+  <span class="keyword1">text</span> <span class="cartouche">&#8249;We now implement the Edmonds-Karp algorithm.&#8250;</span>
+
+  <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Refinement to Residual Graph&#8250;</span>
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;As a first step towards implementation, we refine the algorithm
+      to work directly on residual graphs. For this, we first have to 
+      establish a relation between flows in a network and residual graphs.
+      &#8250;</span>
+
+  <span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> Network<span class="delimiter">)</span> <span class="string">&quot;flow_of_cf cf e &equiv; (if (e&isin;E) then c e - cf e else 0)&quot;</span>
+  
+  <span class="keyword1">locale</span> RGraph <span class="delimiter">--</span> <span class="cartouche">&#8249;Locale that characterizes a residual graph of a network&#8250;</span>
+  <span class="delimiter">=</span> Network <span class="delimiter">+</span>
+    <span class="keyword2">fixes</span> cf
+    <span class="keyword2">assumes</span> EX_RG<span class="delimiter">:</span> <span class="string">&quot;&exist;f. NFlow c s t f &and; cf = residualGraph c f&quot;</span>
+  <span class="keyword2">begin</span>  
+
+    <span class="keyword1">lemma</span> this_loc<span class="delimiter">:</span> <span class="string">&quot;RGraph c s t cf&quot;</span>
+      <span class="keyword1">by</span> unfold_locales
+
+    <span class="keyword1">definition</span> <span class="string">&quot;f &equiv; flow_of_cf cf&quot;</span>
+
+    <span class="keyword1">lemma</span> f_unique<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;NFlow c s t f&#39;&quot;</span>
+      <span class="keyword2">assumes</span> A<span class="delimiter">:</span> <span class="string">&quot;cf = residualGraph c f&#39;&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;f&#39; = f&quot;</span>
+    <span class="keyword1">proof</span> -
+      <span class="keyword1">interpret</span> f&#39;<span class="delimiter">!</span><span class="delimiter">:</span> NFlow c s t f&#39; <span class="keyword1">by</span> fact
+      
+      <span class="keyword3">show</span> <span class="var">?thesis</span>
+        <span class="keyword1">unfolding</span> f_def<span class="delimiter">[</span>abs_def<span class="delimiter">]</span> flow_of_cf_def<span class="delimiter">[</span>abs_def<span class="delimiter">]</span>
+        <span class="keyword1">unfolding</span> A residualGraph_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule ext<span class="delimiter">)</span>
+        <span class="keyword1">using</span> f&#39;.capacity_const <span class="keyword1">unfolding</span> E_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+        <span class="keyword1">by</span> <span class="delimiter">(</span>metis antisym<span class="delimiter">)</span>
+    <span class="keyword1">qed</span>
+
+    <span class="keyword1">lemma</span> is_NFlow<span class="delimiter">:</span> <span class="string">&quot;NFlow c s t (flow_of_cf cf)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fold f_def<span class="delimiter">)</span>
+      <span class="keyword1">using</span> EX_RG f_unique <span class="keyword1">by</span> metis
+      
+    <span class="keyword1">sublocale</span> f<span class="delimiter">!</span><span class="delimiter">:</span> NFlow c s t f <span class="keyword1">unfolding</span> f_def <span class="keyword1">by</span> <span class="delimiter">(</span>rule is_NFlow<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> rg_is_cf<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;residualGraph c f = cf&quot;</span>
+      <span class="keyword1">using</span> EX_RG f_unique <span class="keyword1">by</span> auto
+
+    <span class="keyword1">lemma</span> rg_fo_inv<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;residualGraph c (flow_of_cf cf) = cf&quot;</span>  
+      <span class="keyword1">using</span> rg_is_cf
+      <span class="keyword1">unfolding</span> f_def
+      <span class="keyword1">.</span>
+      
+
+    <span class="keyword1">sublocale</span> cf<span class="delimiter">!</span><span class="delimiter">:</span> Graph cf <span class="keyword1">.</span>
+
+    <span class="keyword1">lemma</span> resV_netV<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;cf.V = V&quot;</span>
+      <span class="keyword1">using</span> f.resV_netV <span class="keyword1">by</span> simp
+
+    <span class="keyword1">sublocale</span> cf<span class="delimiter">!</span><span class="delimiter">:</span> Finite_Graph cf 
+      <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> finite_cf<span class="delimiter">:</span> <span class="string">&quot;finite (cf.V)&quot;</span> <span class="keyword1">by</span> simp
+
+
+  <span class="keyword2">end</span>
+
+  <span class="keyword1">context</span> NFlow <span class="keyword2">begin</span>
+    <span class="keyword1">lemma</span> is_RGraph<span class="delimiter">:</span> <span class="string">&quot;RGraph c s t cf&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule exI<span class="delimiter">[</span><span class="keyword2">where</span> x<span class="delimiter">=</span>f<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>safe<span class="delimiter">;</span> unfold_locales<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> fo_rg_inv<span class="delimiter">:</span> <span class="string">&quot;flow_of_cf cf = f&quot;</span>  
+      <span class="keyword1">unfolding</span> flow_of_cf_def<span class="delimiter">[</span>abs_def<span class="delimiter">]</span>
+      <span class="keyword1">unfolding</span> residualGraph_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule ext<span class="delimiter">)</span>
+      <span class="keyword1">using</span> capacity_const <span class="keyword1">unfolding</span> E_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>metis antisym<span class="delimiter">)</span>
+
+  <span class="keyword2">end</span>    
+
+  <span class="comment">(* For snippet*)</span>
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span>
+    <span class="string">&quot;flow_of_cf (residualGraph c f) = f&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>rule fo_rg_inv<span class="delimiter">)</span>
+
+
+
+  <span class="keyword1">subsubsection</span> <span class="cartouche">&#8249;Refinement of Operations&#8250;</span>
+  <span class="keyword1">context</span> Network 
+  <span class="keyword2">begin</span>
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;We define the relation between residual graphs and flows&#8250;</span>
+    <span class="keyword1">definition</span> <span class="string">&quot;cfi_rel &equiv; br flow_of_cf (RGraph c s t)&quot;</span>
+
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;It can also be characterized the other way round, i.e., 
+      mapping flows to residual graphs:&#8250;</span>
+    <span class="keyword1">lemma</span> cfi_rel_alt<span class="delimiter">:</span> <span class="string">&quot;cfi_rel = {(cf,f). cf = residualGraph c f &and; NFlow c s t f}&quot;</span>
+      <span class="keyword1">unfolding</span> cfi_rel_def br_def
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> NFlow.is_RGraph RGraph.is_NFlow RGraph.rg_fo_inv NFlow.fo_rg_inv<span class="delimiter">)</span>
+
+    
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;Initially, the residual graph for the zero flow equals the original network&#8250;</span>
+    <span class="keyword1">lemma</span> residualGraph_zero_flow<span class="delimiter">:</span> <span class="string">&quot;residualGraph c (&lambda;_. 0) = c&quot;</span> 
+      <span class="keyword1">unfolding</span> residualGraph_def <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">!</span><span class="delimiter">:</span> ext<span class="delimiter">)</span>
+    <span class="keyword1">lemma</span> flow_of_c<span class="delimiter">:</span> <span class="string">&quot;flow_of_cf c = (&lambda;_. 0)&quot;</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp add<span class="delimiter">:</span> flow_of_cf_def<span class="delimiter">[</span>abs_def<span class="delimiter">]</span><span class="delimiter">)</span>
+
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;The bottleneck capacity is naturally defined on residual graphs&#8250;</span>      
+    <span class="keyword1">definition</span> <span class="string">&quot;bottleNeck_cf cf p &equiv; Min {cf e | e. e&isin;set p}&quot;</span>
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> bottleNeck_cf_refine<span class="delimiter">:</span> <span class="string">&quot;bottleNeck_cf cf p = bottleNeck p&quot;</span>
+      <span class="keyword1">unfolding</span> bottleNeck_cf_def bottleNeck_def <span class="keyword1">..</span>
+
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;Augmentation can be done by @{const Graph.augment_cf}.&#8250;</span> 
+
+    
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> <span class="comment">(* For snippet *)</span>
+      <span class="keyword2">assumes</span> AUG<span class="delimiter">:</span> <span class="string">&quot;isAugmenting p&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;residualGraph c (augment (augmentingFlow p)) (u,v) = (
+        if (u,v)&isin;set p then (residualGraph c f (u,v) - bottleNeck p)
+        else if (v,u)&isin;set p then (residualGraph c f (u,v) + bottleNeck p)
+        else residualGraph c f (u,v))&quot;</span>
+      <span class="keyword1">using</span> augment_alt<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> Graph.augment_cf_def<span class="delimiter">)</span>
+
+
+    <span class="keyword1">lemma</span> augment_cf_refine<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> R<span class="delimiter">:</span> <span class="string">&quot;(cf,f)&isin;cfi_rel&quot;</span>
+      <span class="keyword2">assumes</span> AUG<span class="delimiter">:</span> <span class="string">&quot;NFlow.isAugmenting c s t f p&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;(Graph.augment_cf cf (set p) (bottleNeck_cf cf p), 
+          NFlow.augment c f (NFlow.augmentingFlow c f p)) &isin; cfi_rel&quot;</span>
+    <span class="keyword1">proof</span> -    
+      <span class="keyword1">from</span> R <span class="keyword1">have</span> FEQ<span class="delimiter">:</span> <span class="string">&quot;f = flow_of_cf cf&quot;</span> <span class="string">&quot;RGraph c s t cf&quot;</span>
+        <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">)</span>
+      <span class="keyword1">then</span> <span class="keyword1">interpret</span> cf<span class="delimiter">!</span><span class="delimiter">:</span> RGraph c s t cf <span class="keyword1">by</span> simp  
+      
+      <span class="keyword1">from</span> FEQ <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;f = cf.f&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> cf.f_def<span class="delimiter">)</span>
+      <span class="keyword1">note</span> AUG&#39;<span class="delimiter">=</span>AUG<span class="delimiter">[</span>simplified<span class="delimiter">]</span>
+
+      <span class="keyword3">show</span> <span class="string">&quot;(Graph.augment_cf cf (set p) (bottleNeck_cf cf p), 
+        NFlow.augment c f (NFlow.augmentingFlow c f p)) &isin; cfi_rel&quot;</span>
+        <span class="comment">(* TODO: Try to make this more concise! *)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst cf.f.bottleNeck_cf_refine<span class="delimiter">[</span>simplified<span class="delimiter">]</span><span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">;</span> safe<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst cf.f.augment_alt<span class="delimiter">[</span>OF AUG&#39;<span class="delimiter">,</span> simplified<span class="delimiter">,</span> symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst NFlow.fo_rg_inv<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule cf.f.augment_pres_nflow<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> fact
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule refl<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst cf.f.augment_alt<span class="delimiter">[</span>OF AUG&#39;<span class="delimiter">,</span> simplified<span class="delimiter">,</span> symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule NFlow.is_RGraph<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule cf.f.augment_pres_nflow<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> fact
+        <span class="keyword1"><span class="improper">done</span></span>
+    <span class="keyword1">qed</span>  
+
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;We rephrase the specification of shortest augmenting path to
+      take a residual graph as parameter&#8250;</span>
+    <span class="comment">(* TODO: This actually rephrases the spec to make it look more similar to 
+      what BFS does later. This rephrasing does not belong here, but where we 
+      implement it with BFS. *)</span>
+    <span class="keyword1">definition</span> <span class="string">&quot;find_shortest_augmenting_spec_cf cf &equiv; 
+      ASSERT (RGraph c s t cf) &raquo;
+      SPEC (&lambda;None =&gt; &not;Graph.connected cf s t | Some p =&gt; Graph.isShortestPath cf s p t)&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> find_shortest_augmenting_spec_cf_refine<span class="delimiter">:</span> 
+      <span class="string">&quot;find_shortest_augmenting_spec_cf cf &le; find_shortest_augmenting_spec (flow_of_cf cf)&quot;</span>
+      <span class="keyword1">unfolding</span> f_def<span class="delimiter">[</span>symmetric<span class="delimiter">]</span>
+      <span class="keyword1">unfolding</span> find_shortest_augmenting_spec_cf_def find_shortest_augmenting_spec_def
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto 
+        simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps 
+        simp<span class="delimiter">:</span> this_loc rg_is_cf
+        simp<span class="delimiter">:</span> f.isAugmenting_def Graph.connected_def Graph.isSimplePath_def 
+        dest<span class="delimiter">:</span> cf.shortestPath_is_path
+        split<span class="delimiter">:</span> option.split<span class="delimiter">)</span>
+      
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;This leads to the following refined algorithm&#8250;</span>  
+    <span class="keyword1">definition</span> <span class="string">&quot;edka2 &equiv; do {
+      let cf = c;
+
+      (cf,_) \&lt;leftarrow&gt; WHILET 
+        (&lambda;(cf,brk). &not;brk) 
+        (&lambda;(cf,_). do {
+          ASSERT (RGraph c s t cf);
+          p \&lt;leftarrow&gt; find_shortest_augmenting_spec_cf cf;
+          case p of 
+            None =&gt; RETURN (cf,True)
+          | Some p =&gt; do {
+              ASSERT (p&ne;[]);
+              ASSERT (Graph.isShortestPath cf s p t);
+              let cf = Graph.augment_cf cf (set p) (bottleNeck_cf cf p);
+              ASSERT (RGraph c s t cf);
+              RETURN (cf, False)
+            }  
+        })
+        (cf,False);
+      ASSERT (RGraph c s t cf);
+      let f = flow_of_cf cf;  
+      RETURN f
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> edka2_refine<span class="delimiter">:</span> <span class="string">&quot;edka2 &le; \&lt;Down&gt;Id edka&quot;</span>
+    <span class="keyword1">proof</span> -
+      <span class="keyword1">have</span> <span class="delimiter">[</span>refine_dref_RELATES<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;RELATES cfi_rel&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> RELATES_def<span class="delimiter">)</span>
+
+      <span class="keyword3">show</span> <span class="var">?thesis</span>
+        <span class="keyword1">unfolding</span> edka2_def edka_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;let f&#39; = NFlow.augmentingFlow c _ _ in _&quot;</span> Let_def<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;let f = flow_of_cf _ in _&quot;</span> Let_def<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_rcg<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+        <span class="keyword1"><span class="improper">apply</span></span> vc_solve
+
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule NFlow.is_RGraph<span class="delimiter">;</span> auto simp<span class="delimiter">:</span> cfi_rel_def br_def residualGraph_zero_flow flow_of_c<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1">using</span> RGraph.find_shortest_augmenting_spec_cf_refine
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cfi_rel_def br_def simp<span class="delimiter">:</span> RGraph.rg_fo_inv<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule <span class="delimiter">(</span>1<span class="delimiter">)</span> augment_cf_refine<span class="delimiter">;</span> simp add<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> augment_cf_refine<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cfi_rel_def br_def<span class="delimiter">;</span> fail<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">done</span></span>
+    <span class="keyword1">qed</span>    
+
+    <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Implementation of Bottleneck Computation and Augmentation&#8250;</span>  
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;We will access the capacities in the residual graph
+      only by a get-operation, which asserts that the edges are valid&#8250;</span>
+    
+    <span class="keyword1">abbreviation</span> <span class="delimiter">(</span>input<span class="delimiter">)</span> valid_edge <span class="delimiter">::</span> <span class="string">&quot;edge =&gt; bool&quot;</span> <span class="keyword2">where</span>
+      <span class="string">&quot;valid_edge &equiv; &lambda;(u,v). u&isin;V &and; v&isin;V&quot;</span>
+
+    <span class="keyword1">definition</span> cf_get <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity graph =&gt; edge =&gt; &#39;capacity nres&quot;</span> 
+      <span class="keyword2">where</span> <span class="string">&quot;cf_get cf e &equiv; ASSERT (valid_edge e) &raquo; RETURN (cf e)&quot;</span>  
+    <span class="keyword1">definition</span> cf_set <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity graph =&gt; edge =&gt; &#39;capacity =&gt; &#39;capacity graph nres&quot;</span>
+      <span class="keyword2">where</span> <span class="string">&quot;cf_set cf e cap &equiv; ASSERT (valid_edge e) &raquo; RETURN (cf(e:=cap))&quot;</span>  
+
+
+    <span class="keyword1">definition</span> bottleNeck_cf_impl <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity graph =&gt; path =&gt; &#39;capacity nres&quot;</span> 
+    <span class="keyword2">where</span> <span class="string">&quot;bottleNeck_cf_impl cf p &equiv; 
+      case p of
+        [] =&gt; RETURN (0::&#39;capacity)
+      | (e#p) =&gt; do {
+          cap \&lt;leftarrow&gt; cf_get cf e;
+          ASSERT (distinct p);
+          nfoldli 
+            p (&lambda;_. True)
+            (&lambda;e cap. do {
+              cape \&lt;leftarrow&gt; cf_get cf e;
+              RETURN (min cape cap)
+            }) 
+            cap
+        }&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> bottleNeck_cf_impl_refine<span class="delimiter">:</span>   
+      <span class="keyword2">assumes</span> AUG<span class="delimiter">:</span> <span class="string">&quot;cf.isSimplePath s p t&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;bottleNeck_cf_impl cf p &le; SPEC (&lambda;r. r = bottleNeck_cf cf p)&quot;</span>
+    <span class="keyword1">proof</span> -
+      <span class="comment">(* TODO: Can we exploit Min.set_eq_fold *)</span>
+
+      <span class="keyword1">note</span> <span class="delimiter">[</span>simp del<span class="delimiter">]</span> <span class="delimiter">=</span> Min_insert
+      <span class="keyword1">note</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span> <span class="delimiter">=</span> Min_insert<span class="delimiter">[</span>symmetric<span class="delimiter">]</span>
+      <span class="keyword1">from</span> AUG<span class="delimiter">[</span>THEN cf.isSPath_distinct<span class="delimiter">]</span>
+      <span class="keyword1">have</span> <span class="string">&quot;distinct p&quot;</span> <span class="keyword1">.</span>
+      <span class="keyword1">moreover</span> <span class="keyword1">from</span> AUG cf.isPath_edgeset <span class="keyword1">have</span> <span class="string">&quot;set p &sube; cf.E&quot;</span>
+        <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cf.isSimplePath_def<span class="delimiter">)</span>
+      <span class="keyword1">hence</span> <span class="string">&quot;set p &sube; Collect valid_edge&quot;</span>  
+        <span class="keyword1">using</span> cf.E_ss_VxV <span class="keyword1">by</span> simp
+      <span class="keyword1">moreover</span> <span class="keyword1">from</span> AUG <span class="keyword1">have</span> <span class="string">&quot;p&ne;[]&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> s_not_t<span class="delimiter">)</span> 
+        <span class="keyword1">then</span> <span class="keyword3">obtain</span> e p&#39; <span class="keyword2">where</span> <span class="string">&quot;p=e#p&#39;&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> neq_Nil_conv<span class="delimiter">)</span>
+      <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="var">?thesis</span>  
+        <span class="keyword1">unfolding</span> bottleNeck_cf_impl_def bottleNeck_cf_def cf_get_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp only<span class="delimiter">:</span> list.case<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg nfoldli_rule<span class="delimiter">[</span><span class="keyword2">where</span> 
+            I <span class="delimiter">=</span> <span class="string">&quot;&lambda;l l&#39; cap. cap = Min (cf`insert e (set l)) &and; set (l@l&#39;) &sube; Collect valid_edge&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> simp
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fo_rule arg_cong<span class="delimiter">;</span> auto<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">apply</span></span> simp
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fo_rule arg_cong<span class="delimiter">;</span> auto<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">done</span></span>
+    <span class="keyword1">qed</span>    
+
+    <span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> Graph<span class="delimiter">)</span> 
+      <span class="string">&quot;augment_edge e cap &equiv; (c(e := c e - cap, prod.swap e := c (prod.swap e) + cap))&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> Graph<span class="delimiter">)</span> augment_cf_inductive<span class="delimiter">:</span>
+      <span class="keyword2">fixes</span> e cap
+      <span class="keyword2">defines</span> <span class="string">&quot;c&#39; &equiv; augment_edge e cap&quot;</span>
+      <span class="keyword2">assumes</span> P<span class="delimiter">:</span> <span class="string">&quot;isSimplePath s (e#p) t&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;augment_cf (insert e (set p)) cap = Graph.augment_cf c&#39; (set p) cap&quot;</span>
+      <span class="keyword2">and</span> <span class="string">&quot;&exist;s&#39;. Graph.isSimplePath c&#39; s&#39; p t&quot;</span>  
+    <span class="keyword1">proof</span> -
+      <span class="keyword3">obtain</span> u v <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;e=(u,v)&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>cases e<span class="delimiter">)</span>
+
+      <span class="keyword1">from</span> isSPath_no_selfloop<span class="delimiter">[</span>OF P<span class="delimiter">]</span> <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;!!u. (u,u)&notin;set p&quot;</span> <span class="string">&quot;u&ne;v&quot;</span> <span class="keyword1">by</span> auto
+
+      <span class="keyword1">from</span> isSPath_nt_parallel<span class="delimiter">[</span>OF P<span class="delimiter">]</span> <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(v,u)&notin;set p&quot;</span> <span class="keyword1">by</span> auto
+      <span class="keyword1">from</span> isSPath_distinct<span class="delimiter">[</span>OF P<span class="delimiter">]</span> <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(u,v)&notin;set p&quot;</span> <span class="keyword1">by</span> auto
+
+      <span class="comment">(*have [simp]: &quot;!!u v. prod.swap (u,v) = (u,v) &lt;-&gt; u=v&quot; by auto*)</span>
+
+      <span class="keyword3">show</span> <span class="string">&quot;augment_cf (insert e (set p)) cap = Graph.augment_cf c&#39; (set p) cap&quot;</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule ext<span class="delimiter">)</span>  
+        <span class="keyword1">unfolding</span> Graph.augment_cf_def c&#39;_def Graph.augment_edge_def
+        <span class="keyword1">by</span> auto
+
+      <span class="keyword1">have</span> <span class="string">&quot;Graph.isSimplePath c&#39; v p t&quot;</span>  
+        <span class="keyword1">unfolding</span> Graph.isSimplePath_def
+        <span class="keyword1"><span class="improper">apply</span></span> rule
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule transfer_path<span class="delimiter">)</span>
+        <span class="keyword1">unfolding</span> Graph.E_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> c&#39;_def Graph.augment_edge_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1">using</span> P <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isSimplePath_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1">using</span> P <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isSimplePath_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+        <span class="keyword1"><span class="improper">done</span></span>
+      <span class="keyword3">thus</span> <span class="string">&quot;&exist;s&#39;. Graph.isSimplePath c&#39; s&#39; p t&quot;</span> <span class="keyword1">..</span> 
+
+    <span class="keyword1">qed</span>    
+        
+    <span class="keyword1">definition</span> <span class="string">&quot;augment_edge_impl cf e cap &equiv; do {
+      v \&lt;leftarrow&gt; cf_get cf e; cf \&lt;leftarrow&gt; cf_set cf e (v-cap);
+      let e = prod.swap e;
+      v \&lt;leftarrow&gt; cf_get cf e; cf \&lt;leftarrow&gt; cf_set cf e (v+cap);
+      RETURN cf
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> augment_edge_impl_refine<span class="delimiter">:</span> 
+      <span class="string">&quot;[|valid_edge e; &forall;u. e&ne;(u,u)|] ==&gt; augment_edge_impl cf e cap &le; SPEC (&lambda;r. r = Graph.augment_edge cf e cap)&quot;</span>
+      <span class="keyword1">unfolding</span> augment_edge_impl_def Graph.augment_edge_def cf_get_def cf_set_def
+      <span class="keyword1"><span class="improper">apply</span></span> refine_vcg
+      <span class="keyword1"><span class="improper">apply</span></span> auto
+      <span class="keyword1"><span class="improper">done</span></span>
+      
+    <span class="keyword1">definition</span> augment_cf_impl <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity graph =&gt; path =&gt; &#39;capacity =&gt; &#39;capacity graph nres&quot;</span> <span class="keyword2">where</span>
+      <span class="string">&quot;augment_cf_impl cf p x &equiv; do {
+        RECT (&lambda;D. &lambda;
+          ([],cf) =&gt; RETURN cf
+        | (e#p,cf) =&gt; do {
+            cf \&lt;leftarrow&gt; augment_edge_impl cf e x;
+            D (p,cf)
+          }  
+        ) (p,cf)
+      }&quot;</span>
+
+    <span class="keyword1">lemma</span> augment_cf_impl_simps<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;augment_cf_impl cf [] x = RETURN cf&quot;</span>
+      <span class="string">&quot;augment_cf_impl cf (e#p) x = do { cf \&lt;leftarrow&gt; augment_edge_impl cf e x; augment_cf_impl cf p x}&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> augment_cf_impl_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst RECT_unfold<span class="delimiter">,</span> refine_mono<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> augment_cf_impl_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst RECT_unfold<span class="delimiter">,</span> refine_mono<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">done</span></span>      
+
+    <span class="keyword1">lemma</span> augment_cf_impl_aux<span class="delimiter">:</span>    
+      <span class="keyword2">assumes</span> <span class="string">&quot;&forall;e&isin;set p. valid_edge e&quot;</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;&exist;s. Graph.isSimplePath cf s p t&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;augment_cf_impl cf p x &le; RETURN (Graph.augment_cf cf (set p) x)&quot;</span>
+      <span class="keyword1">using</span> assms
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>induction p arbitrary<span class="delimiter">:</span> cf<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> Graph.augment_cf_empty<span class="delimiter">)</span>
+
+      <span class="keyword1"><span class="improper">apply</span></span> clarsimp
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst Graph.augment_cf_inductive<span class="delimiter">,</span> assumption<span class="delimiter">)</span>
+
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg augment_edge_impl_refine<span class="delimiter">[</span>THEN order_trans<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto dest<span class="delimiter">:</span> Graph.isSPath_no_selfloop<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule order_trans<span class="delimiter">,</span> rprems<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule Graph.augment_cf_inductive<span class="delimiter">(</span>2<span class="delimiter">)</span><span class="delimiter">[</span><span class="keyword2">where</span> cap<span class="delimiter">=</span>x<span class="delimiter">]</span><span class="delimiter">;</span> simp<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">done</span></span>  
+      
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> augment_cf_impl_refine<span class="delimiter">:</span>     
+      <span class="keyword2">assumes</span> <span class="string">&quot;Graph.isSimplePath cf s p t&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;augment_cf_impl cf p x &le; RETURN (Graph.augment_cf cf (set p) x)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule augment_cf_impl_aux<span class="delimiter">)</span>
+      <span class="keyword1">using</span> assms cf.E_ss_VxV <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> cf.isSimplePath_def dest<span class="delimiter">!</span><span class="delimiter">:</span> cf.isPath_edgeset<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1">using</span> assms <span class="keyword1">by</span> blast
+      
+    <span class="keyword1">definition</span> <span class="string">&quot;edka3 &equiv; do {
+      let cf = c;
+
+      (cf,_) \&lt;leftarrow&gt; WHILET 
+        (&lambda;(cf,brk). &not;brk) 
+        (&lambda;(cf,_). do {
+          ASSERT (RGraph c s t cf);
+          p \&lt;leftarrow&gt; find_shortest_augmenting_spec_cf cf;
+          case p of 
+            None =&gt; RETURN (cf,True)
+          | Some p =&gt; do {
+              ASSERT (p&ne;[]);
+              ASSERT (Graph.isShortestPath cf s p t);
+              bn \&lt;leftarrow&gt; bottleNeck_cf_impl cf p;
+              cf \&lt;leftarrow&gt; augment_cf_impl cf p bn;
+              ASSERT (RGraph c s t cf);
+              RETURN (cf, False)
+            }  
+        })
+        (cf,False);
+      ASSERT (RGraph c s t cf);
+      let f = flow_of_cf cf;  
+      RETURN f
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> edka3_refine<span class="delimiter">:</span> <span class="string">&quot;edka3 &le; \&lt;Down&gt;Id edka2&quot;</span>
+      <span class="keyword1">unfolding</span> edka3_def edka2_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;let cf = Graph.augment_cf _ _ _ in _&quot;</span> Let_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> refine_rcg
+      <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule Graph.shortestPath_is_simple<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>frule <span class="delimiter">(</span>1<span class="delimiter">)</span> RGraph.bottleNeck_cf_impl_refine<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>frule <span class="delimiter">(</span>1<span class="delimiter">)</span> RGraph.augment_cf_impl_refine<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+      
+    
+    <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Refinement to use BFS&#8250;</span>
+
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;We refine the Edmonds-Karp algorithm to use breadth first search (BFS)&#8250;</span>
+    <span class="keyword1">definition</span> <span class="string">&quot;edka4 &equiv; do {
+      let cf = c;
+
+      (cf,_) \&lt;leftarrow&gt; WHILET 
+        (&lambda;(cf,brk). &not;brk) 
+        (&lambda;(cf,_). do {
+          ASSERT (RGraph c s t cf);
+          p \&lt;leftarrow&gt; Graph.bfs cf s t;
+          case p of 
+            None =&gt; RETURN (cf,True)
+          | Some p =&gt; do {
+              ASSERT (p&ne;[]);
+              ASSERT (Graph.isShortestPath cf s p t);
+              bn \&lt;leftarrow&gt; bottleNeck_cf_impl cf p;
+              cf \&lt;leftarrow&gt; augment_cf_impl cf p bn;
+              ASSERT (RGraph c s t cf);
+              RETURN (cf, False)
+            }  
+        })
+        (cf,False);
+      ASSERT (RGraph c s t cf);
+      let f = flow_of_cf cf;  
+      RETURN f
+    }&quot;</span>
+
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;A shortest path can be obtained by BFS&#8250;</span>  
+    <span class="keyword1">lemma</span> bfs_refines_shortest_augmenting_spec<span class="delimiter">:</span> 
+      <span class="string">&quot;Graph.bfs cf s t &le; find_shortest_augmenting_spec_cf cf&quot;</span>
+      <span class="keyword1">unfolding</span> find_shortest_augmenting_spec_cf_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule le_ASSERTI<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule order_trans<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule Graph.bfs_correct<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> RGraph.resV_netV s_node<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> RGraph.resV_netV<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> edka4_refine<span class="delimiter">:</span> <span class="string">&quot;edka4 &le; \&lt;Down&gt;Id edka3&quot;</span>
+      <span class="keyword1">unfolding</span> edka4_def edka3_def
+      <span class="keyword1"><span class="improper">apply</span></span> refine_rcg
+      <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> bfs_refines_shortest_augmenting_spec<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+
+    <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Implementing the Successor Function for BFS&#8250;</span>  
+
+    <span class="delimiter">--</span> <span class="cartouche">&#8249;Note: We use @{term filter_rev} here, as it is tail-recursive, 
+      and we are not interested in the order of successors.&#8250;</span>
+    <span class="keyword1">definition</span> <span class="string">&quot;rg_succ ps cf u &equiv;  
+      filter_rev (&lambda;v. cf (u,v) &gt; 0) (ps u)&quot;</span>
+  
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> E_ss_cfinvE<span class="delimiter">:</span> <span class="string">&quot;E &sube; Graph.E cf &cup; (Graph.E cf)&macr;&quot;</span>
+      <span class="keyword1">unfolding</span> residualGraph_def Graph.E_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp<span class="delimiter">)</span>
+      <span class="keyword1">using</span> no_parallel_edge <span class="comment">(* Speed optimization: Adding this directly takes very long *)</span>
+      <span class="keyword1">unfolding</span> E_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> <span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> E_ss_cfinvE<span class="delimiter">:</span> <span class="string">&quot;E &sube; cf.E &cup; cf.E&macr;&quot;</span>  
+      <span class="keyword1">using</span> f.E_ss_cfinvE <span class="keyword1">by</span> simp
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> cfE_ss_invE<span class="delimiter">:</span> <span class="string">&quot;cf.E &sube; E &cup; E&macr;&quot;</span>
+      <span class="keyword1">using</span> f.cfE_ss_invE <span class="keyword1">by</span> simp
+      
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> resE_nonNegative<span class="delimiter">:</span> <span class="string">&quot;cf e &ge; 0&quot;</span>  
+      <span class="keyword1">using</span> f.resE_nonNegative <span class="keyword1">by</span> auto
+
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> rg_succ_ref1<span class="delimiter">:</span> <span class="string">&quot;[|is_pred_succ ps c|] 
+      ==&gt; (rg_succ ps cf u, Graph.E cf``{u}) &isin; &lang;Id&rang;list_set_rel&quot;</span>
+      <span class="keyword1">unfolding</span> Graph.E_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> list_set_rel_def br_def rg_succ_def filter_rev_alt<span class="delimiter">;</span> intro conjI<span class="delimiter">)</span>
+      <span class="keyword1">using</span> cfE_ss_invE resE_nonNegative 
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> is_pred_succ_def less_le Graph.E_def simp del<span class="delimiter">:</span> cf.zero_cap_simp zero_cap_simp<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> is_pred_succ_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">definition</span> ps_get_op <span class="delimiter">::</span> <span class="string">&quot;_ =&gt; node =&gt; node list nres&quot;</span> 
+      <span class="keyword2">where</span> <span class="string">&quot;ps_get_op ps u &equiv; ASSERT (u&isin;V) &raquo; RETURN (ps u)&quot;</span>
+
+    <span class="keyword1">definition</span> monadic_filter_rev_aux 
+      <span class="delimiter">::</span> <span class="string">&quot;&#39;a list =&gt; (&#39;a =&gt; bool nres) =&gt; &#39;a list =&gt; &#39;a list nres&quot;</span>
+    <span class="keyword2">where</span>
+      <span class="string">&quot;monadic_filter_rev_aux a P l &equiv; RECT (&lambda;D (l,a). case l of
+        [] =&gt; RETURN a 
+      | (v#l) =&gt; do {
+          c \&lt;leftarrow&gt; P v;
+          let a = (if c then v#a else a);
+          D (l,a)
+        }
+      ) (l,a)&quot;</span>
+
+    <span class="keyword1">lemma</span> monadic_filter_rev_aux_rule<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;!!x. x&isin;set l ==&gt; P x &le; SPEC (&lambda;r. r=Q x)&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;monadic_filter_rev_aux a P l &le; SPEC (&lambda;r. r=filter_rev_aux a Q l)&quot;</span>
+      <span class="keyword1">using</span> assms
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>induction l arbitrary<span class="delimiter">:</span> a<span class="delimiter">)</span>
+
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>unfold monadic_filter_rev_aux_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst RECT_unfold<span class="delimiter">,</span> refine_mono<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fold monadic_filter_rev_aux_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>unfold monadic_filter_rev_aux_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst RECT_unfold<span class="delimiter">,</span> refine_mono<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>fold monadic_filter_rev_aux_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;monadic_filter_rev = monadic_filter_rev_aux []&quot;</span>
+
+    <span class="keyword1">lemma</span> monadic_filter_rev_rule<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;!!x. x&isin;set l ==&gt; P x &le; SPEC (&lambda;r. r=Q x)&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;monadic_filter_rev P l &le; SPEC (&lambda;r. r=filter_rev Q l)&quot;</span>
+      <span class="keyword1">using</span> monadic_filter_rev_aux_rule<span class="delimiter">[</span><span class="keyword2">where</span> a<span class="delimiter">=</span><span class="string">&quot;[]&quot;</span><span class="delimiter">]</span> assms
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> monadic_filter_rev_def filter_rev_def<span class="delimiter">)</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;rg_succ2 ps cf u &equiv; do {
+      l \&lt;leftarrow&gt; ps_get_op ps u;
+      monadic_filter_rev (&lambda;v. do {
+        x \&lt;leftarrow&gt; cf_get cf (u,v);
+        return (x&gt;0)
+      }) l
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> rg_succ_ref2<span class="delimiter">:</span> 
+      <span class="keyword2">assumes</span> PS<span class="delimiter">:</span> <span class="string">&quot;is_pred_succ ps c&quot;</span> <span class="keyword2">and</span> V<span class="delimiter">:</span> <span class="string">&quot;u&isin;V&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;rg_succ2 ps cf u &le; RETURN (rg_succ ps cf u)&quot;</span>
+    <span class="keyword1">proof</span> -
+      <span class="keyword1">have</span> <span class="string">&quot;&forall;v&isin;set (ps u). valid_edge (u,v)&quot;</span>
+        <span class="keyword1">using</span> PS V
+        <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> is_pred_succ_def Graph.V_def<span class="delimiter">)</span>
+      
+      <span class="keyword3">thus</span> <span class="var">?thesis</span>  
+        <span class="keyword1">unfolding</span> rg_succ2_def rg_succ_def ps_get_op_def cf_get_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg monadic_filter_rev_rule<span class="delimiter">[</span><span class="keyword2">where</span> Q<span class="delimiter">=</span><span class="string">&quot;(&lambda;v. 0 &lt; cf (u, v))&quot;</span><span class="delimiter">,</span> THEN order_trans<span class="delimiter">]</span><span class="delimiter">)</span>
+        <span class="keyword1">by</span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> V<span class="delimiter">)</span>
+    <span class="keyword1">qed</span>    
+
+<span class="comment">(*
+    definition &quot;rg_succ2 ps cf u &equiv; do {
+      l \&lt;leftarrow&gt; ps_get_op ps u;
+      RECT (&lambda;D (l,a). case l of 
+        [] =&gt; RETURN a 
+      | (v#l) =&gt; do {
+          x \&lt;leftarrow&gt; cf_get cf (u,v);
+          let a = (if x&gt;0 then v#a else a);
+          D (l,a)
+        }) (l,[])
+      }&quot;
+  
+    lemma (in RGraph) rg_succ_ref2: &quot;[|is_pred_succ ps c; u&isin;V|] 
+      ==&gt; rg_succ2 ps cf u &le; RETURN (rg_succ ps cf u)&quot;
+    proof -
+      def l &equiv; &quot;ps u&quot;
+  
+      assume VN: &quot;u&isin;V&quot;
+      assume V: &quot;is_pred_succ ps c&quot;
+  
+      have &quot;&forall;v&isin;set l. valid_edge (u,v)&quot;
+        using V VN 
+        by (auto simp: is_pred_succ_def l_def Graph.V_def)
+  
+      thus ?thesis
+        unfolding rg_succ2_def cf_get_def ps_get_op_def
+        apply simp
+        apply refine_vcg
+        apply (simp add: VN) []
+        apply (simp add: rg_succ_def l_def[symmetric])
+    
+        apply (induction l)
+          apply (simp add: rg_succ_def) apply (subst RECT_unfold, refine_mono)
+          apply simp
+    
+          apply (subst RECT_unfold, refine_mono)
+          apply (simp split del: split_if)
+          apply (simp add: pw_le_iff refine_pw_simps) 
+          apply fastforce
+        done
+    qed    
+*)</span>
+    <span class="comment">(* Snippet *)</span>
+    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> RGraph<span class="delimiter">)</span> rg_succ_ref<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> A<span class="delimiter">:</span> <span class="string">&quot;is_pred_succ ps c&quot;</span>
+      <span class="keyword2">assumes</span> B<span class="delimiter">:</span> <span class="string">&quot;u&isin;V&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;rg_succ2 ps cf u &le; SPEC (&lambda;l. (l,cf.E``{u}) &isin; &lang;Id&rang;list_set_rel)&quot;</span>
+      <span class="keyword1">using</span> rg_succ_ref1<span class="delimiter">[</span>OF A<span class="delimiter">,</span> of u<span class="delimiter">]</span> rg_succ_ref2<span class="delimiter">[</span>OF A B<span class="delimiter">]</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
+
+
+    <span class="keyword1">definition</span> init_cf <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity graph nres&quot;</span> <span class="keyword2">where</span> <span class="string">&quot;init_cf &equiv; RETURN c&quot;</span>
+    <span class="keyword1">definition</span> init_ps <span class="delimiter">::</span> <span class="string">&quot;(node =&gt; node list) =&gt; _&quot;</span> <span class="keyword2">where</span> 
+      <span class="string">&quot;init_ps ps &equiv; ASSERT (is_pred_succ ps c) &raquo; RETURN ps&quot;</span>
+
+    <span class="keyword1">definition</span> compute_rflow <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity graph =&gt; &#39;capacity flow nres&quot;</span> <span class="keyword2">where</span>
+      <span class="string">&quot;compute_rflow cf &equiv; ASSERT (RGraph c s t cf) &raquo; RETURN (flow_of_cf cf)&quot;</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;bfs2_op ps cf &equiv; Graph.bfs2 cf (rg_succ2 ps cf) s t&quot;</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;edka5_tabulate ps &equiv; do {
+      cf \&lt;leftarrow&gt; init_cf;
+      ps \&lt;leftarrow&gt; init_ps ps;
+      return (cf,ps)
+    }&quot;</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;edka5_run cf ps &equiv; do {
+      (cf,_) \&lt;leftarrow&gt; WHILET 
+        (&lambda;(cf,brk). &not;brk) 
+        (&lambda;(cf,_). do {
+          ASSERT (RGraph c s t cf);
+          p \&lt;leftarrow&gt; bfs2_op ps cf;
+          case p of 
+            None =&gt; RETURN (cf,True)
+          | Some p =&gt; do {
+              ASSERT (p&ne;[]);
+              ASSERT (Graph.isShortestPath cf s p t);
+              bn \&lt;leftarrow&gt; bottleNeck_cf_impl cf p;
+              cf \&lt;leftarrow&gt; augment_cf_impl cf p bn;
+              ASSERT (RGraph c s t cf);
+              RETURN (cf, False)
+            }  
+        })
+        (cf,False);
+      f \&lt;leftarrow&gt; compute_rflow cf;  
+      RETURN f
+    }&quot;</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;edka5 ps &equiv; do {
+      (cf,ps) \&lt;leftarrow&gt; edka5_tabulate ps;
+      edka5_run cf ps
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> edka5_refine<span class="delimiter">:</span> <span class="string">&quot;[|is_pred_succ ps c|] ==&gt; edka5 ps &le; \&lt;Down&gt;Id edka4&quot;</span>
+      <span class="keyword1">unfolding</span> edka5_def edka5_tabulate_def edka5_run_def
+        edka4_def init_cf_def compute_rflow_def
+        init_ps_def Let_def nres_monad_laws bfs2_op_def
+      <span class="keyword1"><span class="improper">apply</span></span> refine_rcg
+      <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> <span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule refine_IdD<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule Graph.bfs2_refine<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> RGraph.resV_netV<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> RGraph.rg_succ_ref<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+  <span class="keyword2">end</span>    
+
+  <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Imperative Implementation&#8250;</span>  
+
+  <span class="keyword1">locale</span> Network_Impl <span class="delimiter">=</span> Network c s t <span class="keyword2">for</span> c <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span> <span class="keyword2">and</span> s t
+
+
+  <span class="keyword1">locale</span> Edka_Impl <span class="delimiter">=</span> Network_Impl <span class="delimiter">+</span>
+    <span class="keyword2">fixes</span> N <span class="delimiter">::</span> nat
+    <span class="keyword2">assumes</span> V_ss<span class="delimiter">:</span> <span class="string">&quot;V&sube;{0..&lt;N}&quot;</span>
+  <span class="keyword2">begin</span>  
+    <span class="keyword1">lemma</span> this_loc<span class="delimiter">:</span> <span class="string">&quot;Edka_Impl c s t N&quot;</span> <span class="keyword1">by</span> unfold_locales
+
+    <span class="keyword1">lemmas</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+      itypeI<span class="delimiter">[</span>Pure.of N <span class="string">&quot;TYPE(nat)&quot;</span><span class="delimiter">]</span>  
+      itypeI<span class="delimiter">[</span>Pure.of s <span class="string">&quot;TYPE(node)&quot;</span><span class="delimiter">]</span>  
+      itypeI<span class="delimiter">[</span>Pure.of t <span class="string">&quot;TYPE(node)&quot;</span><span class="delimiter">]</span>  
+      itypeI<span class="delimiter">[</span>Pure.of c <span class="string">&quot;TYPE(capacity_impl graph)&quot;</span><span class="delimiter">]</span>  
+    <span class="keyword1">lemmas</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span> <span class="delimiter">=</span> 
+      IdI<span class="delimiter">[</span>of N<span class="delimiter">]</span>
+      IdI<span class="delimiter">[</span>of s<span class="delimiter">]</span>
+      IdI<span class="delimiter">[</span>of t<span class="delimiter">]</span>
+      IdI<span class="delimiter">[</span>of c<span class="delimiter">]</span>
+
+
+    <span class="keyword1">definition</span> <span class="string">&quot;is_ps ps psi &equiv; &exist;<span class="hidden">&#8681;</span><sub>A</sub>l. psi \&lt;mapsto&gt;<span class="hidden">&#8681;</span><sub>a</sub> l * \&lt;up&gt;(length l = N &and; (&forall;i&lt;N. l!i = ps i) &and; (&forall;i&ge;N. ps i = []))&quot;</span>
+  
+    <span class="keyword1">lemma</span> is_ps_precise<span class="delimiter">[</span>constraint_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;precise (is_ps)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">unfolding</span> is_ps_def
+      <span class="keyword1"><span class="improper">apply</span></span> clarsimp
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rename_tac l l&#39;<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> prec_extract_eqs
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule ext<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rename_tac i<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>case_tac <span class="string">&quot;i&lt;length l&#39;&quot;</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> fastforce<span class="delimiter">+</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">typedecl</span> i_ps  
+
+    <span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> <span class="string">&quot;ps_get_imp psi u &equiv; Array.nth psi u&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.ps_get_op$c &equiv; UNPROTECT ps_get_op&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST ps_get_op&quot;</span> <span class="string">&quot;i_ps =&gt; node =&gt; node list nres&quot;</span>
+
+    <span class="keyword1">lemma</span> ps_get_op_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;(uncurry ps_get_imp, uncurry (PR_CONST ps_get_op)) &isin; is_ps<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (pure Id)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> hn_list_aux (pure Id)&quot;</span>
+      <span class="keyword1">unfolding</span> hn_list_pure_conv
+      <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">using</span> V_ss
+      <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> is_ps_def pure_def ps_get_imp_def ps_get_op_def refine_pw_simps<span class="delimiter">)</span>
+
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.cf_get$c &equiv; UNPROTECT cf_get&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.cf_set$c &equiv; UNPROTECT cf_set&quot;</span> <span class="keyword1">by</span> simp
+
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST cf_get&quot;</span> <span class="string">&quot;capacity_impl i_mtx =&gt; edge =&gt; capacity_impl nres&quot;</span>
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST cf_set&quot;</span> <span class="string">&quot;capacity_impl i_mtx =&gt; edge =&gt; capacity_impl =&gt; capacity_impl i_mtx nres&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(uncurry (mtx_get N), uncurry (PR_CONST cf_get)) &isin; (is_mtx N)<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (hn_prod_aux (pure Id) (pure Id))<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> pure Id&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">using</span> V_ss
+      <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> cf_get_def refine_pw_simps pure_def<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(uncurry2 (mtx_set N), uncurry2 (PR_CONST cf_set)) 
+      &isin; (is_mtx N)<span class="hidden">&#8679;</span><sup>d</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (hn_prod_aux (pure Id) (pure Id))<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (pure Id)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> (is_mtx N)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">using</span> V_ss
+      <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> cf_set_def refine_pw_simps pure_def hn_ctxt_def<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> is_pred_succ_no_node<span class="delimiter">:</span> <span class="string">&quot;[|is_pred_succ a c; u&notin;V|] ==&gt; a u = []&quot;</span>
+      <span class="keyword1">unfolding</span> is_pred_succ_def V_def
+      <span class="keyword1">by</span> auto
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(Array.make N, PR_CONST init_ps) &isin; (pure Id)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> is_ps&quot;</span> 
+      <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">using</span> V_ss
+      <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> init_ps_def refine_pw_simps is_ps_def pure_def
+        intro<span class="delimiter">:</span> is_pred_succ_no_node<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.init_ps$c &equiv; UNPROTECT init_ps&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST init_ps&quot;</span> <span class="string">&quot;(node =&gt; node list) =&gt; i_ps nres&quot;</span>
+
+    <span class="keyword1">lemma</span> init_cf_imp_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;(uncurry0 (mtx_new N c), uncurry0 (PR_CONST init_cf)) &isin; (pure unit_rel)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> is_mtx N&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">using</span> V_ss
+      <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> init_cf_def<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.init_cf$c &equiv; UNPROTECT init_cf&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST init_cf&quot;</span> <span class="string">&quot;capacity_impl i_mtx nres&quot;</span>
+
+
+    <span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> Network_Impl<span class="delimiter">)</span> <span class="string">&quot;is_rflow N f cfi &equiv; &exist;<span class="hidden">&#8681;</span><sub>A</sub>cf. is_mtx N cf cfi * \&lt;up&gt;(f = flow_of_cf cf)&quot;</span>
+    <span class="keyword1">lemma</span> is_rflow_precise<span class="delimiter">[</span>constraint_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;precise (is_rflow N)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">unfolding</span> is_rflow_def
+      <span class="keyword1"><span class="improper">apply</span></span> clarsimp
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rename_tac l l&#39;<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> prec_extract_eqs
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">typedecl</span> i_rflow 
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(&lambda;cfi. return cfi, PR_CONST compute_rflow) &isin; (is_mtx N)<span class="hidden">&#8679;</span><sup>d</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> is_rflow N&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> compute_rflow_def is_rflow_def refine_pw_simps hn_ctxt_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.compute_rflow$c$s$t &equiv; UNPROTECT compute_rflow&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST compute_rflow&quot;</span> <span class="string">&quot;capacity_impl i_mtx =&gt; i_rflow nres&quot;</span>
+
+
+    <span class="keyword1">schematic_lemma</span> rg_succ2_impl<span class="delimiter">:</span>
+      <span class="keyword2">fixes</span> ps <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list&quot;</span> <span class="keyword2">and</span> cf <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of u <span class="string">&quot;TYPE(node)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of ps <span class="string">&quot;TYPE(i_ps)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of cf <span class="string">&quot;TYPE(capacity_impl i_mtx)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span> <span class="delimiter">=</span> IdI<span class="delimiter">[</span>of N<span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (hn_ctxt is_ps ps psi * hn_ctxt (is_mtx N) cf cfi * hn_val nat_rel u ui) (?c::?&#39;c Heap) ?&Gamma; ?R (rg_succ2 ps cf u)&quot;</span>
+      <span class="keyword1">unfolding</span> rg_succ2_def APP_def monadic_filter_rev_def monadic_filter_rev_aux_def
+      <span class="comment">(* TODO: Make setting up combinators for sepref simpler, then we do not need to unfold! *)</span>
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">by</span> sepref_keep
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> succ_imp <span class="keyword2">uses</span> Edka_Impl.rg_succ2_impl
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> succ_imp_def
+
+    <span class="keyword1">lemma</span> succ_imp_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(uncurry2 (succ_imp N), uncurry2 (PR_CONST rg_succ2)) &isin; is_ps<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (is_mtx N)<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (pure Id)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> hn_list_aux (pure Id)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1">using</span> succ_imp.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">]</span>            
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> hn_ctxt_def hn_prod_aux_def mult_ac split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.rg_succ2$c &equiv; UNPROTECT rg_succ2&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST rg_succ2&quot;</span> <span class="string">&quot;i_ps =&gt; capacity_impl i_mtx =&gt; node =&gt; node list nres&quot;</span>
+
+    
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(min,min)&isin;Id-&gt;Id-&gt;Id&quot;</span> <span class="keyword1">by</span> simp
+
+    <span class="keyword1">abbreviation</span> <span class="string">&quot;is_path &equiv; hn_list_aux (hn_prod_aux (pure Id) (pure Id))&quot;</span>
+
+    <span class="keyword1">schematic_lemma</span> bottleNeck_imp_impl<span class="delimiter">:</span>
+      <span class="keyword2">fixes</span> ps <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list&quot;</span> <span class="keyword2">and</span> cf <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span> <span class="keyword2">and</span> p pi
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of p <span class="string">&quot;TYPE(edge list)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of cf <span class="string">&quot;TYPE(capacity_impl i_mtx)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span> <span class="delimiter">=</span> IdI<span class="delimiter">[</span>of N<span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_path p pi) (?c::?&#39;c Heap) ?&Gamma; ?R (bottleNeck_cf_impl cf p)&quot;</span>
+      <span class="keyword1">unfolding</span> bottleNeck_cf_impl_def APP_def
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">by</span> sepref_keep
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> bottleNeck_imp <span class="keyword2">uses</span> Edka_Impl.bottleNeck_imp_impl
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> bottleNeck_imp_def
+
+    <span class="keyword1">lemma</span> bottleNeck_impl_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;(uncurry (bottleNeck_imp N), uncurry (PR_CONST bottleNeck_cf_impl)) 
+        &isin; (is_mtx N)<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (is_path)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> (pure Id)&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_preI<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> uncurry_def hn_list_pure_conv hn_ctxt_def split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_cons&#39;<span class="delimiter">[</span>OF _ bottleNeck_imp.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">]</span> _<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> hn_list_pure_conv hn_ctxt_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> hn_ctxt_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.bottleNeck_cf_impl$c &equiv; UNPROTECT bottleNeck_cf_impl&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST bottleNeck_cf_impl&quot;</span> <span class="string">&quot;capacity_impl i_mtx =&gt; path =&gt; capacity_impl nres&quot;</span>
+    
+    <span class="keyword1">schematic_lemma</span> augment_imp_impl<span class="delimiter">:</span>
+      <span class="keyword2">fixes</span> ps <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list&quot;</span> <span class="keyword2">and</span> cf <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span> <span class="keyword2">and</span> p pi
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of p <span class="string">&quot;TYPE(edge list)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of cf <span class="string">&quot;TYPE(capacity_impl i_mtx)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of cap <span class="string">&quot;TYPE(capacity_impl)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span> <span class="delimiter">=</span> IdI<span class="delimiter">[</span>of N<span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_path p pi * hn_val Id cap capi) (?c::?&#39;c Heap) ?&Gamma; ?R (augment_cf_impl cf p cap)&quot;</span>
+      <span class="keyword1">unfolding</span> augment_cf_impl_def augment_edge_impl_def APP_def
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">by</span> sepref_keep
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> augment_imp <span class="keyword2">uses</span> Edka_Impl.augment_imp_impl
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> augment_imp_def
+
+    <span class="keyword1">thm</span> augment_imp_def augment_cf_impl_def
+
+    <span class="keyword1">lemma</span> augment_impl_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;(uncurry2 (augment_imp N), uncurry2 (PR_CONST augment_cf_impl)) 
+        &isin; (is_mtx N)<span class="hidden">&#8679;</span><sup>d</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (is_path)<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (pure Id)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> is_mtx N&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_preI<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> uncurry_def hn_list_pure_conv hn_ctxt_def split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_cons&#39;<span class="delimiter">[</span>OF _ augment_imp.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">]</span> _<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> hn_list_pure_conv hn_ctxt_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> hn_ctxt_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.augment_cf_impl$c &equiv; UNPROTECT augment_cf_impl&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST augment_cf_impl&quot;</span> <span class="string">&quot;capacity_impl i_mtx =&gt; path =&gt; capacity_impl =&gt; capacity_impl i_mtx nres&quot;</span>
+
+    <span class="keyword1">thm</span> succ_imp_def
+    <span class="keyword1">sublocale</span> bfs<span class="delimiter">!</span><span class="delimiter">:</span> Impl_Succ <span class="string">&quot;snd&quot;</span> <span class="string">&quot;TYPE(i_ps &times; capacity_impl i_mtx)&quot;</span> 
+      <span class="string">&quot;&lambda;(ps,cf). rg_succ2 ps cf&quot;</span> <span class="string">&quot;hn_prod_aux is_ps (is_mtx N)&quot;</span> <span class="string">&quot;&lambda;(ps,cf). succ_imp N ps cf&quot;</span>
+      <span class="keyword1">unfolding</span> APP_def
+      <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+      <span class="keyword1"><span class="improper">apply</span></span> constraint_rules
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> fold_partial_uncurry<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hfref_cons<span class="delimiter">[</span>OF succ_imp_refine<span class="delimiter">[</span>unfolded PR_CONST_def<span class="delimiter">]</span><span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1">by</span> auto
+      
+    <span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> <span class="string">&quot;bfsi&#39; N s t psi cfi &equiv; bfs_impl (&lambda;(ps, cf). succ_imp N ps cf) (psi,cfi) s t&quot;</span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(uncurry (bfsi&#39; N s t),uncurry (PR_CONST bfs2_op)) &isin; is_ps<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (is_mtx N)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> hn_option_aux is_path&quot;</span>
+      <span class="keyword1">unfolding</span> bfsi&#39;_def<span class="delimiter">[</span>abs_def<span class="delimiter">]</span>
+      <span class="keyword1">using</span> bfs.bfs_impl_fr_rule
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> uncurry_def bfs.op_bfs_def<span class="delimiter">[</span>abs_def<span class="delimiter">]</span> bfs2_op_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> hfref_def all_to_meta<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_cons<span class="delimiter">[</span>rotated<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rprems
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.bfs2_op$c$s$t &equiv; UNPROTECT bfs2_op&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST bfs2_op&quot;</span> <span class="string">&quot;i_ps =&gt; capacity_impl i_mtx =&gt; path option nres&quot;</span>  
+
+
+    <span class="keyword1">schematic_lemma</span> edka_imp_tabulate_impl<span class="delimiter">:</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_opt_simps<span class="delimiter">]</span> <span class="delimiter">=</span> heap_WHILET_def
+      <span class="keyword2">fixes</span> ps <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list&quot;</span> <span class="keyword2">and</span> cf <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of ps <span class="string">&quot;TYPE(node =&gt; node list)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span> <span class="delimiter">=</span> IdI<span class="delimiter">[</span>of ps<span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (emp) (?c::?&#39;c Heap) ?&Gamma; ?R (edka5_tabulate ps)&quot;</span>
+      <span class="keyword1">unfolding</span> edka5_tabulate_def
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">by</span> sepref_keep
+
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> edka_imp_tabulate <span class="keyword2">uses</span> Edka_Impl.edka_imp_tabulate_impl
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> edka_imp_tabulate_def
+
+    <span class="keyword1">thm</span> edka_imp_tabulate.refine
+
+    <span class="keyword1">lemma</span> edka_imp_tabulate_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(edka_imp_tabulate c N, PR_CONST edka5_tabulate) 
+      &isin; (pure Id)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> hn_prod_aux (is_mtx N) is_ps&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_preI<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> uncurry_def hn_list_pure_conv hn_ctxt_def split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_cons<span class="delimiter">[</span>OF _ edka_imp_tabulate.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">]</span><span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> hn_ctxt_def pure_def<span class="delimiter">)</span><span class="delimiter">+</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.edka5_tabulate$c &equiv; UNPROTECT edka5_tabulate&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST edka5_tabulate&quot;</span> <span class="string">&quot;(node =&gt; node list) =&gt; (capacity_impl i_mtx &times; i_ps) nres&quot;</span>
+
+
+    <span class="keyword1">schematic_lemma</span> edka_imp_run_impl<span class="delimiter">:</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_opt_simps<span class="delimiter">]</span> <span class="delimiter">=</span> heap_WHILET_def
+      <span class="keyword2">fixes</span> ps <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list&quot;</span> <span class="keyword2">and</span> cf <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of cf <span class="string">&quot;TYPE(capacity_impl i_mtx)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of ps <span class="string">&quot;TYPE(i_ps)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_ps ps psi) (?c::?&#39;c Heap) ?&Gamma; ?R (edka5_run cf ps)&quot;</span>
+      <span class="keyword1">unfolding</span> edka5_run_def
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">by</span> sepref_keep
+
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> edka_imp_run <span class="keyword2">uses</span> Edka_Impl.edka_imp_run_impl
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> edka_imp_run_def
+
+    <span class="keyword1">thm</span> edka_imp_run_def
+    <span class="keyword1">lemma</span> edka_imp_run_refine<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;(uncurry (edka_imp_run s t N), uncurry (PR_CONST edka5_run)) 
+        &isin; (is_mtx N)<span class="hidden">&#8679;</span><sup>d</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (is_ps)<span class="hidden">&#8679;</span><sup>k</sup> -&gt;<span class="hidden">&#8681;</span><sub>a</sub> is_rflow N&quot;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> rule
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>clarsimp simp<span class="delimiter">:</span> uncurry_def hn_list_pure_conv hn_ctxt_def split<span class="delimiter">:</span> prod.split<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule hn_refine_cons<span class="delimiter">[</span>OF _ edka_imp_run.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">]</span> _<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> hn_ctxt_def<span class="delimiter">)</span><span class="delimiter">+</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+
+    <span class="keyword1">lemma</span> <span class="delimiter">[</span>def_pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Network.edka5_run$c$s$t &equiv; UNPROTECT edka5_run&quot;</span> <span class="keyword1">by</span> simp
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST edka5_run&quot;</span> <span class="string">&quot;capacity_impl i_mtx =&gt; i_ps =&gt; i_rflow nres&quot;</span>
+
+
+
+
+
+    <span class="keyword1">schematic_lemma</span> edka_imp_impl<span class="delimiter">:</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_opt_simps<span class="delimiter">]</span> <span class="delimiter">=</span> heap_WHILET_def
+      <span class="keyword2">fixes</span> ps <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list&quot;</span> <span class="keyword2">and</span> cf <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph&quot;</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of ps <span class="string">&quot;TYPE(node =&gt; node list)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_import_param<span class="delimiter">]</span> <span class="delimiter">=</span> IdI<span class="delimiter">[</span>of ps<span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (emp) (?c::?&#39;c Heap) ?&Gamma; ?R (edka5 ps)&quot;</span>
+      <span class="keyword1">unfolding</span> edka5_def
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">by</span> sepref_keep
+
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> edka_imp <span class="keyword2">uses</span> Edka_Impl.edka_imp_impl
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> edka_imp_def
+    <span class="keyword1">lemmas</span> edka_imp_refine <span class="delimiter">=</span> edka_imp.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">]</span>
+  <span class="keyword2">end</span>
+
+  <span class="keyword1">export_code</span> edka_imp <span class="keyword2">checking</span> SML_imp
+
+  <span class="keyword1">context</span> Network_Impl <span class="keyword2">begin</span>
+    <span class="keyword1">text</span> <span class="cartouche">&#8249;Correctness theorem of the final implementation&#8250;</span>
+    <span class="keyword1">theorem</span> edka_imp_correct<span class="delimiter">:</span> 
+      <span class="keyword2">assumes</span> VN<span class="delimiter">:</span> <span class="string">&quot;Graph.V c &sube; {0..&lt;N}&quot;</span>
+      <span class="keyword2">assumes</span> ABS_PS<span class="delimiter">:</span> <span class="string">&quot;is_pred_succ ps c&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;&lt;emp&gt; edka_imp c s t N ps &lt;&lambda;fi. &exist;<span class="hidden">&#8681;</span><sub>A</sub>f. is_rflow N f fi * \&lt;up&gt;(isMaxFlow f)&gt;<span class="hidden">&#8681;</span><sub>t</sub>&quot;</span>
+    <span class="keyword1">proof</span> -
+      <span class="keyword1">interpret</span> Edka_Impl <span class="keyword1">by</span> unfold_locales fact
+
+      <span class="keyword1">note</span> edka5_refine<span class="delimiter">[</span>OF ABS_PS<span class="delimiter">]</span>
+      <span class="keyword1">also</span> <span class="keyword1">note</span> edka4_refine                 
+      <span class="keyword1">also</span> <span class="keyword1">note</span> edka3_refine    
+      <span class="keyword1">also</span> <span class="keyword1">note</span> edka2_refine 
+      <span class="keyword1">also</span> <span class="keyword1">note</span> edka_refine
+      <span class="keyword1">also</span> <span class="keyword1">note</span> edka_partial_refine
+      <span class="keyword1">also</span> <span class="keyword1">note</span> fofu_partial_correct
+      <span class="keyword1">finally</span> <span class="keyword1">have</span> <span class="string">&quot;edka5 ps &le; SPEC isMaxFlow&quot;</span> <span class="keyword1">.</span>
+      <span class="keyword1">from</span> hn_refine_ref<span class="delimiter">[</span>OF this edka_imp_refine<span class="delimiter">]</span>
+      <span class="keyword3">show</span> <span class="var">?thesis</span> 
+        <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> hn_refine_def<span class="delimiter">)</span>
+    <span class="keyword1">qed</span>
+  <span class="keyword2">end</span>    
+<span class="keyword2">end</span>
+</pre>
+
+</div>
+</body>
+</html>

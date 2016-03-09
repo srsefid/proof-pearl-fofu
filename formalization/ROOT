@@ -15,7 +15,8 @@ session Edka_Document = "Edka_Base" +
   options [ 
     document = "pdf",
     document_variants = "document:outline=/proof,/ML",
-    document_output = "generated"]
+    document_output = "generated",
+    browser_info]
   theories [document = false]
     Graph
   theories [document = false]  
@@ -37,7 +38,6 @@ session Edka_Document = "Edka_Base" +
     NetCheck
   theories  
     Edka_Checked_Impl
-
    document_files
      "root.tex" "root.bib"
 

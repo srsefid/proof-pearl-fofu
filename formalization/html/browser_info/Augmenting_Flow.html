@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Theory Augmenting_Flow (Isabelle2015: May 2015)</title>
+<link media="all" rel="stylesheet" type="text/css" href="isabelle.css"/>
+</head>
+
+<body>
+<div class="head"><h1>Theory Augmenting_Flow</h1>
+
+<span class="command">theory</span> <span class="name">Augmenting_Flow</span><br/>
+<span class="keyword">imports</span> <a href="ResidualGraph.html"><span class="name">ResidualGraph</span></a><br/>
+
+</div>
+<div class="source">
+<pre><span class="keyword1">section</span> <span class="cartouche">&#8249;Augmenting Flows&#8250;</span>
+<span class="keyword1">theory</span> Augmenting_Flow
+<span class="keyword2">imports</span> ResidualGraph
+<span class="keyword2">begin</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;
+  In this theory, we define the concept of an augmenting flow,
+  augmentation with a flow, and show that augmentation of a flow 
+  with an augmenting flow yields a valid flow again.
+  &#8250;</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;We assume that there is a network with a flow @{term f} on it&#8250;</span>
+<span class="keyword1">context</span> NFlow
+<span class="keyword2">begin</span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Augmentation of a Flow&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;The flow can be augmented by another flow, by adding the flows 
+  of edges parallel to edges in the network, and subtracting the edges 
+  reverse to edges in the network.&#8250;</span>
+<span class="comment">(* TODO: Define in network locale, with \&lt;up&gt; syntax. *)</span>
+<span class="keyword1">definition</span> augment <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity flow =&gt; &#39;capacity flow&quot;</span>
+<span class="keyword2">where</span> <span class="string">&quot;augment f&#39; &equiv; &lambda;(u, v).
+  if (u, v) &isin; E then
+    f (u, v) + f&#39; (u, v) - f&#39; (v, u)
+  else
+    0&quot;</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;We define a syntax similar to Cormen et el.:&#8250;</span>    
+<span class="keyword1">abbreviation</span> <span class="delimiter">(</span>input<span class="delimiter">)</span> augment_syntax <span class="delimiter">(</span><span class="keyword2">infix</span> <span class="string">&quot;\&lt;up&gt;&quot;</span> 55<span class="delimiter">)</span> <span class="keyword2">where</span> <span class="string">&quot;augment_syntax &equiv; NFlow.augment c&quot;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;such that we can write @{term [source] &quot;f\&lt;up&gt;f&#39;&quot;} for the flow @{term f} 
+  augmented by @{term f&#39;}.&#8250;</span>
+
+
+<span class="comment">(*&lt;*)</span> <span class="comment">(* Some old syntax, not used any more *)</span>
+<span class="comment">(*notation (in NFlow_Loc_Syntax) augment (&quot;&lang;\&lt;up&gt;/ _&rang;&quot; 1000)*)</span>
+<span class="keyword1">abbreviation</span> <span class="delimiter">(</span><span class="keyword2">in</span> Graph_Syntax<span class="delimiter">)</span> NFlow_augment <span class="delimiter">::</span> <span class="string">&quot;_ graph =&gt; _ flow =&gt; _ flow =&gt; _ flow&quot;</span>
+  <span class="delimiter">(</span><span class="string">&quot;\&lt;lbrace&gt;_/ \&lt;parallel&gt;<span class="hidden">&#8681;</span><sub>N</sub><span class="hidden">&#8681;</span><sub>F</sub>/ &lang;_/ \&lt;up&gt;/ _&rang;\&lt;rbrace&gt;&quot;</span> 1000<span class="delimiter">)</span>
+<span class="keyword2">where</span> <span class="string">&quot;\&lt;lbrace&gt;c \&lt;parallel&gt;<span class="hidden">&#8681;</span><sub>N</sub><span class="hidden">&#8681;</span><sub>F</sub> &lang;f \&lt;up&gt; f&#39;&rang;\&lt;rbrace&gt; &equiv; NFlow.augment c f f&#39;&quot;</span>
+<span class="comment">(*&gt;*)</span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Augmentation yields Valid Flow&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;We show that, if we augment the flow with a valid flow of
+  the residual graph, the augmented flow is a valid flow again, i.e. 
+  it satisfies the capacity and conservation constraints:&#8250;</span>
+<span class="keyword1">context</span> 
+  <span class="delimiter">--</span> <span class="cartouche">&#8249;Let the \emph{residual flow} @{term f&#39;} be a flow in the residual graph&#8250;</span>
+  <span class="keyword2">fixes</span> f&#39; <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity flow&quot;</span>
+  <span class="keyword2">assumes</span> f&#39;_flow<span class="delimiter">:</span> <span class="string">&quot;Flow cf s t f&#39;&quot;</span>
+<span class="keyword2">begin</span>  
+
+<span class="keyword1">interpretation</span> f&#39;<span class="delimiter">!</span><span class="delimiter">:</span> Flow cf s t f&#39; <span class="keyword1">by</span> <span class="delimiter">(</span>rule f&#39;_flow<span class="delimiter">)</span>
+
+<span class="keyword1">subsubsection</span> <span class="cartouche">&#8249;Capacity Constraint&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;First, we have to show that the new flow satisfies the capacity constraint:&#8250;</span>
+<span class="comment">(* FIXME: Indentation unfortunate, but required to extract snippet for latex presentation *)</span>    
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;\DefineSnippet{augment_flow_presv_cap}{&#8250;</span>  
+<span class="keyword1">lemma</span> augment_flow_presv_cap<span class="delimiter">:</span> 
+  <span class="keyword2">shows</span> <span class="string">&quot;0 &le; (f\&lt;up&gt;f&#39;)(u,v) &and; (f\&lt;up&gt;f&#39;)(u,v) &le; c(u,v)&quot;</span>
+<span class="keyword1">proof</span> <span class="delimiter">(</span>cases <span class="string">&quot;(u,v)&isin;E&quot;</span><span class="delimiter">;</span> rule conjI<span class="delimiter">)</span> 
+  <span class="keyword3">assume</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(u,v)&isin;E&quot;</span>
+  <span class="keyword1">hence</span> <span class="string">&quot;f(u,v) = cf(v,u)&quot;</span> 
+    <span class="keyword1">using</span> no_parallel_edge <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> residualGraph_def<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;cf(v,u) &ge; f&#39;(v,u)&quot;</span> <span class="keyword1">using</span> f&#39;.capacity_const <span class="keyword1">by</span> auto
+  <span class="keyword1">finally</span><span class="comment">(*&lt;*)</span><span class="delimiter">(</span>xtrans<span class="delimiter">)</span><span class="comment">(*&gt;*)</span> <span class="keyword1">have</span> <span class="string">&quot;f&#39;(v,u) &le; f(u,v)&quot;</span> <span class="keyword1">.</span>
+
+<span class="comment">(*&lt;*)</span><span class="keyword1">{</span>
+    <span class="keyword1">note</span> <span class="delimiter">[</span>trans<span class="delimiter">]</span> <span class="delimiter">=</span> xtrans
+  <span class="comment">(*&gt;*)</span><span class="keyword1">text_raw</span> <span class="cartouche">&#8249;\isanewline&#8250;</span>
+
+  <span class="keyword1">text_raw</span> <span class="cartouche">&#8249;\ \ &#8250;</span><span class="keyword1">have</span> <span class="string">&quot;(f\&lt;up&gt;f&#39;)(u,v) = f(u,v) + f&#39;(u,v) - f&#39;(v,u)&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; &ge; f(u,v) + f&#39;(u,v) - f(u,v)&quot;</span>
+  <span class="comment">(*&lt;*)</span><span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;_ &ge; &hellip;&quot;</span><span class="delimiter">)</span><span class="comment">(*&gt;*)</span>  <span class="keyword1">using</span> <span class="cartouche">&#8249;f&#39;(v,u) &le; f(u,v)&#8250;</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = f&#39;(u,v)&quot;</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; &ge; 0&quot;</span> <span class="keyword1">using</span> f&#39;.capacity_const <span class="keyword1">by</span> auto
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="string">&quot;(f\&lt;up&gt;f&#39;)(u,v) &ge; 0&quot;</span> <span class="keyword1">.</span>
+  <span class="comment">(*&lt;*)</span><span class="keyword1">}</span><span class="comment">(*&gt;*)</span>
+    
+  <span class="keyword1">have</span> <span class="string">&quot;(f\&lt;up&gt;f&#39;)(u,v) = f(u,v) + f&#39;(u,v) - f&#39;(v,u)&quot;</span> 
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; &le; f(u,v) + f&#39;(u,v)&quot;</span> <span class="keyword1">using</span> f&#39;.capacity_const <span class="keyword1">by</span> auto
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; &le; f(u,v) + cf(u,v)&quot;</span> <span class="keyword1">using</span> f&#39;.capacity_const <span class="keyword1">by</span> auto
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = f(u,v) + c(u,v) - f(u,v)&quot;</span> 
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> residualGraph_def<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = c(u,v)&quot;</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="string">&quot;(f\&lt;up&gt;f&#39;)(u, v) &le; c(u, v)&quot;</span> <span class="keyword1">.</span>
+<span class="keyword1">qed</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def cap_positive<span class="delimiter">)</span>
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;}%EndSnippet&#8250;</span>
+
+  
+<span class="keyword1">subsubsection</span> <span class="cartouche">&#8249;Conservation Constraint&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;In order to show the conservation constraint, we need some 
+  auxiliary lemmas first.&#8250;</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;As there are no parallel edges in the network, and all edges 
+  in the residual graph are either parallel or reverse to a network edge,
+  we can split summations of the residual flow over outgoing/incoming edges in the 
+  residual graph to summations over outgoing/incoming edges in the network.
+&#8250;</span>
+<span class="keyword2">private</span> <span class="keyword1">lemma</span> split_rflow_outgoing<span class="delimiter">:</span> 
+  <span class="string">&quot;(&sum;v&isin;cf.E``{u}. f&#39; (u,v)) = (&sum;v&isin;E``{u}. f&#39;(u,v)) + (&sum;v&isin;E&macr;``{u}. f&#39;(u,v))&quot;</span>
+  <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;?LHS = ?RHS&quot;</span><span class="delimiter">)</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">from</span> no_parallel_edge <span class="keyword1">have</span> DJ<span class="delimiter">:</span> <span class="string">&quot;E``{u} &cap; E&macr;``{u} = {}&quot;</span> <span class="keyword1">by</span> auto
+
+  <span class="keyword1">have</span> <span class="string">&quot;?LHS = (&sum;v&isin;E``{u} &cup; E&macr;``{u}. f&#39; (u,v))&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule setsum.mono_neutral_left<span class="delimiter">)</span>
+    <span class="keyword1">using</span> cfE_ss_invE
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> finite_Image<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = ?RHS&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst setsum.union_disjoint<span class="delimiter">[</span>OF _ _ DJ<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> finite_Image<span class="delimiter">)</span>
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="string">&quot;?LHS = ?RHS&quot;</span> <span class="keyword1">.</span>
+<span class="keyword1">qed</span>  
+
+<span class="keyword2">private</span> <span class="keyword1">lemma</span> split_rflow_incoming<span class="delimiter">:</span> 
+  <span class="string">&quot;(&sum;v&isin;cf.E&macr;``{u}. f&#39; (v,u)) = (&sum;v&isin;E``{u}. f&#39;(v,u)) + (&sum;v&isin;E&macr;``{u}. f&#39;(v,u))&quot;</span>
+  <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;?LHS = ?RHS&quot;</span><span class="delimiter">)</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">from</span> no_parallel_edge <span class="keyword1">have</span> DJ<span class="delimiter">:</span> <span class="string">&quot;E``{u} &cap; E&macr;``{u} = {}&quot;</span> <span class="keyword1">by</span> auto
+
+  <span class="keyword1">have</span> <span class="string">&quot;?LHS = (&sum;v&isin;E``{u} &cup; E&macr;``{u}. f&#39; (v,u))&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule setsum.mono_neutral_left<span class="delimiter">)</span>
+    <span class="keyword1">using</span> cfE_ss_invE
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> finite_Image<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = ?RHS&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst setsum.union_disjoint<span class="delimiter">[</span>OF _ _ DJ<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> finite_Image<span class="delimiter">)</span>
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="string">&quot;?LHS = ?RHS&quot;</span> <span class="keyword1">.</span>
+<span class="keyword1">qed</span>  
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;For proving the conservation constraint, let&#39;s fix a node @{term u}, which
+  is neither the source nor the sink: &#8250;</span>
+<span class="keyword1">context</span> 
+  <span class="keyword2">fixes</span> u <span class="delimiter">::</span> node
+  <span class="keyword2">assumes</span> U_ASM<span class="delimiter">:</span> <span class="string">&quot;u&isin;V - {s,t}&quot;</span>
+<span class="keyword2">begin</span>  
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;We first show an auxiliary lemma to compare the 
+  effective residual flow on incoming network edges to
+  the effective residual flow on outgoing network edges.
+  
+  Intuitively, this lemma shows that the effective residual flow added to the 
+  network edges satisfies the conservation constraint.
+&#8250;</span>
+<span class="keyword2">private</span> <span class="keyword1">lemma</span> flow_summation_aux<span class="delimiter">:</span>
+  <span class="keyword2">shows</span> <span class="string">&quot;(&sum;v&isin;E``{u}. f&#39; (u,v))  - (&sum;v&isin;E``{u}. f&#39; (v,u))
+       = (&sum;v&isin;E&macr;``{u}. f&#39; (v,u)) - (&sum;v&isin;E&macr;``{u}. f&#39; (u,v))&quot;</span>
+   <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;?LHS = ?RHS&quot;</span> <span class="keyword2">is</span> <span class="string">&quot;?A - ?B = ?RHS&quot;</span><span class="delimiter">)</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">text</span> <span class="cartouche">&#8249;The proof is by splitting the flows, and careful 
+    cancellation of the summands.&#8250;</span>
+  <span class="keyword1">have</span> <span class="string">&quot;?A = (&sum;v&isin;cf.E``{u}. f&#39; (u, v)) - (&sum;v&isin;E&macr;``{u}. f&#39; (u, v))&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> split_rflow_outgoing<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;(&sum;v&isin;cf.E``{u}. f&#39; (u, v)) = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u))&quot;</span>  
+    <span class="keyword1">using</span> U_ASM
+    <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> f&#39;.conservation_const_pointwise<span class="delimiter">)</span>
+  <span class="keyword1">finally</span> <span class="keyword1">have</span> <span class="string">&quot;?A = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u)) - (&sum;v&isin;E&macr;``{u}. f&#39; (u, v))&quot;</span> <span class="keyword1">.</span>
+  <span class="keyword1">moreover</span>
+  <span class="keyword1">have</span> <span class="string">&quot;?B = (&sum;v&isin;cf.E&macr;``{u}. f&#39; (v, u)) - (&sum;v&isin;E&macr;``{u}. f&#39; (v, u))&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> split_rflow_incoming<span class="delimiter">)</span>
+  <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="string">&quot;?A - ?B = ?RHS&quot;</span> <span class="keyword1">by</span> simp
+<span class="keyword1">qed</span>    
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Finally, we are ready to prove that the augmented flow satisfies the 
+  conservation constraint:&#8250;</span>
+<span class="keyword1">lemma</span> augment_flow_presv_con<span class="delimiter">:</span> 
+  <span class="keyword2">shows</span> <span class="string">&quot;(&sum;e &isin; outgoing u. augment f&#39; e) = (&sum;e &isin; incoming u. augment f&#39; e)&quot;</span>
+    <span class="delimiter">(</span><span class="keyword2">is</span> <span class="string">&quot;?LHS = ?RHS&quot;</span><span class="delimiter">)</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">text</span> <span class="cartouche">&#8249;We define shortcuts for the successor and predecessor nodes of @{term u} 
+    in the network:&#8250;</span>
+  <span class="keyword1">let</span> <span class="var">?Vo</span> <span class="delimiter">=</span> <span class="string">&quot;E``{u}&quot;</span> <span class="keyword1">let</span> <span class="var">?Vi</span> <span class="delimiter">=</span> <span class="string">&quot;E&macr;``{u}&quot;</span>
+
+  <span class="keyword1">text</span> <span class="cartouche">&#8249;Using the auxiliary lemma for the effective residual flow,
+    the proof is straightforward:&#8250;</span>
+  <span class="keyword1">have</span> <span class="string">&quot;?LHS = (&sum;v&isin;?Vo. augment f&#39; (u,v))&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> sum_outgoing_pointwise<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vo. f (u,v) + f&#39;(u,v) - f&#39;(v,u))&quot;</span>  
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vo. f (u,v)) + (&sum;v&isin;?Vo. f&#39; (u,v)) - (&sum;v&isin;?Vo. f&#39; (v,u))&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> setsum_subtractf setsum.distrib<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vi. f (v,u)) + (&sum;v&isin;?Vi. f&#39; (v,u)) - (&sum;v&isin;?Vi. f&#39; (u,v))&quot;</span> 
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> conservation_const_pointwise<span class="delimiter">[</span>OF U_ASM<span class="delimiter">]</span> flow_summation_aux<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vi. f (v,u) + f&#39; (v,u) - f&#39; (u,v))&quot;</span> 
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> setsum_subtractf setsum.distrib<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;v&isin;?Vi. augment f&#39; (v,u))&quot;</span>  
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = ?RHS&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> sum_incoming_pointwise<span class="delimiter">)</span>
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="string">&quot;?LHS = ?RHS&quot;</span> <span class="keyword1">.</span>
+
+  <span class="keyword1">text</span> <span class="cartouche">&#8249;Note that we tried to follow the proof presented by Cormen et al.~\cite{CLRS09} 
+    as closely as possible. Unfortunately, this proof generalizes the summation to all 
+    nodes immediately, rendering the first equation invalid.
+    Trying to fix this error, we encountered that the step that uses the conservation 
+    constraints on the augmenting flow is more subtle as indicated in the original proof.
+    Thus, we moved this argument to an auxiliary lemma. &#8250;</span>
+
+<span class="keyword1">qed</span>  
+
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;@{term u} is node&#8250;</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;As main result, we get that the augmented flow is again a valid flow.&#8250;</span>
+<span class="keyword1">corollary</span> augment_flow_presv<span class="delimiter">:</span> <span class="string">&quot;Flow c s t (f\&lt;up&gt;f&#39;)&quot;</span>
+  <span class="keyword1">using</span> augment_flow_presv_cap augment_flow_presv_con 
+  <span class="keyword1">by</span> unfold_locales auto
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Value of the Augmented Flow&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Next, we show that the value of the augmented flow is the sum of the values
+  of the original flow and the augmenting flow.&#8250;</span>
+  
+<span class="keyword1">lemma</span> augment_flow_value<span class="delimiter">:</span> <span class="string">&quot;Flow.val c s (f\&lt;up&gt;f&#39;) = val + Flow.val cf s f&#39;&quot;</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">interpret</span> f&#39;&#39;<span class="delimiter">!</span><span class="delimiter">:</span> Flow c s t <span class="string">&quot;f\&lt;up&gt;f&#39;&quot;</span> <span class="keyword1">using</span> augment_flow_presv<span class="delimiter">[</span>OF assms<span class="delimiter">]</span> <span class="keyword1">.</span> 
+
+  <span class="keyword1">txt</span> <span class="cartouche">&#8249;For this proof, we set up Isabelle&#39;s rewriting engine for rewriting of sums.
+    In particular, we add lemmas to convert sums over incoming or outgoing 
+    edges to sums over all vertices. This allows us to write the summations
+    from Cormen et al.~a bit more concise, leaving some of the tedious 
+    calculation work to the computer.&#8250;</span>
+  <span class="comment">(*&lt;*)</span>
+  <span class="keyword1">note</span> setsum_simp_setup<span class="delimiter">[</span>simp<span class="delimiter">]</span> <span class="delimiter">=</span> 
+    sum_outgoing_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span> s_node
+    sum_incoming_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span>
+    cf.sum_outgoing_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
+    cf.sum_incoming_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
+    sum_outgoing_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+    sum_incoming_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+    setsum_subtractf setsum.distrib
+  <span class="comment">(*&gt;*)</span>  
+  
+  <span class="keyword1">txt</span> <span class="cartouche">&#8249;Note that, if neither an edge nor its reverse is in the graph,
+    there is also no edge in the residual graph, and thus the flow value
+    is zero.&#8250;</span>  
+  <span class="keyword1">{</span>
+    <span class="keyword3">fix</span> u v
+    <span class="keyword3">assume</span> <span class="string">&quot;(u,v)&notin;E&quot;</span> <span class="string">&quot;(v,u)&notin;E&quot;</span>
+    <span class="keyword1">with</span> cfE_ss_invE <span class="keyword1">have</span> <span class="string">&quot;(u,v)&notin;cf.E&quot;</span> <span class="keyword1">by</span> auto
+    <span class="keyword1">hence</span> <span class="string">&quot;f&#39;(u,v) = 0&quot;</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">}</span> <span class="keyword1">note</span> aux1 <span class="delimiter">=</span> this  
+
+  <span class="keyword1">txt</span> <span class="cartouche">&#8249;Now, the proposition follows by straightforward rewriting of 
+    the summations:&#8250;</span>
+  <span class="keyword1">have</span> <span class="string">&quot;f&#39;&#39;.val = (&sum;u&isin;V. augment f&#39; (s, u) - augment f&#39; (u, s))&quot;</span> 
+    <span class="keyword1">unfolding</span> f&#39;&#39;.val_def <span class="keyword1">by</span> simp
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = (&sum;u&isin;V. f (s, u) - f (u, s) + (f&#39; (s, u) - f&#39; (u, s)))&quot;</span>
+    <span class="delimiter">--</span> <span class="cartouche">&#8249;Note that this is the crucial step of the proof, which Cormen et al. leave as an exercise.&#8250;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>rule setsum.cong<span class="delimiter">)</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def no_parallel_edge aux1<span class="delimiter">)</span>
+  <span class="keyword1">also</span> <span class="keyword1">have</span> <span class="string">&quot;&hellip; = val + Flow.val cf s f&#39;&quot;</span>  
+    <span class="keyword1">unfolding</span> val_def f&#39;.val_def <span class="keyword1">by</span> simp
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">.</span>  
+
+  <span class="comment">(*&lt;*)</span>
+  <span class="keyword1">txt</span> <span class="cartouche">&#8249;Note, there is also an automatic proof. When creating the above 
+      explicit proof, this automatic one has been used to extract meaningful
+      subgoals, abusing Isabelle as a term rewriter.&#8250;</span>
+  <span class="keyword1">have</span> <span class="var">?thesis</span>
+    <span class="keyword1">unfolding</span> val_def f&#39;.val_def f&#39;&#39;.val_def
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp del<span class="delimiter">:</span> setsum_simp_setup
+      add<span class="delimiter">:</span> 
+      sum_outgoing_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span> s_node
+      sum_incoming_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span>
+      sum_outgoing_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+      sum_incoming_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+      cf.sum_outgoing_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
+      cf.sum_incoming_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
+      setsum_subtractf<span class="delimiter">[</span>symmetric<span class="delimiter">]</span> setsum.distrib<span class="delimiter">[</span>symmetric<span class="delimiter">]</span>
+      <span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule setsum.cong<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> augment_def no_parallel_edge aux1<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+  <span class="comment">(*&gt;*)</span>
+<span class="keyword1">qed</span>    
+
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Augmenting flow&#8250;</span>
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Network flow&#8250;</span>
+
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Theory&#8250;</span>
+</pre>
+
+</div>
+</body>
+</html>

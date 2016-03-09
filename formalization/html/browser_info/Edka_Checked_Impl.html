@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Theory Edka_Checked_Impl (Isabelle2015: May 2015)</title>
+<link media="all" rel="stylesheet" type="text/css" href="isabelle.css"/>
+</head>
+
+<body>
+<div class="head"><h1>Theory Edka_Checked_Impl</h1>
+
+<span class="command">theory</span> <span class="name">Edka_Checked_Impl</span><br/>
+<span class="keyword">imports</span> <a href="NetCheck.html"><span class="name">NetCheck</span></a> <a href="EdmondsKarp_Impl.html"><span class="name">EdmondsKarp_Impl</span></a><br/>
+
+</div>
+<div class="source">
+<pre><span class="keyword1">section</span> <span class="cartouche">&#8249;Combination with Network Checker&#8250;</span>
+<span class="keyword1">theory</span> Edka_Checked_Impl
+<span class="keyword2">imports</span> NetCheck EdmondsKarp_Impl
+<span class="keyword2">begin</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;
+  In this theory, we combine the Edmonds-Karp implementation with the 
+  network checker.
+&#8250;</span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Adding Statistic Counters&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;We first add some statistic counters, that we use for profiling&#8250;</span>
+<span class="keyword1">definition</span> stat_outer_c <span class="delimiter">::</span> <span class="string">&quot;unit Heap&quot;</span> <span class="keyword2">where</span> <span class="string">&quot;stat_outer_c = return ()&quot;</span>
+<span class="keyword1">lemma</span> insert_stat_outer_c<span class="delimiter">:</span> <span class="string">&quot;m = stat_outer_c &raquo; m&quot;</span> <span class="keyword1">unfolding</span> stat_outer_c_def <span class="keyword1">by</span> simp
+<span class="keyword1">definition</span> stat_inner_c <span class="delimiter">::</span> <span class="string">&quot;unit Heap&quot;</span> <span class="keyword2">where</span> <span class="string">&quot;stat_inner_c = return ()&quot;</span>
+<span class="keyword1">lemma</span> insert_stat_inner_c<span class="delimiter">:</span> <span class="string">&quot;m = stat_inner_c &raquo; m&quot;</span> <span class="keyword1">unfolding</span> stat_inner_c_def <span class="keyword1">by</span> simp
+
+<span class="keyword1">code_printing</span>
+  <span class="keyword2">code_module</span> stat <span class="delimiter">\&lt;rightharpoonup&gt;</span> <span class="delimiter">(</span>SML<span class="delimiter">)</span> <span class="cartouche">&#8249;
+    structure stat = struct
+      val outer_c = ref 0;
+      fun outer_c_incr () = (outer_c := !outer_c + 1; ())
+      val inner_c = ref 0;
+      fun inner_c_incr () = (inner_c := !inner_c + 1; ())
+    end
+    &#8250;</span>
+<span class="delimiter">|</span> <span class="keyword2">constant</span> stat_outer_c <span class="delimiter">\&lt;rightharpoonup&gt;</span> <span class="delimiter">(</span>SML<span class="delimiter">)</span> <span class="string">&quot;stat.outer&#39;_c&#39;_incr&quot;</span>  
+<span class="delimiter">|</span> <span class="keyword2">constant</span> stat_inner_c <span class="delimiter">\&lt;rightharpoonup&gt;</span> <span class="delimiter">(</span>SML<span class="delimiter">)</span> <span class="string">&quot;stat.inner&#39;_c&#39;_incr&quot;</span>  
+
+
+<span class="keyword1">schematic_lemma</span> <span class="delimiter">[</span>code<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;edka_imp_run_0 s t N f brk = ?foo&quot;</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst edka_imp_run.code<span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;\&lt;hole&gt;&quot;</span> insert_stat_outer_c<span class="delimiter">)</span>
+  <span class="keyword1">by</span> <span class="delimiter">(</span>rule refl<span class="delimiter">)</span>
+  
+
+<span class="keyword1">schematic_lemma</span> <span class="delimiter">[</span>code<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;bfs_impl_0 t u l = ?foo&quot;</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst bfs_impl.code<span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;\&lt;hole&gt;&quot;</span> insert_stat_inner_c<span class="delimiter">)</span>
+  <span class="keyword1">by</span> <span class="delimiter">(</span>rule refl<span class="delimiter">)</span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Combined Algorithm&#8250;</span>
+
+<span class="keyword1">definition</span> <span class="string">&quot;edmonds_karp el s t &equiv; do {
+  case prepareNet el s t of
+    None =&gt; return None
+  | Some (c,ps,N) =&gt; do {
+      f \&lt;leftarrow&gt; edka_imp c s t N ps ;
+      return (Some (N,f))
+  }
+}&quot;</span>
+<span class="keyword1">export_code</span> edmonds_karp <span class="keyword2">checking</span> SML
+
+<span class="keyword1">lemma</span> network_is_impl<span class="delimiter">:</span> <span class="string">&quot;Network c s t ==&gt; Network_Impl c s t&quot;</span> <span class="keyword1">by</span> intro_locales
+
+<span class="keyword1">theorem</span> edmonds_karp_correct<span class="delimiter">:</span>
+  <span class="string">&quot;&lt;emp&gt; edmonds_karp el s t &lt;&lambda;
+      None =&gt; \&lt;up&gt;(&not;ln_invar el &or; &not;Network (ln_&alpha; el) s t)
+    | Some (N,fi) =&gt; &exist;<span class="hidden">&#8681;</span><sub>A</sub>f. Network_Impl.is_rflow (ln_&alpha; el) N f fi * \&lt;up&gt;(Network.isMaxFlow (ln_&alpha; el) s t f)
+        * \&lt;up&gt;(ln_invar el &and; Network (ln_&alpha; el) s t &and; Graph.V (ln_&alpha; el) &sube; {0..&lt;N})
+  &gt;<span class="hidden">&#8681;</span><sub>t</sub>&quot;</span>
+  <span class="keyword1">unfolding</span> edmonds_karp_def
+  <span class="keyword1">using</span> prepareNet_correct<span class="delimiter">[</span>of el s t<span class="delimiter">]</span>
+  <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto 
+    split<span class="delimiter">:</span> option.splits 
+    heap<span class="delimiter">:</span> Network_Impl.edka_imp_correct 
+    simp<span class="delimiter">:</span> ln_rel_def br_def network_is_impl<span class="delimiter">)</span>
+
+<span class="keyword1">context</span>
+<span class="keyword2">begin</span>
+<span class="keyword2">private</span> <span class="keyword1">definition</span> <span class="string">&quot;is_rflow &equiv; Network_Impl.is_rflow&quot;</span>
+
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;\DefineSnippet{edmonds_karp_correct}{&#8250;</span>       
+<span class="keyword1">theorem</span>
+  <span class="keyword2">fixes</span> el <span class="keyword2">defines</span> <span class="string">&quot;c &equiv; ln_&alpha; el&quot;</span>
+  <span class="keyword2">shows</span> <span class="string">&quot;&lt;emp&gt; edmonds_karp el s t &lt;&lambda;
+      None =&gt; \&lt;up&gt;(&not;ln_invar el &or; &not;Network c s t)
+    | Some (N,cf) =&gt; 
+      \&lt;up&gt;(ln_invar el &and; Network c s t &and; Graph.V c &sube; {0..&lt;N})
+    * (&exist;<span class="hidden">&#8681;</span><sub>A</sub>f. is_rflow c N f cf * \&lt;up&gt;(Network.isMaxFlow c s t f))&gt;<span class="hidden">&#8681;</span><sub>t</sub>&quot;</span>
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;}%EndSnippet&#8250;</span>
+  <span class="keyword1">unfolding</span> c_def is_rflow_def
+  <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto heap<span class="delimiter">:</span> edmonds_karp_correct<span class="delimiter">[</span>of el s t<span class="delimiter">]</span> split<span class="delimiter">:</span> option.split<span class="delimiter">)</span>
+
+<span class="keyword2">end</span>
+
+<span class="comment">(* TODO: Justify this by abstract definition + refinement *)</span>  
+<span class="keyword1">definition</span> get_flow <span class="delimiter">::</span> <span class="string">&quot;capacity_impl graph =&gt; nat =&gt; Graph.node =&gt; capacity_impl mtx =&gt; capacity_impl Heap&quot;</span> <span class="keyword2">where</span>
+  <span class="string">&quot;get_flow c N s fi &equiv; do {
+    imp_nfoldli ([0..&lt;N]) (&lambda;_. return True) (&lambda;v cap. do {
+      let csv = c (s,v);
+      cfsv \&lt;leftarrow&gt; mtx_get N fi (s,v);
+      let fsv = csv - cfsv;
+      return (cap + fsv)
+    }) 0
+  }&quot;</span>
+
+
+<span class="keyword1">export_code</span> nat_of_integer integer_of_nat int_of_integer integer_of_int
+  edmonds_karp edka_imp edka_imp_tabulate edka_imp_run prepareNet get_flow
+  <span class="keyword2">in</span> SML_imp 
+  <span class="keyword2">module_name</span> Fofu 
+  <span class="keyword2">file</span> <span class="string">&quot;evaluation/fofu-SML/Fofu_Export.sml&quot;</span>  
+
+<span class="keyword2">end</span>
+</pre>
+
+</div>
+</body>
+</html>

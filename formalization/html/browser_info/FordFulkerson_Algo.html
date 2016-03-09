@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Theory FordFulkerson_Algo (Isabelle2015: May 2015)</title>
+<link media="all" rel="stylesheet" type="text/css" href="isabelle.css"/>
+</head>
+
+<body>
+<div class="head"><h1>Theory FordFulkerson_Algo</h1>
+
+<span class="command">theory</span> <span class="name">FordFulkerson_Algo</span><br/>
+<span class="keyword">imports</span> <a href="Ford_Fulkerson.html"><span class="name">Ford_Fulkerson</span></a> <a href="Refine_Add_Fofu.html"><span class="name">Refine_Add_Fofu</span></a><br/>
+
+</div>
+<div class="source">
+<pre><span class="keyword1">section</span> <span class="cartouche">&#8249;The Ford-Fulkerson Method&#8250;</span>
+<span class="keyword1">theory</span> FordFulkerson_Algo
+<span class="keyword2">imports</span> 
+  Ford_Fulkerson
+  Refine_Add_Fofu
+  Refine_Monadic_Syntax_Sugar
+<span class="keyword2">begin</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;In this theory, we formalize the abstract Ford-Fulkerson
+  method, which is independent of how an augmenting path is chosen&#8250;</span>
+
+<span class="keyword1">context</span> Network 
+<span class="keyword2">begin</span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Algorithm&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;
+  We abstractly specify the procedure for finding an augmenting path:
+  Assuming a valid flow, the procedure must return an augmenting path 
+  iff there exists one.
+  &#8250;</span>
+<span class="keyword1">definition</span> <span class="string">&quot;find_augmenting_spec f &equiv; do {
+    assert (NFlow c s t f);
+    selectp p. NFlow.isAugmenting c s t f p
+  }&quot;</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;
+  We also specify the loop invariant, and annotate it to the loop.
+&#8250;</span>
+<span class="keyword1">abbreviation</span> <span class="string">&quot;fofu_invar &equiv; &lambda;(f,brk). 
+        NFlow c s t f 
+      &and; (brk --&gt; (&forall;p. &not;NFlow.isAugmenting c s t f p))
+    &quot;</span>  
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Finally, we obtain the Ford-Fulkerson algorithm.
+  Note that we annotate some assertions to ease later refinement&#8250;</span>
+<span class="keyword1">definition</span> <span class="string">&quot;fofu &equiv; do {
+  let f = (&lambda;_. 0);
+
+  (f,_) \&lt;leftarrow&gt; while<span class="hidden">&#8663;</span><sup>fofu_invar<span class="hidden">&#8662;</span></sup>
+    (&lambda;(f,brk). &not;brk) 
+    (&lambda;(f,_). do {
+      p \&lt;leftarrow&gt; find_augmenting_spec f;
+      case p of 
+        None =&gt; return (f,True)
+      | Some p =&gt; do {
+          assert (p&ne;[]);
+          assert (NFlow.isAugmenting c s t f p);
+          let f&#39; = NFlow.augmentingFlow c f p;
+          let f = NFlow.augment c f f&#39;;
+          assert (NFlow c s t f);
+          return (f, False)
+        }  
+    })
+    (f,False);
+  assert (NFlow c s t f);
+  return f 
+}&quot;</span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Partial Correctness&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Correctness of the algorithm is a consequence from the 
+  Ford-Fulkerson theorem. We need a few straightforward 
+  auxiliary lemmas, though:
+&#8250;</span>
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;The zero flow is a valid flow&#8250;</span>
+<span class="keyword1">lemma</span> zero_flow<span class="delimiter">:</span> <span class="string">&quot;NFlow c s t (&lambda;_. 0)&quot;</span> 
+  <span class="keyword1">unfolding</span> NFlow_def Flow_def 
+  <span class="keyword1">using</span> Network_axioms
+  <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> s_node t_node cap_non_negative<span class="delimiter">)</span>  
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Augmentation preserves the flow property&#8250;</span>
+<span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> augment_pres_nflow<span class="delimiter">:</span>
+  <span class="keyword2">assumes</span> AUG<span class="delimiter">:</span> <span class="string">&quot;isAugmenting p&quot;</span>
+  <span class="keyword2">shows</span> <span class="string">&quot;NFlow c s t (augment (augmentingFlow p))&quot;</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">note</span> augment_flow_presv<span class="delimiter">[</span>OF augFlow_resFlow<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span><span class="delimiter">]</span>
+  <span class="keyword3">thus</span> <span class="var">?thesis</span>
+    <span class="keyword1">by</span> intro_locales
+<span class="keyword1">qed</span>    
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Augmenting paths cannot be empty&#8250;</span>
+<span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> augmenting_path_not_empty<span class="delimiter">:</span>
+  <span class="string">&quot;&not;isAugmenting []&quot;</span>
+  <span class="keyword1">unfolding</span> isAugmenting_def <span class="keyword1">using</span> s_not_t <span class="keyword1">by</span> auto
+
+
+<span class="keyword1">text</span> <span class="cartouche">&#8249;Finally, we can use the verification condition generator to
+  show correctness&#8250;</span>
+<span class="keyword1">theorem</span> fofu_partial_correct<span class="delimiter">:</span> <span class="string">&quot;fofu &le; (spec f. isMaxFlow f)&quot;</span>
+  <span class="keyword1">unfolding</span> fofu_def find_augmenting_spec_def
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg<span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> 
+    zero_flow 
+    NFlow.augment_pres_nflow 
+    NFlow.augmenting_path_not_empty
+    NFlow.maxFlow_iff_noAugPath<span class="delimiter">[</span>symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">done</span></span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Algorithm without Assertions&#8250;</span>
+<span class="keyword1">text</span> <span class="cartouche">&#8249;For presentation purposes, we extract a version of the algorithm
+  without assertions, and using a bit more concise notation&#8250;</span>
+
+<span class="comment">(* TODO: May be a good idea for main refinement branch, too! *)</span>
+<span class="keyword1">definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> <span class="string">&quot;augment_with_path p &equiv; augment (augmentingFlow p)&quot;</span>
+
+<span class="keyword1">context</span> <span class="keyword2">begin</span>
+
+<span class="keyword2">private</span> <span class="keyword1">abbreviation</span> <span class="delimiter">(</span>input<span class="delimiter">)</span> <span class="string">&quot;augment &equiv; NFlow.augment_with_path&quot;</span>
+<span class="keyword2">private</span> <span class="keyword1">abbreviation</span> <span class="delimiter">(</span>input<span class="delimiter">)</span> <span class="string">&quot;is_augmenting_path f p &equiv; NFlow.isAugmenting c s t f p&quot;</span>
+
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;\DefineSnippet{ford_fulkerson_algo}{&#8250;</span>       
+<span class="keyword1">definition</span> <span class="string">&quot;ford_fulkerson_method &equiv; do {
+  let f = (&lambda;(u,v). 0);
+
+  (f,brk) \&lt;leftarrow&gt; while (&lambda;(f,brk). &not;brk) 
+    (&lambda;(f,brk). do {
+      p \&lt;leftarrow&gt; selectp p. is_augmenting_path f p;
+      case p of 
+        None =&gt; return (f,True)
+      | Some p =&gt; return (augment c f p, False)
+    })
+    (f,False);
+  return f 
+}&quot;</span>
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;}%EndSnippet&#8250;</span>
+
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Anonymous context&#8250;</span> 
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Network&#8250;</span> 
+
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;\DefineSnippet{ford_fulkerson_correct}{&#8250;</span>       
+<span class="keyword1">theorem</span> <span class="delimiter">(</span><span class="keyword2">in</span> Network<span class="delimiter">)</span> <span class="string">&quot;ford_fulkerson_method &le; (spec f. isMaxFlow f)&quot;</span>
+<span class="keyword1">text_raw</span> <span class="cartouche">&#8249;}%EndSnippet&#8250;</span>
+<span class="keyword1">proof</span> -
+  <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(&lambda;(u,v). 0) = (&lambda;_. 0)&quot;</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">have</span> <span class="string">&quot;ford_fulkerson_method &le; fofu&quot;</span>
+    <span class="keyword1">unfolding</span> ford_fulkerson_method_def fofu_def Let_def find_augmenting_spec_def
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule refine_IdD<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_dref_type<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> NFlow.augment_with_path_def<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+  <span class="keyword1">also</span> <span class="keyword1">note</span> fofu_partial_correct  
+  <span class="keyword1">finally</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">.</span>
+<span class="keyword1">qed</span>  
+
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Theory&#8250;</span>
+</pre>
+
+</div>
+</body>
+</html>

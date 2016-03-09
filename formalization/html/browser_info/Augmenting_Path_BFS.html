@@ -1,0 +1,702 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Theory Augmenting_Path_BFS (Isabelle2015: May 2015)</title>
+<link media="all" rel="stylesheet" type="text/css" href="isabelle.css"/>
+</head>
+
+<body>
+<div class="head"><h1>Theory Augmenting_Path_BFS</h1>
+
+<span class="command">theory</span> <span class="name">Augmenting_Path_BFS</span><br/>
+<span class="keyword">imports</span> <a href="Graph_Impl.html"><span class="name">Graph_Impl</span></a><br/>
+
+</div>
+<div class="source">
+<pre><span class="keyword1">section</span> <span class="cartouche">&#8249;Breadth First Search&#8250;</span>
+<span class="keyword1">theory</span> Augmenting_Path_BFS
+<span class="keyword2">imports</span> Refine_Add_Fofu Graph_Impl 
+  Refine_Monadic_Syntax_Sugar
+<span class="keyword2">begin</span>
+  <span class="keyword1">text</span> <span class="cartouche">&#8249;
+    In this theory, we present a verified breadth-first search
+    with an efficient imperative implementation.
+    It is parametric over the successor function.
+    &#8250;</span>
+
+  <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Algorithm&#8250;</span>
+  <span class="keyword1">locale</span> pre_bfs_invar <span class="delimiter">=</span> Graph <span class="delimiter">+</span>    
+    <span class="keyword2">fixes</span> src dst <span class="delimiter">::</span> node
+  <span class="keyword2">begin</span>  
+
+    <span class="keyword1">abbreviation</span> <span class="string">&quot;ndist v &equiv; min_dist src v&quot;</span>
+
+    <span class="keyword1">definition</span> Vd <span class="delimiter">::</span> <span class="string">&quot;nat =&gt; node set&quot;</span>
+    <span class="keyword2">where</span>
+      <span class="string">&quot;!!d. Vd d &equiv; {v. connected src v &and; ndist v = d}&quot;</span>
+
+    <span class="keyword1">lemma</span> Vd_disj<span class="delimiter">:</span> <span class="string">&quot;!!d d&#39;. d&ne;d&#39; ==&gt; Vd d &cap; Vd d&#39; = {}&quot;</span>  
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> Vd_def<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> src_Vd0<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Vd 0 = {src}&quot;</span>  
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> Vd_def<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> in_Vd_conv<span class="delimiter">:</span> <span class="string">&quot;v&isin;Vd d &lt;-&gt; connected src v &and; ndist v = d&quot;</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> Vd_def<span class="delimiter">)</span>
+
+    <span class="keyword1">lemma</span> Vd_succ<span class="delimiter">:</span> 
+      <span class="keyword2">assumes</span> <span class="string">&quot;u&isin;Vd d&quot;</span>  
+      <span class="keyword2">assumes</span> <span class="string">&quot;(u,v)&isin;E&quot;</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;&forall;i&le;d. v&notin;Vd i&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;v&isin;Vd (Suc d)&quot;</span>
+      <span class="keyword1">using</span> assms
+      <span class="keyword1">by</span> <span class="delimiter">(</span>metis connectedI_succ in_Vd_conv le_SucE min_dist_succ<span class="delimiter">)</span>
+
+  <span class="keyword2">end</span>
+
+  <span class="keyword1">locale</span> valid_PRED <span class="delimiter">=</span> pre_bfs_invar <span class="delimiter">+</span>
+    <span class="keyword2">fixes</span> PRED <span class="delimiter">::</span> <span class="string">&quot;node \&lt;rightharpoonup&gt; node&quot;</span>
+    <span class="keyword2">assumes</span> SRC_IN_V<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;src&isin;V&quot;</span>
+    <span class="keyword2">assumes</span> FIN_V<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite V&quot;</span>
+    <span class="keyword2">assumes</span> PRED_src<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;PRED src = Some src&quot;</span>
+    <span class="keyword2">assumes</span> PRED_dist<span class="delimiter">:</span> <span class="string">&quot;[|v&ne;src; PRED v = Some u|] ==&gt; ndist v = Suc (ndist u)&quot;</span>
+    <span class="keyword2">assumes</span> PRED_E<span class="delimiter">:</span> <span class="string">&quot;[|v&ne;src; PRED v = Some u|] ==&gt; (u,v)&isin;E&quot;</span>
+    <span class="keyword2">assumes</span> PRED_closed<span class="delimiter">:</span> <span class="string">&quot;[| PRED v = Some u |] ==&gt; u&isin;dom PRED&quot;</span>
+  <span class="keyword2">begin</span>
+    <span class="keyword1">lemma</span> FIN_E<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite E&quot;</span> <span class="keyword1">using</span> E_ss_VxV <span class="keyword1">by</span> simp
+    <span class="keyword1">lemma</span> FIN_succ<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite (E``{u})&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> finite_Image<span class="delimiter">)</span>
+  <span class="keyword2">end</span>  
+    
+  <span class="keyword1">locale</span> nf_invar&#39; <span class="delimiter">=</span> valid_PRED c src dst PRED <span class="keyword2">for</span> c src dst 
+    <span class="keyword2">and</span> PRED <span class="delimiter">::</span> <span class="string">&quot;node \&lt;rightharpoonup&gt; node&quot;</span>
+    <span class="keyword2">and</span> C N <span class="delimiter">::</span> <span class="string">&quot;node set&quot;</span>
+    <span class="keyword2">and</span> d <span class="delimiter">::</span> nat 
+    <span class="delimiter">+</span>
+    <span class="keyword2">assumes</span> VIS_eq<span class="delimiter">:</span> <span class="string">&quot;dom PRED = N &cup; {u. &exist;i&le;d. u&isin;Vd i}&quot;</span>
+    <span class="keyword2">assumes</span> C_ss<span class="delimiter">:</span> <span class="string">&quot;C &sube; Vd d&quot;</span>
+    <span class="keyword2">assumes</span> N_eq<span class="delimiter">:</span> <span class="string">&quot;N = Vd (d+1) &cap; E``(Vd d - C)&quot;</span>
+      
+    <span class="keyword2">assumes</span> dst_ne_VIS<span class="delimiter">:</span> <span class="string">&quot;dst &notin; dom PRED&quot;</span>
+
+  <span class="keyword1">locale</span> nf_invar <span class="delimiter">=</span> nf_invar&#39; <span class="delimiter">+</span>   
+    <span class="keyword2">assumes</span> empty_assm<span class="delimiter">:</span> <span class="string">&quot;C={} ==&gt; N={}&quot;</span>
+
+  <span class="keyword1">locale</span> f_invar <span class="delimiter">=</span> valid_PRED c src dst PRED <span class="keyword2">for</span> c src dst 
+    <span class="keyword2">and</span> PRED <span class="delimiter">::</span> <span class="string">&quot;node \&lt;rightharpoonup&gt; node&quot;</span>
+    <span class="keyword2">and</span> d <span class="delimiter">::</span> nat   
+    <span class="delimiter">+</span> 
+    <span class="keyword2">assumes</span> dst_found<span class="delimiter">:</span> <span class="string">&quot;dst &isin; dom PRED &cap; Vd d&quot;</span>
+
+  <span class="keyword1">context</span> Graph <span class="keyword2">begin</span>
+
+    <span class="keyword1">abbreviation</span> <span class="string">&quot;outer_loop_invar src dst &equiv; &lambda;(f,PRED,C,N,d). 
+      (f --&gt; f_invar c src dst PRED d) &and;
+      (&not;f --&gt; nf_invar c src dst PRED C N d)
+
+      &quot;</span>
+    <span class="keyword1">abbreviation</span> <span class="string">&quot;assn1 src dst &equiv; &lambda;(f,PRED,C,N,d). &not;f &and; nf_invar&#39; c src dst PRED C N d&quot;</span>
+
+  <span class="keyword1">definition</span> <span class="string">&quot;add_succ_spec dst succ v PRED N &equiv; SPEC (&lambda;(f,PRED&#39;,N&#39;).
+    case f of
+      False =&gt; dst &notin; succ - dom PRED &and; PRED&#39; = map_mmupd PRED (succ - dom PRED) v &and; N&#39; = N &cup; (succ - dom PRED)
+    | True =&gt; dst &isin; succ - dom PRED &and; PRED &sube;<span class="hidden">&#8681;</span><sub>m</sub> PRED&#39; &and; PRED&#39; &sube;<span class="hidden">&#8681;</span><sub>m</sub> map_mmupd PRED (succ - dom PRED) v &and; dst&isin;dom PRED&#39;
+  )&quot;</span>
+
+  <span class="keyword1">definition</span> pre_bfs <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node =&gt; (nat &times; (node\&lt;rightharpoonup&gt;node)) option nres&quot;</span>
+    <span class="keyword2">where</span> <span class="string">&quot;pre_bfs src dst &equiv; do {
+    (f,PRED,_,_,d) \&lt;leftarrow&gt; WHILEIT (outer_loop_invar src dst) (&lambda;(f,PRED,C,N,d). f=False &and; C&ne;{})
+      (&lambda;(f,PRED,C,N,d). do {
+        v \&lt;leftarrow&gt; SPEC (&lambda;v. v&isin;C); let C = C-{v};
+        ASSERT (v&isin;V);
+        let succ = (E``{v});
+        ASSERT (finite succ);
+        ASSERT (N &sube; dom PRED); (* Required for refinement of add_succ_spec. TODO: Move into add_succ_spec! *)
+        (f,PRED,N) \&lt;leftarrow&gt; add_succ_spec dst succ v PRED N;
+        if f then
+          RETURN (f,PRED,C,N,d+1)
+        else do {
+          ASSERT (assn1 src dst (f,PRED,C,N,d));
+          if (C={}) then do {
+            let C=N; 
+            let N={}; 
+            let d=d+1;
+            RETURN (f,PRED,C,N,d)
+          } else RETURN (f,PRED,C,N,d)
+        }  
+      })
+      (False,[src\&lt;mapsto&gt;src],{src},{},0::nat);
+    if f then RETURN (Some (d, PRED)) else RETURN None
+    }&quot;</span>
+
+  <span class="keyword1">subsection</span> <span class="string">&quot;Verification Tasks&quot;</span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar&#39;<span class="delimiter">)</span> ndist_C<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;[|v&isin;C|] ==&gt; ndist v = d&quot;</span>  
+    <span class="keyword1">using</span> C_ss <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> Vd_def<span class="delimiter">)</span>
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> CVdI<span class="delimiter">:</span> <span class="string">&quot;[|u&isin;C|] ==&gt; u&isin;Vd d&quot;</span>
+    <span class="keyword1">using</span> C_ss <span class="keyword1">by</span> <span class="delimiter">(</span>auto<span class="delimiter">)</span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> inPREDD<span class="delimiter">:</span> 
+    <span class="string">&quot;[|PRED v = Some u|] ==&gt; v&isin;N &or; (&exist;i&le;d. v&isin;Vd i)&quot;</span>   
+    <span class="keyword1">using</span> VIS_eq <span class="keyword1">by</span> <span class="delimiter">(</span>auto<span class="delimiter">)</span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar&#39;<span class="delimiter">)</span> C_ss_VIS<span class="delimiter">:</span> <span class="string">&quot;[|v&isin;C|] ==&gt; v&isin;dom PRED&quot;</span>
+    <span class="keyword1">using</span> C_ss VIS_eq <span class="keyword1">by</span> blast  
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> invar_succ_step<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;v&isin;C&quot;</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;dst &notin; E``{v} - dom PRED&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;nf_invar&#39; c src dst (map_mmupd PRED (E``{v} - dom PRED) v) (C-{v}) (N &cup; (E``{v} - dom PRED)) d&quot;</span>
+  <span class="keyword1">proof</span> -
+    <span class="keyword1">from</span> C_ss_VIS<span class="delimiter">[</span>OF <span class="cartouche">&#8249;v&isin;C&#8250;</span><span class="delimiter">]</span> dst_ne_VIS <span class="keyword1">have</span> <span class="string">&quot;v&ne;dst&quot;</span> <span class="keyword1">by</span> auto
+
+    <span class="keyword3">show</span> <span class="var">?thesis</span>  
+      <span class="keyword1">using</span> <span class="cartouche">&#8249;v&isin;C&#8250;</span> <span class="cartouche">&#8249;v&ne;dst&#8250;</span>
+      <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">apply</span></span> simp
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> map_mmupd_def<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+  
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>erule map_mmupdE<span class="delimiter">)</span>
+      <span class="keyword1">using</span> PRED_dist <span class="keyword1"><span class="improper">apply</span></span> blast
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>unfold VIS_eq<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> clarify
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>metis CVdI Vd_succ in_Vd_conv<span class="delimiter">)</span>
+  
+      <span class="keyword1">using</span> PRED_E <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto elim<span class="delimiter">!</span><span class="delimiter">:</span> map_mmupdE<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>   
+      <span class="keyword1">using</span> PRED_closed <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto elim<span class="delimiter">!</span><span class="delimiter">:</span> map_mmupdE dest<span class="delimiter">:</span> C_ss_VIS<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span> 
+  
+      <span class="keyword1">using</span> VIS_eq <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1">using</span> C_ss <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+  
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>unfold N_eq<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>frule CVdI<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>erule <span class="delimiter">(</span>1<span class="delimiter">)</span> Vd_succ<span class="delimiter">)</span>
+      <span class="keyword1">using</span> VIS_eq <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto dest<span class="delimiter">!</span><span class="delimiter">:</span> inPREDD simp<span class="delimiter">:</span> N_eq in_Vd_conv<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+  
+      <span class="keyword1">using</span> dst_ne_VIS assms<span class="delimiter">(</span>2<span class="delimiter">)</span> <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+  <span class="keyword1">qed</span>  
+
+  <span class="keyword1">lemma</span> invar_init<span class="delimiter">:</span> <span class="string">&quot;[|src&ne;dst; src&isin;V; finite V|] ==&gt; nf_invar c src dst [src \&lt;mapsto&gt; src] {src} {} 0&quot;</span>            
+    <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pre_bfs_invar.Vd_def split<span class="delimiter">:</span> split_if_asm<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> invar_exit<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;dst&isin;C&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;f_invar c src dst PRED d&quot;</span>  
+    <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+    <span class="keyword1">using</span> assms VIS_eq C_ss <span class="keyword1">by</span> auto
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> invar_C_ss_V<span class="delimiter">:</span> <span class="string">&quot;u&isin;C ==&gt; u&isin;V&quot;</span>  
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule CVdI<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> in_Vd_conv connected_inV_iff<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> invar_N_ss_Vis<span class="delimiter">:</span> <span class="string">&quot;u&isin;N ==&gt; &exist;v. PRED u = Some v&quot;</span>
+    <span class="keyword1">using</span> VIS_eq <span class="keyword1">by</span> auto  
+    
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> pre_bfs_invar<span class="delimiter">)</span> Vdsucinter_conv<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Vd (Suc d) &cap; E `` Vd d = Vd (Suc d)&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto<span class="delimiter">)</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>metis Image_iff in_Vd_conv min_dist_suc<span class="delimiter">)</span>  
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar&#39;<span class="delimiter">)</span> invar_shift<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;C={}&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;nf_invar c src dst PRED N {} (Suc d)&quot;</span>  
+    <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+    <span class="keyword1"><span class="improper">apply</span></span> vc_solve
+    <span class="keyword1">using</span> VIS_eq N_eq<span class="delimiter">[</span>simplified<span class="delimiter">]</span> <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp add<span class="delimiter">:</span> le_Suc_eq<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1">using</span> N_eq <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1">using</span> N_eq<span class="delimiter">[</span>simplified<span class="delimiter">]</span> <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1">using</span> dst_ne_VIS <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1"><span class="improper">done</span></span>    
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar&#39;<span class="delimiter">)</span> invar_restore<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;C&ne;{}&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;nf_invar c src dst PRED C N d&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> unfold_locales <span class="keyword1">by</span> auto
+
+  <span class="keyword1">definition</span> <span class="string">&quot;bfs_spec src dst r &equiv; (
+    case r of None =&gt; &not; connected src dst
+            | Some (d,PRED) =&gt; connected src dst &and; min_dist src dst = d &and; valid_PRED c src PRED &and; dst&isin;dom PRED)&quot;</span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> f_invar<span class="delimiter">)</span> invar_found<span class="delimiter">:</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;bfs_spec src dst (Some (d,PRED))&quot;</span>
+    <span class="keyword1">unfolding</span> bfs_spec_def
+    <span class="keyword1"><span class="improper">apply</span></span> simp
+    <span class="keyword1">using</span> dst_found 
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> in_Vd_conv<span class="delimiter">)</span>
+    <span class="keyword1">by</span> unfold_locales
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> invar_not_found<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;C={}&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;bfs_spec src dst None&quot;</span>
+    <span class="keyword1">unfolding</span> bfs_spec_def
+    <span class="keyword1"><span class="improper">apply</span></span> simp
+  <span class="keyword1">proof</span> <span class="delimiter">(</span>rule notI<span class="delimiter">)</span>
+    <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;N={}&quot;</span> <span class="keyword1">using</span> empty_assm <span class="keyword1">by</span> simp
+
+    <span class="keyword3">assume</span> C<span class="delimiter">:</span> <span class="string">&quot;connected src dst&quot;</span>
+    <span class="keyword1">then</span> <span class="keyword3">obtain</span> d&#39; <span class="keyword2">where</span> dstd&#39;<span class="delimiter">:</span> <span class="string">&quot;dst &isin; Vd d&#39;&quot;</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> in_Vd_conv<span class="delimiter">)</span>
+
+    <span class="keyword1">txt</span> <span class="verbatim">{* We make a case-distinction whether @{text &quot;d&#39;&le;d&quot;}: *}</span>
+    <span class="keyword1">have</span> <span class="string">&quot;d&#39;&le;d &or; Suc d &le; d&#39;&quot;</span> <span class="keyword1">by</span> auto  
+    <span class="keyword1">moreover</span> <span class="keyword1">{</span>
+      <span class="keyword3">assume</span> <span class="string">&quot;d&#39;&le;d&quot;</span>
+      <span class="keyword1">with</span> VIS_eq dstd&#39; <span class="keyword1">have</span> <span class="string">&quot;dst &isin; dom PRED&quot;</span> <span class="keyword1">by</span> auto
+      <span class="keyword1">with</span> dst_ne_VIS <span class="keyword1">have</span> False <span class="keyword1">by</span> auto
+    <span class="keyword1">}</span> <span class="keyword1">moreover</span> <span class="keyword1">{</span>
+      <span class="keyword3">assume</span> <span class="string">&quot;Suc d &le; d&#39;&quot;</span>
+      <span class="keyword1">txt</span> <span class="verbatim">{* In the case @{text &quot;d+1 &le; d&#39;&quot;}, we also obtain a node
+        that has a shortest path of length @{text &quot;d+1&quot;}: *}</span>
+      <span class="keyword1">with</span> min_dist_le<span class="delimiter">[</span>OF C<span class="delimiter">]</span> dstd&#39; <span class="keyword3">obtain</span> v&#39; <span class="keyword2">where</span> <span class="string">&quot;v&#39; &isin; Vd (Suc d)&quot;</span>
+        <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> in_Vd_conv<span class="delimiter">)</span>
+      <span class="keyword1">txt</span> <span class="verbatim">{* However, the invariant states that such nodes are either in
+        @{text &quot;N&quot;} or are successors of @{text &quot;C&quot;}. As @{text &quot;N&quot;} 
+        and @{text &quot;C&quot;} are both empty, we again get a contradiction. *}</span>
+      <span class="keyword1">with</span> N_eq <span class="keyword1">have</span> False <span class="keyword1">by</span> auto  
+    <span class="keyword1">}</span> <span class="keyword1">ultimately</span> <span class="keyword3">show</span> False <span class="keyword1">by</span> blast
+  <span class="keyword1">qed</span>
+
+  <span class="keyword1">lemma</span> map_le_mp<span class="delimiter">:</span> <span class="string">&quot;[|m&sube;<span class="hidden">&#8681;</span><sub>m</sub>m&#39;; m k = Some v|] ==&gt; m&#39; k = Some v&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>force simp<span class="delimiter">:</span> map_le_def<span class="delimiter">)</span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> dst_notin_Vdd<span class="delimiter">[</span>intro<span class="delimiter">,</span> simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;i&le;d ==&gt; dst&notin;Vd i&quot;</span>
+    <span class="keyword1">using</span> VIS_eq dst_ne_VIS <span class="keyword1">by</span> auto 
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> invar_exit&#39;<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;u&isin;C&quot;</span> <span class="string">&quot;(u,dst) &isin; E&quot;</span> <span class="string">&quot;dst &isin; dom PRED&#39;&quot;</span>
+    <span class="keyword2">assumes</span> SS1<span class="delimiter">:</span> <span class="string">&quot;PRED &sube;<span class="hidden">&#8681;</span><sub>m</sub> PRED&#39;&quot;</span> <span class="keyword2">and</span> SS2<span class="delimiter">:</span> <span class="string">&quot;PRED&#39; &sube;<span class="hidden">&#8681;</span><sub>m</sub> map_mmupd PRED (E``{u} - dom PRED) u&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;f_invar c src dst PRED&#39; (Suc d)&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
+    <span class="keyword1"><span class="improper">apply</span></span> simp_all
+
+    <span class="keyword1">using</span> map_le_mp<span class="delimiter">[</span>OF SS1 PRED_src<span class="delimiter">]</span> <span class="keyword1"><span class="improper">apply</span></span> simp
+
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule map_le_mp<span class="delimiter">[</span>OF SS2<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>erule map_mmupdE<span class="delimiter">)</span>
+    <span class="keyword1">using</span> PRED_dist <span class="keyword1"><span class="improper">apply</span></span> auto <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>unfold VIS_eq<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1"><span class="improper">apply</span></span> clarify
+    <span class="keyword1">using</span> <span class="cartouche">&#8249;u&isin;C&#8250;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>metis CVdI Vd_succ in_Vd_conv<span class="delimiter">)</span>
+
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule map_le_mp<span class="delimiter">[</span>OF SS2<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1">using</span> PRED_E <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto elim<span class="delimiter">!</span><span class="delimiter">:</span> map_mmupdE<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>   
+    
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>drule map_le_mp<span class="delimiter">[</span>OF SS2<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>erule map_mmupdE<span class="delimiter">)</span>
+    <span class="keyword1">using</span> map_le_implies_dom_le<span class="delimiter">[</span>OF SS1<span class="delimiter">]</span>
+    <span class="keyword1">using</span> PRED_closed <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>blast<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1">using</span> C_ss_VIS<span class="delimiter">[</span>OF <span class="cartouche">&#8249;u&isin;C&#8250;</span><span class="delimiter">]</span> map_le_implies_dom_le<span class="delimiter">[</span>OF SS1<span class="delimiter">]</span> <span class="keyword1"><span class="improper">apply</span></span> blast
+    <span class="keyword1">using</span> <span class="cartouche">&#8249;dst &isin; dom PRED&#39;&#8250;</span> <span class="keyword1"><span class="improper">apply</span></span> simp
+
+    <span class="keyword1">using</span> <span class="cartouche">&#8249;u&isin;C&#8250;</span> CVdI<span class="delimiter">[</span>OF <span class="cartouche">&#8249;u&isin;C&#8250;</span><span class="delimiter">]</span> <span class="cartouche">&#8249;(u,dst)&isin;E&#8250;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>erule <span class="delimiter">(</span>1<span class="delimiter">)</span> Vd_succ<span class="delimiter">)</span>
+    <span class="keyword1">using</span> VIS_eq <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+
+
+  <span class="keyword1">definition</span> <span class="string">&quot;max_dist src &equiv; Max (min_dist src`V)&quot;</span>
+
+  <span class="keyword1">definition</span> <span class="string">&quot;outer_loop_rel src &equiv; 
+    inv_image (less_than_bool &lt;*lex*&gt; greater_bounded (max_dist src + 1) &lt;*lex*&gt; finite_psubset) 
+      (&lambda;(f,PRED,C,N,d). (&not;f,d,C))&quot;</span>
+  <span class="keyword1">lemma</span> outer_loop_rel_wf<span class="delimiter">:</span> 
+    <span class="keyword2">assumes</span> <span class="string">&quot;finite V&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;wf (outer_loop_rel src)&quot;</span>
+    <span class="keyword1">using</span> assms
+    <span class="keyword1">unfolding</span> outer_loop_rel_def
+    <span class="keyword1">by</span> auto
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> C_ne_max_dist<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;C&ne;{}&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;d &le; max_dist src&quot;</span>
+  <span class="keyword1">proof</span> -
+    <span class="keyword1">from</span> assms <span class="keyword3">obtain</span> u <span class="keyword2">where</span> <span class="string">&quot;u&isin;C&quot;</span> <span class="keyword1">by</span> auto
+    <span class="keyword1">with</span> C_ss <span class="keyword1">have</span> <span class="string">&quot;u&isin;Vd d&quot;</span> <span class="keyword1">by</span> auto
+    <span class="keyword1">hence</span> <span class="string">&quot;min_dist src u = d&quot;</span> <span class="string">&quot;u&isin;V&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> in_Vd_conv connected_inV_iff<span class="delimiter">)</span>
+    <span class="keyword3">thus</span> <span class="string">&quot;d&le;max_dist src&quot;</span> 
+      <span class="keyword1">unfolding</span> max_dist_def <span class="keyword1">by</span> auto
+  <span class="keyword1">qed</span>    
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> Vd_ss_V<span class="delimiter">:</span> <span class="string">&quot;Vd d &sube; V&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> Vd_def connected_inV_iff<span class="delimiter">)</span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> finite_C<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite C&quot;</span>
+    <span class="keyword1">using</span> C_ss FIN_V Vd_ss_V <span class="keyword1">by</span> <span class="delimiter">(</span>blast intro<span class="delimiter">:</span> finite_subset<span class="delimiter">)</span>
+  
+  <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> nf_invar<span class="delimiter">)</span> finite_succ<span class="delimiter">:</span> <span class="string">&quot;finite (E``{u})&quot;</span>  
+    <span class="keyword1">by</span> auto
+
+  <span class="keyword1">theorem</span> pre_bfs_correct<span class="delimiter">:</span> 
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;src&isin;V&quot;</span> <span class="string">&quot;src&ne;dst&quot;</span>       
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite V&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;pre_bfs src dst &le; SPEC (bfs_spec src dst)&quot;</span>
+    <span class="keyword1">unfolding</span> pre_bfs_def add_succ_spec_def
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>intro refine_vcg<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule outer_loop_rel_wf<span class="delimiter">[</span><span class="keyword2">where</span> src<span class="delimiter">=</span>src<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span>
+      invar_init 
+      nf_invar.invar_exit&#39; 
+      nf_invar.invar_C_ss_V 
+      nf_invar.invar_succ_step
+      nf_invar&#39;.invar_shift
+      nf_invar&#39;.invar_restore        
+      f_invar.invar_found
+      nf_invar.invar_not_found
+      nf_invar.invar_N_ss_Vis
+      nf_invar.finite_succ
+      <span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> outer_loop_rel_def nf_invar.C_ne_max_dist nf_invar.finite_C<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+
+
+  <span class="comment">(* Presentation for Paper *)</span>  
+  <span class="keyword1">definition</span> bfs_core <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node =&gt; (nat &times; (node\&lt;rightharpoonup&gt;node)) option nres&quot;</span>
+    <span class="keyword2">where</span> <span class="string">&quot;bfs_core src dst &equiv; do {
+    (f,P,_,_,d) \&lt;leftarrow&gt; while<span class="hidden">&#8681;</span><sub>T</sub> (&lambda;(f,P,C,N,d). f=False &and; C&ne;{})
+      (&lambda;(f,P,C,N,d). do {
+        v \&lt;leftarrow&gt; spec v. v&isin;C; let C = C-{v};
+        let succ = (E``{v});
+        (f,P,N) \&lt;leftarrow&gt; add_succ_spec dst succ v P N;
+        if f then
+          return (f,P,C,N,d+1)
+        else do {
+          if (C={}) then do {
+            let C=N; let N={}; let d=d+1;
+            return (f,P,C,N,d)
+          } else return (f,P,C,N,d)
+        }  
+      })
+      (False,[src\&lt;mapsto&gt;src],{src},{},0::nat);
+    if f then return (Some (d, P)) else return None
+    }&quot;</span>
+
+  <span class="keyword1">theorem</span> 
+    <span class="keyword2">assumes</span> <span class="string">&quot;src&isin;V&quot;</span> <span class="string">&quot;src&ne;dst&quot;</span> <span class="string">&quot;finite V&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;bfs_core src dst &le; (spec p. bfs_spec src dst p)&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule order_trans<span class="delimiter">[</span>OF _ pre_bfs_correct<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule refine_IdD<span class="delimiter">)</span>
+    <span class="keyword1">unfolding</span> bfs_core_def pre_bfs_def
+    <span class="keyword1"><span class="improper">apply</span></span> refine_rcg
+    <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> assms<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+
+      
+  <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Extraction of Result Path&#8250;</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;extract_rpath src dst PRED &equiv; do {
+      (_,p) \&lt;leftarrow&gt; WHILEIT
+        (&lambda;(v,p). 
+          v&isin;dom PRED 
+        &and; isPath v p dst
+        &and; distinct (pathVertices v p)
+        &and; (&forall;v&#39;&isin;set (pathVertices v p). pre_bfs_invar.ndist c src v &le; pre_bfs_invar.ndist c src v&#39;)
+        &and; pre_bfs_invar.ndist c src v + length p = pre_bfs_invar.ndist c src dst)
+        (&lambda;(v,p). v&ne;src) (&lambda;(v,p). do {
+        ASSERT (v&isin;dom PRED);
+        let u=the (PRED v);
+        let p = (u,v)#p;
+        let v=u;
+        RETURN (v,p)
+      }) (dst,[]);
+      RETURN p
+    }&quot;</span>
+
+  <span class="keyword2">end</span>  
+
+  <span class="keyword1">context</span> valid_PRED <span class="keyword2">begin</span>
+    <span class="keyword1">lemma</span> extract_rpath_correct<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;dst&isin;dom PRED&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;extract_rpath src dst PRED &le; SPEC (&lambda;p. isSimplePath src p dst &and; length p = ndist dst)&quot;</span>
+      <span class="keyword1">using</span> assms <span class="keyword1">unfolding</span> extract_rpath_def isSimplePath_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg wf_measure<span class="delimiter">[</span><span class="keyword2">where</span> f<span class="delimiter">=</span><span class="string">&quot;&lambda;(d,_). ndist d&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> PRED_closed<span class="delimiter">[</span>THEN domD<span class="delimiter">]</span> PRED_E PRED_dist<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> auto
+      <span class="keyword1"><span class="improper">done</span></span>
+
+  <span class="keyword2">end</span>
+
+  <span class="keyword1">context</span> Graph <span class="keyword2">begin</span>
+
+    <span class="keyword1">definition</span> <span class="string">&quot;bfs src dst &equiv; do {
+      if src=dst then RETURN (Some [])
+      else do {
+        br \&lt;leftarrow&gt; pre_bfs src dst;
+        case br of
+          None =&gt; RETURN None
+        | Some (d,PRED) =&gt; do {
+            p \&lt;leftarrow&gt; extract_rpath src dst PRED;
+            RETURN (Some p)
+          }  
+      }    
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> bfs_correct<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;src&isin;V&quot;</span> <span class="string">&quot;finite V&quot;</span> 
+      <span class="keyword2">shows</span> <span class="string">&quot;bfs src dst &le; SPEC (&lambda;None =&gt; &not;connected src dst | Some p =&gt; isShortestPath src p dst)&quot;</span>
+      <span class="keyword1">unfolding</span> bfs_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg
+        pre_bfs_correct<span class="delimiter">[</span>THEN order_trans<span class="delimiter">]</span>
+        valid_PRED.extract_rpath_correct<span class="delimiter">[</span>THEN order_trans<span class="delimiter">]</span>
+        <span class="delimiter">)</span>
+      <span class="keyword1">using</span> assms
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> bfs_spec_def isShortestPath_min_dist_def isSimplePath_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>      
+  <span class="keyword2">end</span>
+
+  <span class="comment">(* Snippet for paper *)</span>  
+  <span class="keyword1">context</span> Finite_Graph <span class="keyword2">begin</span>
+    <span class="keyword1">interpretation</span> Refine_Monadic_Syntax <span class="keyword1">.</span>
+    <span class="keyword1">theorem</span>
+      <span class="keyword2">assumes</span> <span class="string">&quot;src&isin;V&quot;</span> 
+      <span class="keyword2">shows</span> <span class="string">&quot;bfs src dst &le; (spec p. 
+        case p of None =&gt; &not;connected src dst | Some p =&gt; isShortestPath src p dst)&quot;</span>
+      <span class="keyword1">unfolding</span> bfs_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg
+        pre_bfs_correct<span class="delimiter">[</span>THEN order_trans<span class="delimiter">]</span>
+        valid_PRED.extract_rpath_correct<span class="delimiter">[</span>THEN order_trans<span class="delimiter">]</span>
+        <span class="delimiter">)</span>
+      <span class="keyword1">using</span> assms
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> bfs_spec_def isShortestPath_min_dist_def isSimplePath_def<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>      
+
+  <span class="keyword2">end</span>  
+
+  <span class="keyword1">subsection</span> <span class="cartouche">&#8249;Inserting inner Loop and Successor Function&#8250;</span>
+  <span class="keyword1">context</span> Graph <span class="keyword2">begin</span>
+
+  <span class="keyword1">definition</span> <span class="string">&quot;inner_loop dst succ u PRED N &equiv; FOREACHci
+    (&lambda;it (f,PRED&#39;,N&#39;). 
+        PRED&#39; = map_mmupd PRED ((succ - it) - dom PRED) u 
+      &and; N&#39; = N &cup; ((succ - it) - dom PRED)
+      &and; f = (dst&isin;(succ - it) - dom PRED)
+    )
+    (succ)
+    (&lambda;(f,PRED,N). &not;f)
+    (&lambda;v (f,PRED,N). do {
+      if v&isin;dom PRED then RETURN (f,PRED,N)
+      else do {
+        let PRED = PRED(v \&lt;mapsto&gt; u);
+        ASSERT (v&notin;N);
+        let N = insert v N;
+        RETURN (v=dst,PRED,N)
+      }
+    }) 
+    (False,PRED,N)&quot;</span>
+
+
+  <span class="keyword1">lemma</span> inner_loop_refine<span class="delimiter">[</span>refine<span class="delimiter">]</span><span class="delimiter">:</span> 
+    <span class="keyword2">assumes</span> NSS<span class="delimiter">:</span> <span class="string">&quot;N &sube; dom PRED&quot;</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite succ&quot;</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simplified<span class="delimiter">,</span> simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(succi,succ)&isin;Id&quot;</span> <span class="string">&quot;(ui,u)&isin;Id&quot;</span> <span class="string">&quot;(PREDi,PRED)&isin;Id&quot;</span> <span class="string">&quot;(Ni,N)&isin;Id&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;inner_loop dst succi ui PREDi Ni &le; \&lt;Down&gt;Id (add_succ_spec dst succ u PRED N)&quot;</span>
+    <span class="keyword1">unfolding</span> inner_loop_def add_succ_spec_def
+    <span class="keyword1"><span class="improper">apply</span></span> refine_vcg
+    <span class="keyword1">using</span> NSS <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff<span class="delimiter">;</span> fail<span class="delimiter">)</span> <span class="delimiter">+</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff fun_neq_ext_iff map_mmupd_def split<span class="delimiter">:</span> split_if_asm<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff split<span class="delimiter">:</span> bool.split<span class="delimiter">;</span> fail<span class="delimiter">)</span> <span class="delimiter">+</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff intro<span class="delimiter">:</span> map_mmupd_update_less split<span class="delimiter">:</span> bool.split<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+
+  <span class="keyword1">definition</span> <span class="string">&quot;inner_loop2 dst succl u PRED N &equiv; nfoldli
+    (succl) (&lambda;(f,_,_). &not;f) (&lambda;v (f,PRED,N). do {
+    if PRED v &ne; None then RETURN (f,PRED,N)
+    else do {
+      let PRED = PRED(v \&lt;mapsto&gt; u);
+      ASSERT (v&notin;N);
+      let N = insert v N;
+      RETURN ((v=dst),PRED,N)
+    }
+  }) (False,PRED,N)&quot;</span>
+
+  <span class="keyword1">lemma</span> inner_loop2_refine<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> SR<span class="delimiter">:</span> <span class="string">&quot;(succl,succ)&isin;&lang;Id&rang;list_set_rel&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;inner_loop2 dst succl u PRED N &le; \&lt;Down&gt;Id (inner_loop dst succ u PRED N)&quot;</span>
+    <span class="keyword1">using</span> assms
+    <span class="keyword1">unfolding</span> inner_loop2_def inner_loop_def
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_rcg LFOci_refine SR<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> auto
+    <span class="keyword1"><span class="improper">done</span></span>
+
+  <span class="keyword1">thm</span> conc_trans<span class="delimiter">[</span>OF inner_loop2_refine inner_loop_refine<span class="delimiter">,</span> no_vars<span class="delimiter">]</span>
+
+  <span class="keyword1">lemma</span> inner_loop2_correct<span class="delimiter">:</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;(succl, succ) &isin; &lang;Id&rang;list_set_rel&quot;</span>
+    <span class="keyword2">assumes</span> <span class="string">&quot;N &sube; dom PRED&quot;</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simplified<span class="delimiter">,</span> simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(dsti,dst)&isin;Id&quot;</span> <span class="string">&quot;(ui, u) &isin; Id&quot;</span> <span class="string">&quot;(PREDi, PRED) &isin; Id&quot;</span> <span class="string">&quot;(Ni, N) &isin; Id&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;inner_loop2 dsti succl ui PREDi Ni &le; \&lt;Down&gt; Id (add_succ_spec dst succ u PRED N)&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> simp
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule conc_trans<span class="delimiter">[</span>OF inner_loop2_refine inner_loop_refine<span class="delimiter">,</span> simplified<span class="delimiter">]</span><span class="delimiter">)</span>
+    <span class="keyword1">using</span> assms<span class="delimiter">(</span>1-2<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp_all<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+
+  <span class="keyword1">type_synonym</span> bfs_state <span class="delimiter">=</span> <span class="string">&quot;bool &times; (node \&lt;rightharpoonup&gt; node) &times; node set &times; node set &times; nat&quot;</span>  
+
+    <span class="keyword1">context</span>
+      <span class="keyword2">fixes</span> succ <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node list nres&quot;</span>
+    <span class="keyword2">begin</span>
+      <span class="keyword1">definition</span> init_state <span class="delimiter">::</span> <span class="string">&quot;node =&gt; bfs_state nres&quot;</span>
+      <span class="keyword2">where</span> 
+        <span class="string">&quot;init_state src &equiv; RETURN (False,[src\&lt;mapsto&gt;src],{src},{},0::nat)&quot;</span>
+  
+      <span class="keyword1">definition</span> pre_bfs2 <span class="delimiter">::</span> <span class="string">&quot;node =&gt; node =&gt; (nat &times; (node\&lt;rightharpoonup&gt;node)) option nres&quot;</span>
+        <span class="keyword2">where</span> <span class="string">&quot;pre_bfs2 src dst &equiv; do {
+        s \&lt;leftarrow&gt; init_state src;
+        (f,PRED,_,_,d) \&lt;leftarrow&gt; WHILET (&lambda;(f,PRED,C,N,d). f=False &and; C&ne;{})
+          (&lambda;(f,PRED,C,N,d). do {
+            ASSERT (C&ne;{});
+            v \&lt;leftarrow&gt; op_set_pick C; let C = C-{v};
+            ASSERT (v&isin;V);
+            sl \&lt;leftarrow&gt; succ v;
+            ASSERT (N &sube; dom PRED); (* Required for refinement of add_succ_spec *)
+            (f,PRED,N) \&lt;leftarrow&gt; inner_loop2 dst sl v PRED N;
+            if f then
+              RETURN (f,PRED,C,N,d+1)
+            else do {
+              ASSERT (assn1 src dst (f,PRED,C,N,d));
+              if (C={}) then do {
+                let C=N; 
+                let N={}; 
+                let d=d+1;
+                RETURN (f,PRED,C,N,d)
+              } else RETURN (f,PRED,C,N,d)
+            }  
+          })
+          s;
+        if f then RETURN (Some (d, PRED)) else RETURN None
+        }&quot;</span>
+    
+      <span class="keyword1">lemma</span> pre_bfs2_refine<span class="delimiter">:</span> 
+        <span class="keyword2">assumes</span> succ_impl<span class="delimiter">:</span> <span class="string">&quot;!!ui u. [|(ui,u)&isin;Id; u&isin;V|] ==&gt; succ ui &le; SPEC (&lambda;l. (l,E``{u}) &isin; &lang;Id&rang;list_set_rel)&quot;</span>
+        <span class="keyword2">shows</span> <span class="string">&quot;pre_bfs2 src dst &le;\&lt;Down&gt;Id (pre_bfs src dst)&quot;</span>
+        <span class="keyword1">unfolding</span> pre_bfs_def pre_bfs2_def init_state_def
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst nres_monad1<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_rcg inner_loop2_correct succ_impl<span class="delimiter">)</span>
+        <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+        <span class="keyword1"><span class="improper">apply</span></span> vc_solve <span class="comment">(* Takes some time *)</span>
+        <span class="keyword1"><span class="improper">done</span></span>
+  
+    <span class="keyword2">end</span>    
+  
+    <span class="keyword1">definition</span> <span class="string">&quot;bfs2 succ src dst &equiv; do {
+      if src=dst then 
+        RETURN (Some [])
+      else do {  
+        br \&lt;leftarrow&gt; pre_bfs2 succ src dst;
+        case br of
+          None =&gt; RETURN None
+        | Some (d,PRED) =&gt; do {
+            p \&lt;leftarrow&gt; extract_rpath src dst PRED;
+            RETURN (Some p)
+          }  
+      }    
+    }&quot;</span>
+
+    <span class="keyword1">lemma</span> bfs2_refine<span class="delimiter">:</span>
+      <span class="keyword2">assumes</span> succ_impl<span class="delimiter">:</span> <span class="string">&quot;!!ui u. [|(ui,u)&isin;Id; u&isin;V|] ==&gt; succ ui &le; SPEC (&lambda;l. (l,E``{u}) &isin; &lang;Id&rang;list_set_rel)&quot;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;bfs2 succ src dst &le; \&lt;Down&gt;Id (bfs src dst)&quot;</span>
+      <span class="keyword1">unfolding</span> bfs_def bfs2_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg pre_bfs2_refine<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+      <span class="keyword1">using</span> assms
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve<span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">done</span></span>      
+
+  <span class="keyword2">end</span>  
+
+  
+  <span class="keyword1">lemma</span> bfs2_refine_succ<span class="delimiter">:</span> 
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>refine<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;!!ui u. [|(ui,u)&isin;Id; u&isin;Graph.V c|] ==&gt; succi ui &le; \&lt;Down&gt;Id (succ u)&quot;</span>
+    <span class="keyword2">assumes</span> <span class="delimiter">[</span>simplified<span class="delimiter">,</span> simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(si,s)&isin;Id&quot;</span> <span class="string">&quot;(ti,t)&isin;Id&quot;</span> <span class="string">&quot;(ci,c)&isin;Id&quot;</span>
+    <span class="keyword2">shows</span> <span class="string">&quot;Graph.bfs2 ci succi si ti &le; \&lt;Down&gt;Id (Graph.bfs2 c succ s t)&quot;</span>
+    <span class="keyword1">unfolding</span> Graph.bfs2_def Graph.pre_bfs2_def
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_rcg param_nfoldli<span class="delimiter">[</span>param_fo<span class="delimiter">,</span> THEN nres_relD<span class="delimiter">]</span> nres_relI fun_relI<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> refine_dref_type
+    <span class="keyword1"><span class="improper">apply</span></span> vc_solve
+    <span class="keyword1"><span class="improper">done</span></span>
+
+<span class="keyword1">subsection</span> <span class="cartouche">&#8249;Imperative Implementation&#8250;</span>
+
+  <span class="keyword1">context</span> Impl_Succ <span class="keyword2">begin</span>
+    <span class="keyword1">definition</span> op_bfs <span class="delimiter">::</span> <span class="string">&quot;&#39;ga =&gt; node =&gt; node =&gt; path option nres&quot;</span> <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;op_bfs c s t &equiv; Graph.bfs2 (absG c) (succ c) s t&quot;</span>
+  
+    <span class="keyword1">lemma</span> pat_op_dfs<span class="delimiter">[</span>pat_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+      <span class="string">&quot;Graph.bfs2$(absG$c)$(succ$c)$s$t &equiv; UNPROTECT op_bfs$c$s$t&quot;</span> <span class="keyword1">by</span> simp 
+  
+    <span class="keyword1">sepref_register</span> <span class="string">&quot;PR_CONST op_bfs&quot;</span> <span class="string">&quot;&#39;ig =&gt; node =&gt; node =&gt; path option nres&quot;</span>  
+  
+    <span class="keyword1">type_synonym</span> ibfs_state <span class="delimiter">=</span> <span class="string">&quot;bool &times; (node,node) i_map &times; node set &times; node set &times; nat&quot;</span>
+
+    <span class="keyword1">sepref_register</span> Graph.init_state <span class="string">&quot;node =&gt; ibfs_state nres&quot;</span>
+    <span class="keyword1">schematic_lemma</span> init_state_impl<span class="delimiter">:</span>
+      <span class="keyword2">fixes</span> src <span class="delimiter">::</span> nat
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of src <span class="string">&quot;TYPE(nat)&quot;</span><span class="delimiter">]</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (hn_val nat_rel src srci) (?c::?&#39;c Heap) ?&Gamma;&#39; ?R (Graph.init_state src)&quot;</span>
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1">unfolding</span> Graph.init_state_def
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst CTYPE_ANNOT_def<span class="delimiter">[</span>symmetric<span class="delimiter">,</span> Pure.of <span class="string">&quot;[src\&lt;mapsto&gt;src]&quot;</span> <span class="string">&quot;TYPE((nat,nat)i_map)&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst op_empty_ls_def<span class="delimiter">[</span>symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst op_empty_ls_def<span class="delimiter">[</span>symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;insert src _&quot;</span> op_set_ins_dj_def<span class="delimiter">[</span>symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1">by</span> sepref_keep
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> init_state_impl <span class="keyword2">uses</span> Impl_Succ.init_state_impl
+    <span class="keyword1">lemmas</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span> <span class="delimiter">=</span> init_state_impl.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">,</span>to_hfref<span class="delimiter">]</span>
+
+    <span class="keyword1">schematic_lemma</span> bfs_impl<span class="delimiter">:</span>
+      <span class="comment">(*notes [sepref_opt_simps del] = imp_nfoldli_def 
+          -- &#8249;Prevent the foreach-loop to be unfolded to a fixed-point, 
+              to produce more readable code for presentation purposes.&#8250;*)</span>
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>sepref_opt_simps<span class="delimiter">]</span> <span class="delimiter">=</span> heap_WHILET_def
+      <span class="keyword2">fixes</span> s t <span class="delimiter">::</span> nat
+      <span class="keyword2">notes</span> <span class="delimiter">[</span>id_rules<span class="delimiter">]</span> <span class="delimiter">=</span> 
+        itypeI<span class="delimiter">[</span>Pure.of s <span class="string">&quot;TYPE(nat)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of t <span class="string">&quot;TYPE(nat)&quot;</span><span class="delimiter">]</span>
+        itypeI<span class="delimiter">[</span>Pure.of c <span class="string">&quot;TYPE(&#39;ig)&quot;</span><span class="delimiter">]</span>
+        <span class="delimiter">--</span> <span class="cartouche">&#8249;Declare parameters to operation identification&#8250;</span>
+      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine (
+        hn_ctxt (isG) c ci 
+      * hn_val nat_rel s si 
+      * hn_val nat_rel t ti) (?c::?&#39;c Heap) ?&Gamma;&#39; ?R (PR_CONST op_bfs c s t)&quot;</span>
+      <span class="keyword1">unfolding</span> op_bfs_def PR_CONST_def
+      <span class="keyword1">unfolding</span> Graph.bfs2_def Graph.pre_bfs2_def 
+        Graph.inner_loop2_def Graph.extract_rpath_def
+      <span class="keyword1">unfolding</span> nres_monad_laws  
+      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rewrite <span class="keyword2">in</span> <span class="string">&quot;nfoldli _ _ \&lt;hole&gt; _&quot;</span> op_set_ins_dj_def<span class="delimiter">[</span>symmetric<span class="delimiter">]</span><span class="delimiter">)</span>
+      <span class="keyword1">using</span> <span class="delimiter">[</span><span class="delimiter">[</span>id_debug<span class="delimiter">,</span> goals_limit <span class="delimiter">=</span> 1<span class="delimiter">]</span><span class="delimiter">]</span>
+      <span class="keyword1"><span class="improper">apply</span></span> sepref_keep <span class="comment">(* Takes looooong *)</span>
+      <span class="keyword1"><span class="improper">done</span></span>
+    
+    <span class="keyword1">concrete_definition</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> bfs_impl <span class="keyword2">uses</span> Impl_Succ.bfs_impl
+      <span class="delimiter">--</span> <span class="cartouche">&#8249;Extract generated implementation into constant&#8250;</span>
+    <span class="keyword1">prepare_code_thms</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> bfs_impl_def
+   
+    <span class="keyword1">lemmas</span> bfs_impl_fr_rule <span class="delimiter">=</span> bfs_impl.refine<span class="delimiter">[</span>OF this_loc<span class="delimiter">,</span>to_hfref<span class="delimiter">]</span>  
+  
+  <span class="keyword2">end</span>
+
+  <span class="keyword1">export_code</span> bfs_impl <span class="keyword2">checking</span> SML_imp
+
+<span class="keyword2">end</span>
+</pre>
+
+</div>
+</body>
+</html>

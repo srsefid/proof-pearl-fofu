@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Theory Capacity_Matrix_Impl (Isabelle2015: May 2015)</title>
+<link media="all" rel="stylesheet" type="text/css" href="isabelle.css"/>
+</head>
+
+<body>
+<div class="head"><h1>Theory Capacity_Matrix_Impl</h1>
+
+<span class="command">theory</span> <span class="name">Capacity_Matrix_Impl</span><br/>
+<span class="keyword">imports</span> <a href="Fofu_Impl_Base.html"><span class="name">Fofu_Impl_Base</span></a> <a href="Graph.html"><span class="name">Graph</span></a><br/>
+
+</div>
+<div class="source">
+<pre><span class="keyword1">section</span> <span class="cartouche">&#8249;Capacity Matrix by Fixed-Size Array&#8250;</span>
+<span class="keyword1">theory</span> Capacity_Matrix_Impl
+<span class="keyword2">imports</span> 
+  Fofu_Impl_Base   
+  Graph
+<span class="keyword2">begin</span>
+  <span class="comment">(*
+  *)</span>
+
+
+
+
+  <span class="keyword1">type_synonym</span> <span class="tfree">&#39;a</span> amtx <span class="delimiter">=</span> <span class="string">&quot;nat&times;nat =&gt; &#39;a&quot;</span>
+  <span class="keyword1">type_synonym</span> <span class="tfree">&#39;a</span> mtx <span class="delimiter">=</span> <span class="string">&quot;&#39;a Heap.array&quot;</span>
+
+  <span class="keyword1">typedecl</span> <span class="tfree">&#39;a</span> i_mtx
+
+  <span class="keyword1">definition</span> amtx_new_op <span class="delimiter">::</span> <span class="string">&quot;&#39;a amtx =&gt; &#39;a amtx&quot;</span> <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;amtx_new_op c &equiv; c&quot;</span>
+  <span class="keyword1">definition</span> amtx_get_op <span class="delimiter">::</span> <span class="string">&quot;&#39;a amtx =&gt; nat&times;nat =&gt; &#39;a&quot;</span> <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;amtx_get_op c e &equiv; (c e)&quot;</span>
+  <span class="keyword1">definition</span> amtx_set_op <span class="delimiter">::</span> <span class="string">&quot;&#39;a amtx =&gt; nat&times;nat =&gt; &#39;a =&gt; &#39;a amtx&quot;</span> <span class="keyword2">where</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;amtx_set_op c e v &equiv; (c(e:=v))&quot;</span>
+
+  <span class="keyword1">sepref_register</span> amtx_new_op <span class="string">&quot;&#39;a amtx =&gt; &#39;a i_mtx&quot;</span>
+  <span class="keyword1">sepref_register</span> amtx_get_op <span class="string">&quot;&#39;a i_mtx =&gt; nat&times;nat =&gt; &#39;a&quot;</span>
+  <span class="keyword1">sepref_register</span> amtx_set_op <span class="string">&quot;&#39;a i_mtx =&gt; nat&times;nat =&gt; &#39;a =&gt; &#39;a i_mtx&quot;</span>
+
+  <span class="keyword1">lemma</span> pat_amtx_get<span class="delimiter">:</span> <span class="string">&quot;c$e&equiv;amtx_get_op$c$e&quot;</span> <span class="keyword1">by</span> simp
+  <span class="keyword1">lemma</span> pat_amtx_set<span class="delimiter">:</span> <span class="string">&quot;fun_upd$c$e$v&equiv;amtx_set_op$c$e$v&quot;</span> <span class="keyword1">by</span> simp
+
+  <span class="keyword1">lemmas</span> amtx_pats <span class="delimiter">=</span> pat_amtx_get pat_amtx_set
+
+  <span class="keyword1">definition</span> <span class="string">&quot;is_mtx N c mtx &equiv; &exist;<span class="hidden">&#8681;</span><sub>A</sub>l. mtx \&lt;mapsto&gt;<span class="hidden">&#8681;</span><sub>a</sub> l * \&lt;up&gt;( 
+      length l = N*N 
+    &and; (&forall;i&lt;N. &forall;j&lt;N. l!(i*N+j) = c (i,j))
+    &and; (&forall;i j. (i&ge;N &or; j&ge;N) --&gt; c (i,j) = 0))&quot;</span>
+
+  <span class="keyword1">lemma</span> is_mtx_precise<span class="delimiter">[</span>constraint_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;precise (is_mtx N)&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> rule
+    <span class="keyword1">unfolding</span> is_mtx_def
+    <span class="keyword1"><span class="improper">apply</span></span> clarsimp
+    <span class="keyword1"><span class="improper">apply</span></span> prec_extract_eqs
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule ext<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rename_tac x<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>case_tac x<span class="delimiter">;</span> simp<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rename_tac i j<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>case_tac <span class="string">&quot;i&lt;N&quot;</span><span class="delimiter">;</span> case_tac <span class="string">&quot;j&lt;N&quot;</span><span class="delimiter">;</span> simp<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+    
+
+  <span class="keyword1">definition</span> <span class="string">&quot;mtx_new N c &equiv; do {
+    Array.make (N*N) (&lambda;i. c (i div N, i mod N))
+  }&quot;</span>
+
+  <span class="keyword1">definition</span> <span class="string">&quot;mtx_get N mtx e &equiv; Array.nth mtx (fst e * N + snd e)&quot;</span>
+  <span class="keyword1">definition</span> <span class="string">&quot;mtx_set N mtx e v &equiv; Array.upd (fst e * N + snd e) v mtx&quot;</span>
+
+  <span class="keyword1">lemma</span> mtx_idx_valid<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;[|i &lt; (N::nat); j &lt; N|] ==&gt; i * N + j &lt; N * N&quot;</span>
+  <span class="keyword1">proof</span> -
+    <span class="keyword3">assume</span> a1<span class="delimiter">:</span> <span class="string">&quot;i &lt; N&quot;</span>
+    <span class="keyword3">assume</span> a2<span class="delimiter">:</span> <span class="string">&quot;j &lt; N&quot;</span>
+    <span class="keyword1">have</span> <span class="string">&quot;&forall;n na. &exist;nb. &not; na &lt; n &or; Suc (na + nb) = n&quot;</span>
+      <span class="keyword1">using</span> less_imp_Suc_add <span class="keyword1">by</span> blast
+    <span class="keyword1">hence</span> <span class="string">&quot;0 &lt; N&quot;</span>
+      <span class="keyword1">using</span> a2 <span class="keyword1">by</span> blast
+    <span class="keyword3">thus</span> <span class="var">?thesis</span>
+      <span class="keyword1">using</span> a2 a1 <span class="keyword1">by</span> <span class="delimiter">(</span>metis <span class="delimiter">(</span>no_types<span class="delimiter">)</span> ab_semigroup_add_class.add.commute ab_semigroup_mult_class.mult.commute add.left_neutral div_if mod_div_equality mod_lemma mult_0_right<span class="delimiter">)</span>
+  <span class="keyword1">qed</span>
+
+  <span class="keyword1">lemma</span> mtx_index_unique<span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;[|i&lt;(N::nat); j&lt;N; i&#39;&lt;N; j&#39;&lt;N|] ==&gt; i*N+j = i&#39;*N+j&#39; &lt;-&gt; i=i&#39; &and; j=j&#39;&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>metis ab_semigroup_add_class.add.commute add_diff_cancel_right&#39; div_if div_mult_self3 gr0I not_less0<span class="delimiter">)</span>
+
+  <span class="keyword1">lemma</span> mtx_new_rl<span class="delimiter">[</span>sep_heap_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;Graph.V c &sube; {0..&lt;N} ==&gt; &lt;emp&gt; mtx_new N c &lt;is_mtx N c&gt;&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> mtx_new_def is_mtx_def Graph.V_def Graph.E_def<span class="delimiter">)</span>
+
+  <span class="keyword1">lemma</span> mtx_get_rl<span class="delimiter">[</span>sep_heap_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;[|i&lt;N; j&lt;N |] ==&gt; &lt;is_mtx N c mtx&gt; mtx_get N mtx (i,j) &lt;&lambda;r. is_mtx N c mtx * \&lt;up&gt;(r = c (i,j))&gt;&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> mtx_get_def is_mtx_def<span class="delimiter">)</span>
+    
+  <span class="keyword1">lemma</span> mtx_set_rl<span class="delimiter">[</span>sep_heap_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;[|i&lt;N; j&lt;N |] 
+    ==&gt; &lt;is_mtx N c mtx&gt; mtx_set N mtx (i,j) v &lt;&lambda;r. is_mtx N (c((i,j) := v)) r&gt;&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> mtx_set_def is_mtx_def nth_list_update<span class="delimiter">)</span>
+        
+  <span class="keyword1">lemma</span> mtx_new_fr_rl<span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+    <span class="string">&quot;(mtx_new N, RETURN o amtx_new_op) &isin; [&lambda;c. Graph.V c &sube; {0..&lt;N}]<span class="hidden">&#8681;</span><sub>a</sub> (pure (nat_rel &times;<span class="hidden">&#8681;</span><sub>r</sub> nat_rel -&gt; Id))<span class="hidden">&#8679;</span><sup>k</sup> -&gt; is_mtx N&quot;</span>  
+    <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> pure_def<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+  <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> 
+    <span class="string">&quot;CONSTRAINT IS_PURE_ID R ==&gt; (uncurry (mtx_get N), uncurry (RETURN oo amtx_get_op)) &isin; [&lambda;(_,(i,j)). i&lt;N &and; j&lt;N]<span class="hidden">&#8681;</span><sub>a</sub> (is_mtx N)<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (pure (nat_rel &times;<span class="hidden">&#8681;</span><sub>r</sub> nat_rel))<span class="hidden">&#8679;</span><sup>k</sup> -&gt; R&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> pure_def IS_PURE_ID_def<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+    
+  <span class="keyword1">lemma</span> <span class="delimiter">[</span>sepref_fr_rules<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;CONSTRAINT IS_PURE_ID R ==&gt; (uncurry2 (mtx_set N), uncurry2 (RETURN ooo amtx_set_op)) 
+    &isin; [&lambda;((_,(i,j)),_). i&lt;N &and; j&lt;N]<span class="hidden">&#8681;</span><sub>a</sub> (is_mtx N)<span class="hidden">&#8679;</span><sup>d</sup> *<span class="hidden">&#8681;</span><sub>a</sub> (pure (nat_rel &times;<span class="hidden">&#8681;</span><sub>r</sub> nat_rel))<span class="hidden">&#8679;</span><sup>k</sup> *<span class="hidden">&#8681;</span><sub>a</sub> R<span class="hidden">&#8679;</span><sup>k</sup> -&gt; is_mtx N&quot;</span>
+    <span class="keyword1"><span class="improper">apply</span></span> rule <span class="keyword1"><span class="improper">apply</span></span> rule
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>sep_auto simp<span class="delimiter">:</span> pure_def hn_ctxt_def IS_PURE_ID_def<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">done</span></span>
+
+<span class="keyword2">end</span>
+</pre>
+
+</div>
+</body>
+</html>
