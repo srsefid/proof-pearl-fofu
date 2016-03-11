@@ -16,5 +16,8 @@ begin
     notation WHILET ("while\<^sub>T")
     notation WHILEIT ("while\<^sub>T\<^bsup>_\<^esup>")
 
+    notation RECT (binder "rec\<^sub>T " 10)
+    notation REC (binder "rec " 10)
+
   end
 end

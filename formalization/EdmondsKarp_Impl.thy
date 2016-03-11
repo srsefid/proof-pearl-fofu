@@ -6,7 +6,12 @@ imports
   "Capacity_Matrix_Impl"
 begin
 
-  text \<open>We now implement the Edmonds-Karp algorithm.\<close>
+  text \<open>We now implement the Edmonds-Karp algorithm.
+    Note that, during the implementation, we explicitly write down the 
+    whole refined algorithm several times. As refinement is modular, most 
+    of these copies could be avoided--- we inserted them deliberately for
+    documentation purposes.
+    \<close>
 
   subsection \<open>Refinement to Residual Graph\<close>
     text \<open>As a first step towards implementation, we refine the algorithm
@@ -15,7 +20,19 @@ begin
       \<close>
 
   definition (in Network) "flow_of_cf cf e \<equiv> (if (e\<in>E) then c e - cf e else 0)"
-  
+
+  (* TODO: We have proved/used this fact already for Edka-Analysis! (uE) *)  
+  lemma (in NFlow) E_ss_cfinvE: "E \<subseteq> Graph.E cf \<union> (Graph.E cf)\<inverse>"
+    unfolding residualGraph_def Graph.E_def
+    apply (clarsimp)
+    using no_parallel_edge (* Speed optimization: Adding this directly takes very long *)
+    unfolding E_def
+    apply (simp add: )
+    done
+
+
+
+
   locale RGraph -- \<open>Locale that characterizes a residual graph of a network\<close>
   = Network +
     fixes cf
@@ -68,8 +85,16 @@ begin
       apply simp
       done
 
-    lemma finite_cf: "finite (cf.V)" by simp
+    (*lemma finite_cf: "finite (cf.V)" by simp*)
 
+    lemma E_ss_cfinvE: "E \<subseteq> cf.E \<union> cf.E\<inverse>"  
+      using f.E_ss_cfinvE by simp
+
+    lemma cfE_ss_invE: "cf.E \<subseteq> E \<union> E\<inverse>"
+      using f.cfE_ss_invE by simp
+      
+    lemma resE_nonNegative: "cf e \<ge> 0"  
+      using f.resE_nonNegative by auto
 
   end
 
@@ -124,7 +149,7 @@ begin
     text \<open>Augmentation can be done by @{const Graph.augment_cf}.\<close> 
 
     
-    lemma (in NFlow) (* For snippet *)
+    lemma (in NFlow) augment_cf_refine_aux: (* For snippet *)
       assumes AUG: "isAugmenting p"
       shows "residualGraph c (augment (augmentingFlow p)) (u,v) = (
         if (u,v)\<in>set p then (residualGraph c f (u,v) - bottleNeck p)
@@ -132,35 +157,25 @@ begin
         else residualGraph c f (u,v))"
       using augment_alt[OF AUG] by (auto simp: Graph.augment_cf_def)
 
-
     lemma augment_cf_refine:
       assumes R: "(cf,f)\<in>cfi_rel"
       assumes AUG: "NFlow.isAugmenting c s t f p"
       shows "(Graph.augment_cf cf (set p) (bottleNeck_cf cf p), 
           NFlow.augment c f (NFlow.augmentingFlow c f p)) \<in> cfi_rel"
     proof -    
-      from R have FEQ: "f = flow_of_cf cf" "RGraph c s t cf"
-        by (auto simp: cfi_rel_def br_def)
-      then interpret cf!: RGraph c s t cf by simp  
+      from R have [simp]: "cf = residualGraph c f" and "NFlow c s t f"
+        by (auto simp: cfi_rel_alt br_def)
+      then interpret f: NFlow c s t f by simp
       
-      from FEQ have [simp]: "f = cf.f" by (simp add: cf.f_def)
-      note AUG'=AUG[simplified]
-
-      show "(Graph.augment_cf cf (set p) (bottleNeck_cf cf p), 
-        NFlow.augment c f (NFlow.augmentingFlow c f p)) \<in> cfi_rel"
-        (* TODO: Try to make this more concise! *)
-        apply (subst cf.f.bottleNeck_cf_refine[simplified])
-        apply (clarsimp simp: cfi_rel_def br_def; safe)
-        apply (subst cf.f.augment_alt[OF AUG', simplified, symmetric])
-        apply (subst NFlow.fo_rg_inv)
-        apply (rule cf.f.augment_pres_nflow)
-        apply fact
-        apply (rule refl)
-        apply (subst cf.f.augment_alt[OF AUG', simplified, symmetric])
-        apply (rule NFlow.is_RGraph)
-        apply (rule cf.f.augment_pres_nflow)
-        apply fact
-        done
+      show ?thesis 
+      proof (simp add: cfi_rel_alt; safe intro!: ext)
+        fix u v
+        show "Graph.augment_cf f.cf (set p) (bottleNeck_cf f.cf p) (u,v) 
+              = residualGraph c (f.augment (f.augmentingFlow p)) (u,v)"
+          unfolding f.augment_cf_refine_aux[OF AUG]
+          unfolding f.cf.augment_cf_def
+          by (auto simp: f.bottleNeck_cf_refine)
+      qed (rule f.augment_pres_nflow[OF AUG])
     qed  
 
     text \<open>We rephrase the specification of shortest augmenting path to
@@ -169,13 +184,17 @@ begin
       what BFS does later. This rephrasing does not belong here, but where we 
       implement it with BFS. *)
     definition "find_shortest_augmenting_spec_cf cf \<equiv> 
-      ASSERT (RGraph c s t cf) \<guillemotright>
-      SPEC (\<lambda>None \<Rightarrow> \<not>Graph.connected cf s t | Some p \<Rightarrow> Graph.isShortestPath cf s p t)"
+      assert (RGraph c s t cf) \<guillemotright>
+      SPEC (\<lambda>
+        None \<Rightarrow> \<not>Graph.connected cf s t 
+      | Some p \<Rightarrow> Graph.isShortestPath cf s p t)"
 
     lemma (in RGraph) find_shortest_augmenting_spec_cf_refine: 
-      "find_shortest_augmenting_spec_cf cf \<le> find_shortest_augmenting_spec (flow_of_cf cf)"
+       "find_shortest_augmenting_spec_cf cf 
+      \<le> find_shortest_augmenting_spec (flow_of_cf cf)"
       unfolding f_def[symmetric]
-      unfolding find_shortest_augmenting_spec_cf_def find_shortest_augmenting_spec_def
+      unfolding find_shortest_augmenting_spec_cf_def 
+        and find_shortest_augmenting_spec_def
       by (auto 
         simp: pw_le_iff refine_pw_simps 
         simp: this_loc rg_is_cf
@@ -187,25 +206,25 @@ begin
     definition "edka2 \<equiv> do {
       let cf = c;
 
-      (cf,_) \<leftarrow> WHILET 
+      (cf,_) \<leftarrow> while\<^sub>T 
         (\<lambda>(cf,brk). \<not>brk) 
         (\<lambda>(cf,_). do {
-          ASSERT (RGraph c s t cf);
+          assert (RGraph c s t cf);
           p \<leftarrow> find_shortest_augmenting_spec_cf cf;
           case p of 
-            None \<Rightarrow> RETURN (cf,True)
+            None \<Rightarrow> return (cf,True)
           | Some p \<Rightarrow> do {
-              ASSERT (p\<noteq>[]);
-              ASSERT (Graph.isShortestPath cf s p t);
+              assert (p\<noteq>[]);
+              assert (Graph.isShortestPath cf s p t);
               let cf = Graph.augment_cf cf (set p) (bottleNeck_cf cf p);
-              ASSERT (RGraph c s t cf);
-              RETURN (cf, False)
+              assert (RGraph c s t cf);
+              return (cf, False)
             }  
         })
         (cf,False);
-      ASSERT (RGraph c s t cf);
+      assert (RGraph c s t cf);
       let f = flow_of_cf cf;  
-      RETURN f
+      return f
     }"
 
     lemma edka2_refine: "edka2 \<le> \<Down>Id edka"
@@ -220,7 +239,10 @@ begin
         apply refine_dref_type
         apply vc_solve
 
-        apply (drule NFlow.is_RGraph; auto simp: cfi_rel_def br_def residualGraph_zero_flow flow_of_c; fail)
+        -- \<open>Solve some left-over verification conditions one by one\<close>
+        apply (drule NFlow.is_RGraph; 
+            auto simp: cfi_rel_def br_def residualGraph_zero_flow flow_of_c; 
+            fail)
         apply (auto simp: cfi_rel_def br_def; fail)
         using RGraph.find_shortest_augmenting_spec_cf_refine
         apply (auto simp: cfi_rel_def br_def; fail)
@@ -239,11 +261,12 @@ begin
     abbreviation (input) valid_edge :: "edge \<Rightarrow> bool" where
       "valid_edge \<equiv> \<lambda>(u,v). u\<in>V \<and> v\<in>V"
 
-    definition cf_get :: "'capacity graph \<Rightarrow> edge \<Rightarrow> 'capacity nres" 
+    definition cf_get 
+      :: "'capacity graph \<Rightarrow> edge \<Rightarrow> 'capacity nres" 
       where "cf_get cf e \<equiv> ASSERT (valid_edge e) \<guillemotright> RETURN (cf e)"  
-    definition cf_set :: "'capacity graph \<Rightarrow> edge \<Rightarrow> 'capacity \<Rightarrow> 'capacity graph nres"
+    definition cf_set 
+      :: "'capacity graph \<Rightarrow> edge \<Rightarrow> 'capacity \<Rightarrow> 'capacity graph nres"
       where "cf_set cf e cap \<equiv> ASSERT (valid_edge e) \<guillemotright> RETURN (cf(e:=cap))"  
-
 
     definition bottleNeck_cf_impl :: "'capacity graph \<Rightarrow> path \<Rightarrow> 'capacity nres" 
     where "bottleNeck_cf_impl cf p \<equiv> 
@@ -281,26 +304,20 @@ begin
         unfolding bottleNeck_cf_impl_def bottleNeck_cf_def cf_get_def
         apply (simp only: list.case)
         apply (refine_vcg nfoldli_rule[where 
-            I = "\<lambda>l l' cap. cap = Min (cf`insert e (set l)) \<and> set (l@l') \<subseteq> Collect valid_edge"])
-        apply auto []
-        apply auto []
-        apply auto []
-        apply auto []
-        apply auto []
-        apply auto []
-        apply auto []
-        apply simp
-        apply (fo_rule arg_cong; auto)
-        apply auto []
-        apply auto []
-        apply simp
-        apply (fo_rule arg_cong; auto)
+            I = "\<lambda>l l' cap. 
+              cap = Min (cf`insert e (set l)) 
+            \<and> set (l@l') \<subseteq> Collect valid_edge"])
+        apply (auto intro!: arg_cong[where f=Min])
         done
     qed    
 
     definition (in Graph) 
-      "augment_edge e cap \<equiv> (c(e := c e - cap, prod.swap e := c (prod.swap e) + cap))"
+      "augment_edge e cap \<equiv> (c(
+                  e := c e - cap, 
+        prod.swap e := c (prod.swap e) + cap))"
 
+    (* TODO: This would be much simpler to prove if we had a characterization 
+      of simple-path only depending on p. *)    
     lemma (in Graph) augment_cf_inductive:
       fixes e cap
       defines "c' \<equiv> augment_edge e cap"
@@ -314,8 +331,6 @@ begin
 
       from isSPath_nt_parallel[OF P] have [simp]: "(v,u)\<notin>set p" by auto
       from isSPath_distinct[OF P] have [simp]: "(u,v)\<notin>set p" by auto
-
-      (*have [simp]: "\<And>u v. prod.swap (u,v) = (u,v) \<longleftrightarrow> u=v" by auto*)
 
       show "augment_cf (insert e (set p)) cap = Graph.augment_cf c' (set p) cap"
         apply (rule ext)  
@@ -343,16 +358,22 @@ begin
     }"
 
     lemma augment_edge_impl_refine: 
-      "\<lbrakk>valid_edge e; \<forall>u. e\<noteq>(u,u)\<rbrakk> \<Longrightarrow> augment_edge_impl cf e cap \<le> SPEC (\<lambda>r. r = Graph.augment_edge cf e cap)"
-      unfolding augment_edge_impl_def Graph.augment_edge_def cf_get_def cf_set_def
+      assumes "valid_edge e" "\<forall>u. e\<noteq>(u,u)"
+      shows "augment_edge_impl cf e cap 
+          \<le> (spec r. r = Graph.augment_edge cf e cap)"
+      using assms
+      unfolding augment_edge_impl_def Graph.augment_edge_def 
+      unfolding cf_get_def cf_set_def
       apply refine_vcg
       apply auto
       done
       
-    definition augment_cf_impl :: "'capacity graph \<Rightarrow> path \<Rightarrow> 'capacity \<Rightarrow> 'capacity graph nres" where
+    definition augment_cf_impl 
+      :: "'capacity graph \<Rightarrow> path \<Rightarrow> 'capacity \<Rightarrow> 'capacity graph nres" 
+      where
       "augment_cf_impl cf p x \<equiv> do {
-        RECT (\<lambda>D. \<lambda>
-          ([],cf) \<Rightarrow> RETURN cf
+        (rec\<^sub>T D. \<lambda>
+          ([],cf) \<Rightarrow> return cf
         | (e#p,cf) \<Rightarrow> do {
             cf \<leftarrow> augment_edge_impl cf e x;
             D (p,cf)
@@ -360,9 +381,12 @@ begin
         ) (p,cf)
       }"
 
+    text \<open>Deriving the corresponding recursion equations\<close>  
     lemma augment_cf_impl_simps[simp]: 
-      "augment_cf_impl cf [] x = RETURN cf"
-      "augment_cf_impl cf (e#p) x = do { cf \<leftarrow> augment_edge_impl cf e x; augment_cf_impl cf p x}"
+      "augment_cf_impl cf [] x = return cf"
+      "augment_cf_impl cf (e#p) x = do { 
+        cf \<leftarrow> augment_edge_impl cf e x; 
+        augment_cf_impl cf p x}"
       apply (simp add: augment_cf_impl_def)
       apply (subst RECT_unfold, refine_mono)
       apply simp
@@ -399,29 +423,31 @@ begin
       using assms cf.E_ss_VxV apply (auto simp: cf.isSimplePath_def dest!: cf.isPath_edgeset) []
       using assms by blast
       
+    text \<open>Finally, we arrive at the algorithm where augmentation is 
+      implemented algorithmically: \<close>  
     definition "edka3 \<equiv> do {
       let cf = c;
 
-      (cf,_) \<leftarrow> WHILET 
+      (cf,_) \<leftarrow> while\<^sub>T 
         (\<lambda>(cf,brk). \<not>brk) 
         (\<lambda>(cf,_). do {
-          ASSERT (RGraph c s t cf);
+          assert (RGraph c s t cf);
           p \<leftarrow> find_shortest_augmenting_spec_cf cf;
           case p of 
-            None \<Rightarrow> RETURN (cf,True)
+            None \<Rightarrow> return (cf,True)
           | Some p \<Rightarrow> do {
-              ASSERT (p\<noteq>[]);
-              ASSERT (Graph.isShortestPath cf s p t);
+              assert (p\<noteq>[]);
+              assert (Graph.isShortestPath cf s p t);
               bn \<leftarrow> bottleNeck_cf_impl cf p;
               cf \<leftarrow> augment_cf_impl cf p bn;
-              ASSERT (RGraph c s t cf);
-              RETURN (cf, False)
+              assert (RGraph c s t cf);
+              return (cf, False)
             }  
         })
         (cf,False);
-      ASSERT (RGraph c s t cf);
+      assert (RGraph c s t cf);
       let f = flow_of_cf cf;  
-      RETURN f
+      return f
     }"
 
     lemma edka3_refine: "edka3 \<le> \<Down>Id edka2"
@@ -443,26 +469,26 @@ begin
     definition "edka4 \<equiv> do {
       let cf = c;
 
-      (cf,_) \<leftarrow> WHILET 
+      (cf,_) \<leftarrow> while\<^sub>T 
         (\<lambda>(cf,brk). \<not>brk) 
         (\<lambda>(cf,_). do {
-          ASSERT (RGraph c s t cf);
+          assert (RGraph c s t cf);
           p \<leftarrow> Graph.bfs cf s t;
           case p of 
-            None \<Rightarrow> RETURN (cf,True)
+            None \<Rightarrow> return (cf,True)
           | Some p \<Rightarrow> do {
-              ASSERT (p\<noteq>[]);
-              ASSERT (Graph.isShortestPath cf s p t);
+              assert (p\<noteq>[]);
+              assert (Graph.isShortestPath cf s p t);
               bn \<leftarrow> bottleNeck_cf_impl cf p;
               cf \<leftarrow> augment_cf_impl cf p bn;
-              ASSERT (RGraph c s t cf);
-              RETURN (cf, False)
+              assert (RGraph c s t cf);
+              return (cf, False)
             }  
         })
         (cf,False);
-      ASSERT (RGraph c s t cf);
+      assert (RGraph c s t cf);
       let f = flow_of_cf cf;  
-      RETURN f
+      return f
     }"
 
     text \<open>A shortest path can be obtained by BFS\<close>  
@@ -487,52 +513,45 @@ begin
 
     subsection \<open>Implementing the Successor Function for BFS\<close>  
 
-    -- \<open>Note: We use @{term filter_rev} here, as it is tail-recursive, 
+    text \<open>We implement the successor function in two steps.
+      The first step shows how to obtain the successor function by
+      filtering the list of adjacent nodes. This step contains the idea   
+      of the implementation. The second step is purely technical, and makes 
+      explicit the recursion of the filter function as a recursion combinator
+      in the monad. This is required for the Sepref tool.
+      \<close>
+
+    text \<open>Note: We use @{term filter_rev} here, as it is tail-recursive, 
       and we are not interested in the order of successors.\<close>
     definition "rg_succ ps cf u \<equiv>  
       filter_rev (\<lambda>v. cf (u,v) > 0) (ps u)"
   
-    lemma (in NFlow) E_ss_cfinvE: "E \<subseteq> Graph.E cf \<union> (Graph.E cf)\<inverse>"
-      unfolding residualGraph_def Graph.E_def
-      apply (clarsimp)
-      using no_parallel_edge (* Speed optimization: Adding this directly takes very long *)
-      unfolding E_def
-      apply (simp add: )
-      done
-
-    lemma (in RGraph) E_ss_cfinvE: "E \<subseteq> cf.E \<union> cf.E\<inverse>"  
-      using f.E_ss_cfinvE by simp
-
-    lemma (in RGraph) cfE_ss_invE: "cf.E \<subseteq> E \<union> E\<inverse>"
-      using f.cfE_ss_invE by simp
-      
-    lemma (in RGraph) resE_nonNegative: "cf e \<ge> 0"  
-      using f.resE_nonNegative by auto
-
-
     lemma (in RGraph) rg_succ_ref1: "\<lbrakk>is_pred_succ ps c\<rbrakk> 
       \<Longrightarrow> (rg_succ ps cf u, Graph.E cf``{u}) \<in> \<langle>Id\<rangle>list_set_rel"
       unfolding Graph.E_def
-      apply (clarsimp simp: list_set_rel_def br_def rg_succ_def filter_rev_alt; intro conjI)
+      apply (clarsimp simp: list_set_rel_def br_def rg_succ_def filter_rev_alt; 
+        intro conjI)
       using cfE_ss_invE resE_nonNegative 
-      apply (auto simp: is_pred_succ_def less_le Graph.E_def simp del: cf.zero_cap_simp zero_cap_simp) []
+      apply (auto 
+        simp: is_pred_succ_def less_le Graph.E_def 
+        simp del: cf.zero_cap_simp zero_cap_simp) []
       apply (auto simp: is_pred_succ_def) []
       done
 
     definition ps_get_op :: "_ \<Rightarrow> node \<Rightarrow> node list nres" 
-      where "ps_get_op ps u \<equiv> ASSERT (u\<in>V) \<guillemotright> RETURN (ps u)"
+      where "ps_get_op ps u \<equiv> assert (u\<in>V) \<guillemotright> return (ps u)"
 
     definition monadic_filter_rev_aux 
       :: "'a list \<Rightarrow> ('a \<Rightarrow> bool nres) \<Rightarrow> 'a list \<Rightarrow> 'a list nres"
     where
-      "monadic_filter_rev_aux a P l \<equiv> RECT (\<lambda>D (l,a). case l of
-        [] \<Rightarrow> RETURN a 
+      "monadic_filter_rev_aux a P l \<equiv> (rec\<^sub>T D. (\<lambda>(l,a). case l of
+        [] \<Rightarrow> return a 
       | (v#l) \<Rightarrow> do {
           c \<leftarrow> P v;
           let a = (if c then v#a else a);
           D (l,a)
         }
-      ) (l,a)"
+      )) (l,a)"
 
     lemma monadic_filter_rev_aux_rule:
       assumes "\<And>x. x\<in>set l \<Longrightarrow> P x \<le> SPEC (\<lambda>r. r=Q x)"
@@ -554,8 +573,8 @@ begin
     definition "monadic_filter_rev = monadic_filter_rev_aux []"
 
     lemma monadic_filter_rev_rule:
-      assumes "\<And>x. x\<in>set l \<Longrightarrow> P x \<le> SPEC (\<lambda>r. r=Q x)"
-      shows "monadic_filter_rev P l \<le> SPEC (\<lambda>r. r=filter_rev Q l)"
+      assumes "\<And>x. x\<in>set l \<Longrightarrow> P x \<le> (spec r. r=Q x)"
+      shows "monadic_filter_rev P l \<le> (spec r. r=filter_rev Q l)"
       using monadic_filter_rev_aux_rule[where a="[]"] assms
       by (auto simp: monadic_filter_rev_def filter_rev_def)
 
@@ -569,7 +588,7 @@ begin
 
     lemma (in RGraph) rg_succ_ref2: 
       assumes PS: "is_pred_succ ps c" and V: "u\<in>V"
-      shows "rg_succ2 ps cf u \<le> RETURN (rg_succ ps cf u)"
+      shows "rg_succ2 ps cf u \<le> return (rg_succ ps cf u)"
     proof -
       have "\<forall>v\<in>set (ps u). valid_edge (u,v)"
         using PS V
@@ -577,53 +596,11 @@ begin
       
       thus ?thesis  
         unfolding rg_succ2_def rg_succ_def ps_get_op_def cf_get_def
-        apply (refine_vcg monadic_filter_rev_rule[where Q="(\<lambda>v. 0 < cf (u, v))", THEN order_trans])
+        apply (refine_vcg monadic_filter_rev_rule[
+            where Q="(\<lambda>v. 0 < cf (u, v))", THEN order_trans])
         by (vc_solve simp: V)
     qed    
 
-(*
-    definition "rg_succ2 ps cf u \<equiv> do {
-      l \<leftarrow> ps_get_op ps u;
-      RECT (\<lambda>D (l,a). case l of 
-        [] \<Rightarrow> RETURN a 
-      | (v#l) \<Rightarrow> do {
-          x \<leftarrow> cf_get cf (u,v);
-          let a = (if x>0 then v#a else a);
-          D (l,a)
-        }) (l,[])
-      }"
-  
-    lemma (in RGraph) rg_succ_ref2: "\<lbrakk>is_pred_succ ps c; u\<in>V\<rbrakk> 
-      \<Longrightarrow> rg_succ2 ps cf u \<le> RETURN (rg_succ ps cf u)"
-    proof -
-      def l \<equiv> "ps u"
-  
-      assume VN: "u\<in>V"
-      assume V: "is_pred_succ ps c"
-  
-      have "\<forall>v\<in>set l. valid_edge (u,v)"
-        using V VN 
-        by (auto simp: is_pred_succ_def l_def Graph.V_def)
-  
-      thus ?thesis
-        unfolding rg_succ2_def cf_get_def ps_get_op_def
-        apply simp
-        apply refine_vcg
-        apply (simp add: VN) []
-        apply (simp add: rg_succ_def l_def[symmetric])
-    
-        apply (induction l)
-          apply (simp add: rg_succ_def) apply (subst RECT_unfold, refine_mono)
-          apply simp
-    
-          apply (subst RECT_unfold, refine_mono)
-          apply (simp split del: split_if)
-          apply (simp add: pw_le_iff refine_pw_simps) 
-          apply fastforce
-        done
-    qed    
-*)
-    (* Snippet *)
     lemma (in RGraph) rg_succ_ref:
       assumes A: "is_pred_succ ps c"
       assumes B: "u\<in>V"
@@ -632,15 +609,33 @@ begin
       by (auto simp: pw_le_iff refine_pw_simps)
 
 
-    definition init_cf :: "'capacity graph nres" where "init_cf \<equiv> RETURN c"
-    definition init_ps :: "(node \<Rightarrow> node list) \<Rightarrow> _" where 
-      "init_ps ps \<equiv> ASSERT (is_pred_succ ps c) \<guillemotright> RETURN ps"
+    subsection \<open>Adding Tabulation of Input\<close>  
+    text \<open>
+      Next, we add functions that will be refined to tabulate the input of 
+      the algorithm, i.e., the network's capacity matrix and adjacency map,
+      into efficient representations. 
+      The capacity matrix is tabulated to give the initial residual graph,
+      and the adjacency map is tabulated for faster access.
 
-    definition compute_rflow :: "'capacity graph \<Rightarrow> 'capacity flow nres" where
+      Note, on the abstract level, the tabulation functions are just identity,
+      and merely serve as marker constants for implementation.
+      \<close>
+    definition init_cf :: "'capacity graph nres" 
+      -- \<open>Initialization of residual graph from network\<close>
+      where "init_cf \<equiv> RETURN c"
+    definition init_ps :: "(node \<Rightarrow> node list) \<Rightarrow> _" 
+      -- \<open>Initialization of adjacency map\<close>
+      where "init_ps ps \<equiv> ASSERT (is_pred_succ ps c) \<guillemotright> RETURN ps"
+
+    definition compute_rflow :: "'capacity graph \<Rightarrow> 'capacity flow nres" 
+      -- \<open>Extraction of result flow from residual graph\<close>
+      where
       "compute_rflow cf \<equiv> ASSERT (RGraph c s t cf) \<guillemotright> RETURN (flow_of_cf cf)"
 
     definition "bfs2_op ps cf \<equiv> Graph.bfs2 cf (rg_succ2 ps cf) s t"
 
+    text \<open>We split the algorithm into a tabulation function, and the 
+      running of the actual algorithm:\<close>
     definition "edka5_tabulate ps \<equiv> do {
       cf \<leftarrow> init_cf;
       ps \<leftarrow> init_ps ps;
@@ -648,25 +643,25 @@ begin
     }"
 
     definition "edka5_run cf ps \<equiv> do {
-      (cf,_) \<leftarrow> WHILET 
+      (cf,_) \<leftarrow> while\<^sub>T 
         (\<lambda>(cf,brk). \<not>brk) 
         (\<lambda>(cf,_). do {
-          ASSERT (RGraph c s t cf);
+          assert (RGraph c s t cf);
           p \<leftarrow> bfs2_op ps cf;
           case p of 
-            None \<Rightarrow> RETURN (cf,True)
+            None \<Rightarrow> return (cf,True)
           | Some p \<Rightarrow> do {
-              ASSERT (p\<noteq>[]);
-              ASSERT (Graph.isShortestPath cf s p t);
+              assert (p\<noteq>[]);
+              assert (Graph.isShortestPath cf s p t);
               bn \<leftarrow> bottleNeck_cf_impl cf p;
               cf \<leftarrow> augment_cf_impl cf p bn;
-              ASSERT (RGraph c s t cf);
-              RETURN (cf, False)
+              assert (RGraph c s t cf);
+              return (cf, False)
             }  
         })
         (cf,False);
       f \<leftarrow> compute_rflow cf;  
-      RETURN f
+      return f
     }"
 
     definition "edka5 ps \<equiv> do {
@@ -690,21 +685,37 @@ begin
   end    
 
   subsection \<open>Imperative Implementation\<close>  
+  text \<open>In this section we provide an efficient imperative implementation,
+    using the Sepref tool. It is mostly technical, setting up the mappings
+    from abstract to concrete data structures, and then refining the algorithm,
+    function by function.  
+    \<close>
 
+  text \<open>
+    This is also the point where we have to choose the implementation of 
+    capacities. Up to here, they have been a polymorphic type with a
+    typeclass constraint of being a linearly ordered integral domain.
+    Here, we switch to @{typ [source] capacity_impl} (@{typ capacity_impl}).
+    \<close>
   locale Network_Impl = Network c s t for c :: "capacity_impl graph" and s t
 
-
+  text \<open>Moreover, we assume that the nodes are natural numbers less 
+    than some number @{term N}, which will become an additional parameter 
+    of our algorithm. \<close>
   locale Edka_Impl = Network_Impl +
     fixes N :: nat
     assumes V_ss: "V\<subseteq>{0..<N}"
   begin  
     lemma this_loc: "Edka_Impl c s t N" by unfold_locales
 
+    text \<open>Declare some variables to Sepref. \<close>
     lemmas [id_rules] = 
       itypeI[Pure.of N "TYPE(nat)"]  
       itypeI[Pure.of s "TYPE(node)"]  
       itypeI[Pure.of t "TYPE(node)"]  
       itypeI[Pure.of c "TYPE(capacity_impl graph)"]  
+    text \<open>Instruct Sepref to not refine these parameters. This is expressed
+      by using identity as refinement relation.\<close>
     lemmas [sepref_import_param] = 
       IdI[of N]
       IdI[of s]
@@ -712,7 +723,11 @@ begin
       IdI[of c]
 
 
-    definition "is_ps ps psi \<equiv> \<exists>\<^sub>Al. psi \<mapsto>\<^sub>a l * \<up>(length l = N \<and> (\<forall>i<N. l!i = ps i) \<and> (\<forall>i\<ge>N. ps i = []))"
+    subsubsection \<open>Implementation of Adjacency Map by Array\<close>  
+    definition "is_ps ps psi 
+      \<equiv> \<exists>\<^sub>Al. psi \<mapsto>\<^sub>a l 
+          * \<up>(length l = N \<and> (\<forall>i<N. l!i = ps i) 
+              \<and> (\<forall>i\<ge>N. ps i = []))"
   
     lemma is_ps_precise[constraint_rules]: "precise (is_ps)"
       apply rule
@@ -734,35 +749,21 @@ begin
     sepref_register "PR_CONST ps_get_op" "i_ps \<Rightarrow> node \<Rightarrow> node list nres"
 
     lemma ps_get_op_refine[sepref_fr_rules]: 
-      "(uncurry ps_get_imp, uncurry (PR_CONST ps_get_op)) \<in> is_ps\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a hn_list_aux (pure Id)"
+      "(uncurry ps_get_imp, uncurry (PR_CONST ps_get_op)) 
+        \<in> is_ps\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a hn_list_aux (pure Id)"
       unfolding hn_list_pure_conv
       apply rule apply rule
       using V_ss
-      by (sep_auto simp: is_ps_def pure_def ps_get_imp_def ps_get_op_def refine_pw_simps)
-
-
-    lemma [def_pat_rules]: "Network.cf_get$c \<equiv> UNPROTECT cf_get" by simp
-    lemma [def_pat_rules]: "Network.cf_set$c \<equiv> UNPROTECT cf_set" by simp
-
-    sepref_register "PR_CONST cf_get" "capacity_impl i_mtx \<Rightarrow> edge \<Rightarrow> capacity_impl nres"
-    sepref_register "PR_CONST cf_set" "capacity_impl i_mtx \<Rightarrow> edge \<Rightarrow> capacity_impl \<Rightarrow> capacity_impl i_mtx nres"
-
-    lemma [sepref_fr_rules]: "(uncurry (mtx_get N), uncurry (PR_CONST cf_get)) \<in> (is_mtx N)\<^sup>k *\<^sub>a (hn_prod_aux (pure Id) (pure Id))\<^sup>k \<rightarrow>\<^sub>a pure Id"
-      apply rule apply rule
-      using V_ss
-      by (sep_auto simp: cf_get_def refine_pw_simps pure_def)
-
-    lemma [sepref_fr_rules]: "(uncurry2 (mtx_set N), uncurry2 (PR_CONST cf_set)) 
-      \<in> (is_mtx N)\<^sup>d *\<^sub>a (hn_prod_aux (pure Id) (pure Id))\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a (is_mtx N)"
-      apply rule apply rule
-      using V_ss
-      by (sep_auto simp: cf_set_def refine_pw_simps pure_def hn_ctxt_def)
+      by (sep_auto 
+            simp: is_ps_def pure_def ps_get_imp_def 
+            simp: ps_get_op_def refine_pw_simps)
 
     lemma is_pred_succ_no_node: "\<lbrakk>is_pred_succ a c; u\<notin>V\<rbrakk> \<Longrightarrow> a u = []"
       unfolding is_pred_succ_def V_def
       by auto
 
-    lemma [sepref_fr_rules]: "(Array.make N, PR_CONST init_ps) \<in> (pure Id)\<^sup>k \<rightarrow>\<^sub>a is_ps" 
+    lemma [sepref_fr_rules]: "(Array.make N, PR_CONST init_ps) 
+      \<in> (pure Id)\<^sup>k \<rightarrow>\<^sub>a is_ps" 
       apply rule apply rule
       using V_ss
       by (sep_auto simp: init_ps_def refine_pw_simps is_ps_def pure_def
@@ -771,8 +772,33 @@ begin
     lemma [def_pat_rules]: "Network.init_ps$c \<equiv> UNPROTECT init_ps" by simp
     sepref_register "PR_CONST init_ps" "(node \<Rightarrow> node list) \<Rightarrow> i_ps nres"
 
+    subsubsection \<open>Implementation of Capacity Matrix by Array\<close>  
+    lemma [def_pat_rules]: "Network.cf_get$c \<equiv> UNPROTECT cf_get" by simp
+    lemma [def_pat_rules]: "Network.cf_set$c \<equiv> UNPROTECT cf_set" by simp
+
+    sepref_register 
+      "PR_CONST cf_get" "capacity_impl i_mtx \<Rightarrow> edge \<Rightarrow> capacity_impl nres"
+    sepref_register 
+      "PR_CONST cf_set" "capacity_impl i_mtx \<Rightarrow> edge \<Rightarrow> capacity_impl 
+        \<Rightarrow> capacity_impl i_mtx nres"
+
+    lemma [sepref_fr_rules]: "(uncurry (mtx_get N), uncurry (PR_CONST cf_get)) 
+      \<in> (is_mtx N)\<^sup>k *\<^sub>a (hn_prod_aux (pure Id) (pure Id))\<^sup>k \<rightarrow>\<^sub>a pure Id"
+      apply rule apply rule
+      using V_ss
+      by (sep_auto simp: cf_get_def refine_pw_simps pure_def)
+
+    lemma [sepref_fr_rules]: 
+      "(uncurry2 (mtx_set N), uncurry2 (PR_CONST cf_set)) 
+      \<in> (is_mtx N)\<^sup>d *\<^sub>a (hn_prod_aux (pure Id) (pure Id))\<^sup>k *\<^sub>a (pure Id)\<^sup>k 
+        \<rightarrow>\<^sub>a (is_mtx N)"
+      apply rule apply rule
+      using V_ss
+      by (sep_auto simp: cf_set_def refine_pw_simps pure_def hn_ctxt_def)
+
     lemma init_cf_imp_refine[sepref_fr_rules]: 
-      "(uncurry0 (mtx_new N c), uncurry0 (PR_CONST init_cf)) \<in> (pure unit_rel)\<^sup>k \<rightarrow>\<^sub>a is_mtx N"
+      "(uncurry0 (mtx_new N c), uncurry0 (PR_CONST init_cf)) 
+        \<in> (pure unit_rel)\<^sup>k \<rightarrow>\<^sub>a is_mtx N"
       apply rule apply rule
       using V_ss
       by (sep_auto simp: init_cf_def)
@@ -780,8 +806,9 @@ begin
     lemma [def_pat_rules]: "Network.init_cf$c \<equiv> UNPROTECT init_cf" by simp
     sepref_register "PR_CONST init_cf" "capacity_impl i_mtx nres"
 
-
-    definition (in Network_Impl) "is_rflow N f cfi \<equiv> \<exists>\<^sub>Acf. is_mtx N cf cfi * \<up>(f = flow_of_cf cf)"
+    subsubsection \<open>Representing Result Flow as Residual Graph\<close>
+    definition (in Network_Impl) "is_rflow N f cfi 
+      \<equiv> \<exists>\<^sub>Acf. is_mtx N cf cfi * \<up>(f = flow_of_cf cf)"
     lemma is_rflow_precise[constraint_rules]: "precise (is_rflow N)"
       apply rule
       unfolding is_rflow_def
@@ -793,15 +820,20 @@ begin
 
     typedecl i_rflow 
 
-    lemma [sepref_fr_rules]: "(\<lambda>cfi. return cfi, PR_CONST compute_rflow) \<in> (is_mtx N)\<^sup>d \<rightarrow>\<^sub>a is_rflow N"
+    lemma [sepref_fr_rules]: 
+      "(\<lambda>cfi. return cfi, PR_CONST compute_rflow) \<in> (is_mtx N)\<^sup>d \<rightarrow>\<^sub>a is_rflow N"
       apply rule
       apply rule
       apply (sep_auto simp: compute_rflow_def is_rflow_def refine_pw_simps hn_ctxt_def)
       done
 
-    lemma [def_pat_rules]: "Network.compute_rflow$c$s$t \<equiv> UNPROTECT compute_rflow" by simp
-    sepref_register "PR_CONST compute_rflow" "capacity_impl i_mtx \<Rightarrow> i_rflow nres"
+    lemma [def_pat_rules]: 
+      "Network.compute_rflow$c$s$t \<equiv> UNPROTECT compute_rflow" by simp
+    sepref_register 
+      "PR_CONST compute_rflow" "capacity_impl i_mtx \<Rightarrow> i_rflow nres"
 
+
+    subsubsection \<open>Implementation of Functions\<close>  
 
     schematic_lemma rg_succ2_impl:
       fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
@@ -818,16 +850,20 @@ begin
     concrete_definition (in -) succ_imp uses Edka_Impl.rg_succ2_impl
     prepare_code_thms (in -) succ_imp_def
 
-    lemma succ_imp_refine[sepref_fr_rules]: "(uncurry2 (succ_imp N), uncurry2 (PR_CONST rg_succ2)) \<in> is_ps\<^sup>k *\<^sub>a (is_mtx N)\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a hn_list_aux (pure Id)"
+    lemma succ_imp_refine[sepref_fr_rules]: 
+      "(uncurry2 (succ_imp N), uncurry2 (PR_CONST rg_succ2)) 
+        \<in> is_ps\<^sup>k *\<^sub>a (is_mtx N)\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a hn_list_aux (pure Id)"
       apply rule
       using succ_imp.refine[OF this_loc]            
       by (auto simp: hn_ctxt_def hn_prod_aux_def mult_ac split: prod.split)
 
     lemma [def_pat_rules]: "Network.rg_succ2$c \<equiv> UNPROTECT rg_succ2" by simp
-    sepref_register "PR_CONST rg_succ2" "i_ps \<Rightarrow> capacity_impl i_mtx \<Rightarrow> node \<Rightarrow> node list nres"
+    sepref_register 
+      "PR_CONST rg_succ2" "i_ps \<Rightarrow> capacity_impl i_mtx \<Rightarrow> node \<Rightarrow> node list nres"
 
     
     lemma [sepref_import_param]: "(min,min)\<in>Id\<rightarrow>Id\<rightarrow>Id" by simp
+
 
     abbreviation "is_path \<equiv> hn_list_aux (hn_prod_aux (pure Id) (pure Id))"
 
@@ -837,7 +873,10 @@ begin
         itypeI[Pure.of p "TYPE(edge list)"]
         itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
       notes [sepref_import_param] = IdI[of N]
-      shows "hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_path p pi) (?c::?'c Heap) ?\<Gamma> ?R (bottleNeck_cf_impl cf p)"
+      shows "hn_refine 
+        (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_path p pi) 
+        (?c::?'c Heap) ?\<Gamma> ?R 
+        (bottleNeck_cf_impl cf p)"
       unfolding bottleNeck_cf_impl_def APP_def
       using [[id_debug, goals_limit = 1]]
       by sepref_keep
@@ -849,7 +888,9 @@ begin
         \<in> (is_mtx N)\<^sup>k *\<^sub>a (is_path)\<^sup>k \<rightarrow>\<^sub>a (pure Id)"
       apply rule
       apply (rule hn_refine_preI)
-      apply (clarsimp simp: uncurry_def hn_list_pure_conv hn_ctxt_def split: prod.split)
+      apply (clarsimp 
+        simp: uncurry_def hn_list_pure_conv hn_ctxt_def 
+        split: prod.split)
       apply (clarsimp simp: pure_def)
       apply (rule hn_refine_cons'[OF _ bottleNeck_imp.refine[OF this_loc] _])
       apply (simp add: hn_list_pure_conv hn_ctxt_def)
@@ -858,8 +899,11 @@ begin
       apply (simp add: pure_def)
       done
 
-    lemma [def_pat_rules]: "Network.bottleNeck_cf_impl$c \<equiv> UNPROTECT bottleNeck_cf_impl" by simp
-    sepref_register "PR_CONST bottleNeck_cf_impl" "capacity_impl i_mtx \<Rightarrow> path \<Rightarrow> capacity_impl nres"
+    lemma [def_pat_rules]: 
+      "Network.bottleNeck_cf_impl$c \<equiv> UNPROTECT bottleNeck_cf_impl" 
+      by simp
+    sepref_register "PR_CONST bottleNeck_cf_impl" 
+      "capacity_impl i_mtx \<Rightarrow> path \<Rightarrow> capacity_impl nres"
     
     schematic_lemma augment_imp_impl:
       fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph" and p pi
@@ -868,14 +912,15 @@ begin
         itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
         itypeI[Pure.of cap "TYPE(capacity_impl)"]
       notes [sepref_import_param] = IdI[of N]
-      shows "hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_path p pi * hn_val Id cap capi) (?c::?'c Heap) ?\<Gamma> ?R (augment_cf_impl cf p cap)"
+      shows "hn_refine 
+        (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_path p pi * hn_val Id cap capi)
+        (?c::?'c Heap) ?\<Gamma> ?R 
+        (augment_cf_impl cf p cap)"
       unfolding augment_cf_impl_def augment_edge_impl_def APP_def
       using [[id_debug, goals_limit = 1]]
       by sepref_keep
     concrete_definition (in -) augment_imp uses Edka_Impl.augment_imp_impl
     prepare_code_thms (in -) augment_imp_def
-
-    thm augment_imp_def augment_cf_impl_def
 
     lemma augment_impl_refine[sepref_fr_rules]: 
       "(uncurry2 (augment_imp N), uncurry2 (PR_CONST augment_cf_impl)) 
@@ -891,12 +936,18 @@ begin
       apply (simp add: pure_def)
       done
 
-    lemma [def_pat_rules]: "Network.augment_cf_impl$c \<equiv> UNPROTECT augment_cf_impl" by simp
-    sepref_register "PR_CONST augment_cf_impl" "capacity_impl i_mtx \<Rightarrow> path \<Rightarrow> capacity_impl \<Rightarrow> capacity_impl i_mtx nres"
+    lemma [def_pat_rules]: 
+      "Network.augment_cf_impl$c \<equiv> UNPROTECT augment_cf_impl" 
+      by simp
+    sepref_register "PR_CONST augment_cf_impl" 
+      "capacity_impl i_mtx \<Rightarrow> path \<Rightarrow> capacity_impl \<Rightarrow> capacity_impl i_mtx nres"
 
-    thm succ_imp_def
-    sublocale bfs!: Impl_Succ "snd" "TYPE(i_ps \<times> capacity_impl i_mtx)" 
-      "\<lambda>(ps,cf). rg_succ2 ps cf" "hn_prod_aux is_ps (is_mtx N)" "\<lambda>(ps,cf). succ_imp N ps cf"
+    sublocale bfs!: Impl_Succ 
+      "snd" 
+      "TYPE(i_ps \<times> capacity_impl i_mtx)" 
+      "\<lambda>(ps,cf). rg_succ2 ps cf" 
+      "hn_prod_aux is_ps (is_mtx N)" 
+      "\<lambda>(ps,cf). succ_imp N ps cf"
       unfolding APP_def
       apply unfold_locales
       apply constraint_rules
@@ -904,9 +955,12 @@ begin
       apply (rule hfref_cons[OF succ_imp_refine[unfolded PR_CONST_def]])
       by auto
       
-    definition (in -) "bfsi' N s t psi cfi \<equiv> bfs_impl (\<lambda>(ps, cf). succ_imp N ps cf) (psi,cfi) s t"
+    definition (in -) "bfsi' N s t psi cfi 
+      \<equiv> bfs_impl (\<lambda>(ps, cf). succ_imp N ps cf) (psi,cfi) s t"
 
-    lemma [sepref_fr_rules]: "(uncurry (bfsi' N s t),uncurry (PR_CONST bfs2_op)) \<in> is_ps\<^sup>k *\<^sub>a (is_mtx N)\<^sup>k \<rightarrow>\<^sub>a hn_option_aux is_path"
+    lemma [sepref_fr_rules]: 
+      "(uncurry (bfsi' N s t),uncurry (PR_CONST bfs2_op)) 
+        \<in> is_ps\<^sup>k *\<^sub>a (is_mtx N)\<^sup>k \<rightarrow>\<^sub>a hn_option_aux is_path"
       unfolding bfsi'_def[abs_def]
       using bfs.bfs_impl_fr_rule
       apply (simp add: uncurry_def bfs.op_bfs_def[abs_def] bfs2_op_def)
@@ -919,7 +973,8 @@ begin
       done
 
     lemma [def_pat_rules]: "Network.bfs2_op$c$s$t \<equiv> UNPROTECT bfs2_op" by simp
-    sepref_register "PR_CONST bfs2_op" "i_ps \<Rightarrow> capacity_impl i_mtx \<Rightarrow> path option nres"  
+    sepref_register "PR_CONST bfs2_op" 
+      "i_ps \<Rightarrow> capacity_impl i_mtx \<Rightarrow> path option nres"  
 
 
     schematic_lemma edka_imp_tabulate_impl:
@@ -933,22 +988,27 @@ begin
       using [[id_debug, goals_limit = 1]]
       by sepref_keep
 
-    concrete_definition (in -) edka_imp_tabulate uses Edka_Impl.edka_imp_tabulate_impl
+    concrete_definition (in -) edka_imp_tabulate 
+      uses Edka_Impl.edka_imp_tabulate_impl
     prepare_code_thms (in -) edka_imp_tabulate_def
 
-    thm edka_imp_tabulate.refine
-
-    lemma edka_imp_tabulate_refine[sepref_fr_rules]: "(edka_imp_tabulate c N, PR_CONST edka5_tabulate) 
+    lemma edka_imp_tabulate_refine[sepref_fr_rules]: 
+      "(edka_imp_tabulate c N, PR_CONST edka5_tabulate) 
       \<in> (pure Id)\<^sup>k \<rightarrow>\<^sub>a hn_prod_aux (is_mtx N) is_ps"
       apply (rule)
       apply (rule hn_refine_preI)
-      apply (clarsimp simp: uncurry_def hn_list_pure_conv hn_ctxt_def split: prod.split)
+      apply (clarsimp 
+        simp: uncurry_def hn_list_pure_conv hn_ctxt_def 
+        split: prod.split)
       apply (rule hn_refine_cons[OF _ edka_imp_tabulate.refine[OF this_loc]])
       apply (sep_auto simp: hn_ctxt_def pure_def)+
       done
 
-    lemma [def_pat_rules]: "Network.edka5_tabulate$c \<equiv> UNPROTECT edka5_tabulate" by simp
-    sepref_register "PR_CONST edka5_tabulate" "(node \<Rightarrow> node list) \<Rightarrow> (capacity_impl i_mtx \<times> i_ps) nres"
+    lemma [def_pat_rules]: 
+      "Network.edka5_tabulate$c \<equiv> UNPROTECT edka5_tabulate" 
+      by simp
+    sepref_register "PR_CONST edka5_tabulate"
+      "(node \<Rightarrow> node list) \<Rightarrow> (capacity_impl i_mtx \<times> i_ps) nres"
 
 
     schematic_lemma edka_imp_run_impl:
@@ -957,7 +1017,10 @@ begin
       notes [id_rules] = 
         itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
         itypeI[Pure.of ps "TYPE(i_ps)"]
-      shows "hn_refine (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_ps ps psi) (?c::?'c Heap) ?\<Gamma> ?R (edka5_run cf ps)"
+      shows "hn_refine 
+        (hn_ctxt (is_mtx N) cf cfi * hn_ctxt is_ps ps psi) 
+        (?c::?'c Heap) ?\<Gamma> ?R  
+        (edka5_run cf ps)"
       unfolding edka5_run_def
       using [[id_debug, goals_limit = 1]]
       by sepref_keep
@@ -970,16 +1033,18 @@ begin
       "(uncurry (edka_imp_run s t N), uncurry (PR_CONST edka5_run)) 
         \<in> (is_mtx N)\<^sup>d *\<^sub>a (is_ps)\<^sup>k \<rightarrow>\<^sub>a is_rflow N"
       apply rule
-      apply (clarsimp simp: uncurry_def hn_list_pure_conv hn_ctxt_def split: prod.split)
+      apply (clarsimp 
+        simp: uncurry_def hn_list_pure_conv hn_ctxt_def 
+        split: prod.split)
       apply (rule hn_refine_cons[OF _ edka_imp_run.refine[OF this_loc] _])
       apply (sep_auto simp: hn_ctxt_def)+
       done
 
-    lemma [def_pat_rules]: "Network.edka5_run$c$s$t \<equiv> UNPROTECT edka5_run" by simp
-    sepref_register "PR_CONST edka5_run" "capacity_impl i_mtx \<Rightarrow> i_ps \<Rightarrow> i_rflow nres"
-
-
-
+    lemma [def_pat_rules]: 
+      "Network.edka5_run$c$s$t \<equiv> UNPROTECT edka5_run" 
+      by simp
+    sepref_register "PR_CONST edka5_run" 
+      "capacity_impl i_mtx \<Rightarrow> i_ps \<Rightarrow> i_rflow nres"
 
 
     schematic_lemma edka_imp_impl:
@@ -1000,12 +1065,17 @@ begin
 
   export_code edka_imp checking SML_imp
 
+  subsection \<open>Correctness Theorem for Implementation\<close>
+  text \<open>We combine all refinement steps to derive a correctness 
+    theorem for the implementation\<close>
   context Network_Impl begin
-    text \<open>Correctness theorem of the final implementation\<close>
     theorem edka_imp_correct: 
       assumes VN: "Graph.V c \<subseteq> {0..<N}"
       assumes ABS_PS: "is_pred_succ ps c"
-      shows "<emp> edka_imp c s t N ps <\<lambda>fi. \<exists>\<^sub>Af. is_rflow N f fi * \<up>(isMaxFlow f)>\<^sub>t"
+      shows "
+        <emp> 
+          edka_imp c s t N ps 
+        <\<lambda>fi. \<exists>\<^sub>Af. is_rflow N f fi * \<up>(isMaxFlow f)>\<^sub>t"
     proof -
       interpret Edka_Impl by unfold_locales fact
 

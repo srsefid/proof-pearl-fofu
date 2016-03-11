@@ -10,9 +10,11 @@ text \<open>
 subsection \<open>Adding Statistic Counters\<close>
 text \<open>We first add some statistic counters, that we use for profiling\<close>
 definition stat_outer_c :: "unit Heap" where "stat_outer_c = return ()"
-lemma insert_stat_outer_c: "m = stat_outer_c \<guillemotright> m" unfolding stat_outer_c_def by simp
+lemma insert_stat_outer_c: "m = stat_outer_c \<guillemotright> m" 
+  unfolding stat_outer_c_def by simp
 definition stat_inner_c :: "unit Heap" where "stat_inner_c = return ()"
-lemma insert_stat_inner_c: "m = stat_inner_c \<guillemotright> m" unfolding stat_inner_c_def by simp
+lemma insert_stat_inner_c: "m = stat_inner_c \<guillemotright> m" 
+  unfolding stat_inner_c_def by simp
 
 code_printing
   code_module stat \<rightharpoonup> (SML) \<open>
@@ -55,8 +57,10 @@ lemma network_is_impl: "Network c s t \<Longrightarrow> Network_Impl c s t" by i
 theorem edmonds_karp_correct:
   "<emp> edmonds_karp el s t <\<lambda>
       None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
-    | Some (N,fi) \<Rightarrow> \<exists>\<^sub>Af. Network_Impl.is_rflow (ln_\<alpha> el) N f fi * \<up>(Network.isMaxFlow (ln_\<alpha> el) s t f)
-        * \<up>(ln_invar el \<and> Network (ln_\<alpha> el) s t \<and> Graph.V (ln_\<alpha> el) \<subseteq> {0..<N})
+    | Some (N,fi) \<Rightarrow> 
+      \<exists>\<^sub>Af. Network_Impl.is_rflow (ln_\<alpha> el) N f fi 
+      * \<up>(Network.isMaxFlow (ln_\<alpha> el) s t f
+        \<and> ln_invar el \<and> Network (ln_\<alpha> el) s t \<and> Graph.V (ln_\<alpha> el) \<subseteq> {0..<N})
   >\<^sub>t"
   unfolding edmonds_karp_def
   using prepareNet_correct[of el s t]
@@ -84,6 +88,7 @@ text_raw \<open>}%EndSnippet\<close>
 end
 
 (* TODO: Justify this by abstract definition + refinement *)  
+text \<open>Unverified function to extract the maximum flow value.\<close>
 definition get_flow :: "capacity_impl graph \<Rightarrow> nat \<Rightarrow> Graph.node \<Rightarrow> capacity_impl mtx \<Rightarrow> capacity_impl Heap" where
   "get_flow c N s fi \<equiv> do {
     imp_nfoldli ([0..<N]) (\<lambda>_. return True) (\<lambda>v cap. do {
