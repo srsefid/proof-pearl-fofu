@@ -212,6 +212,19 @@ lemma RECT_rule_arb':
     by (auto simp: pw_le_iff refine_pw_simps)
 
 
+definition setsum_impl :: "('a \<Rightarrow> 'b::comm_monoid_add nres) \<Rightarrow> 'a set \<Rightarrow> 'b nres" where
+  "setsum_impl g S \<equiv> foreach S (\<lambda>x a. do { b \<leftarrow> g x; return (a+b)}) 0"
+
+lemma setsum_imp_correct: 
+  assumes [simp]: "finite S"
+  assumes [THEN order_trans, refine_vcg]: "\<And>x. x\<in>S \<Longrightarrow> gi x \<le> (spec r. r=g x)"
+  shows "setsum_impl gi S \<le> (spec r. r=setsum g S)"
+  unfolding setsum_impl_def
+  apply (refine_vcg FOREACH_rule[where I="\<lambda>it a. a = setsum g (S - it)"])
+  apply (auto simp: it_step_insert_iff algebra_simps)
+  done
+
+
 
     (* TODO: Move *)
     lemma (in -) fold_partial_uncurry: "uncurry (\<lambda>(ps, cf). f ps cf) = uncurry2 f" by auto

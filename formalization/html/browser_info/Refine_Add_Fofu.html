@@ -229,6 +229,19 @@
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
 
 
+<span class="keyword1">definition</span> setsum_impl <span class="delimiter">::</span> <span class="string">&quot;(&#39;a =&gt; &#39;b::comm_monoid_add nres) =&gt; &#39;a set =&gt; &#39;b nres&quot;</span> <span class="keyword2">where</span>
+  <span class="string">&quot;setsum_impl g S &equiv; foreach S (&lambda;x a. do { b \&lt;leftarrow&gt; g x; return (a+b)}) 0&quot;</span>
+
+<span class="keyword1">lemma</span> setsum_imp_correct<span class="delimiter">:</span> 
+  <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite S&quot;</span>
+  <span class="keyword2">assumes</span> <span class="delimiter">[</span>THEN order_trans<span class="delimiter">,</span> refine_vcg<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;!!x. x&isin;S ==&gt; gi x &le; (spec r. r=g x)&quot;</span>
+  <span class="keyword2">shows</span> <span class="string">&quot;setsum_impl gi S &le; (spec r. r=setsum g S)&quot;</span>
+  <span class="keyword1">unfolding</span> setsum_impl_def
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg FOREACH_rule<span class="delimiter">[</span><span class="keyword2">where</span> I<span class="delimiter">=</span><span class="string">&quot;&lambda;it a. a = setsum g (S - it)&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff algebra_simps<span class="delimiter">)</span>
+  <span class="keyword1"><span class="improper">done</span></span>
+
+
 
     <span class="comment">(* TODO: Move *)</span>
     <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> fold_partial_uncurry<span class="delimiter">:</span> <span class="string">&quot;uncurry (&lambda;(ps, cf). f ps cf) = uncurry2 f&quot;</span> <span class="keyword1">by</span> auto

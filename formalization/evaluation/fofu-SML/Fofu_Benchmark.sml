@@ -138,11 +138,11 @@ in
       val (c,(ps,N)) = the_fail (prepareNet G s t) "prepareNet failed";
       val (ci,psi) = edka_imp_tabulate c N ps ()
     in
-      SOME (c,ci,psi,N)
+      SOME (c,ci,ps,psi,N)
     end  ,
-    run = fn (c,ci,psi,N) => fn () => (N,c,edka_imp_run s t N ci psi ()),
-    compres = fn (N,c,f) => let
-        val flow = get_flow c N s f ()
+    run = fn (c,ci,ps,psi,N) => fn () => (N,c,ps,edka_imp_run s t N ci psi ()),
+    compres = fn (N,c,ps,f) => let
+        val flow = compute_flow_val_imp c s t ps f ()
       in
         IntInf.toString (integer_of_int flow) 
       end  

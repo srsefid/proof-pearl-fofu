@@ -808,7 +808,7 @@ begin
 
     subsubsection \<open>Representing Result Flow as Residual Graph\<close>
     definition (in Network_Impl) "is_rflow N f cfi 
-      \<equiv> \<exists>\<^sub>Acf. is_mtx N cf cfi * \<up>(f = flow_of_cf cf)"
+      \<equiv> \<exists>\<^sub>Acf. is_mtx N cf cfi * \<up>(RGraph c s t cf \<and> f = flow_of_cf cf)"
     lemma is_rflow_precise[constraint_rules]: "precise (is_rflow N)"
       apply rule
       unfolding is_rflow_def

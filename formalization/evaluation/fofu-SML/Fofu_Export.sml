@@ -382,10 +382,18 @@ structure Fofu : sig
   val edka_imp :
     (nat * nat -> int) ->
       nat -> nat -> nat -> (nat -> nat list) -> (unit -> (int array))
-  val get_flow : (nat * nat -> int) -> nat -> nat -> int array -> (unit -> int)
   val edmonds_karp :
     (nat * (nat * int)) list ->
-      nat -> nat -> (unit -> ((nat * int array) option))
+      nat ->
+        nat ->
+          (unit ->
+            (((nat * nat -> int) *
+               ((nat -> nat list) * (nat * int array))) option))
+  val compute_flow_val_imp :
+    (nat * nat -> int) ->
+      nat -> nat -> (nat -> nat list) -> int array -> (unit -> int)
+  val edmonds_karp_val :
+    (nat * (nat * int)) list -> nat -> nat -> (unit -> (int option))
 end = struct
 
 datatype int = Int_of_integer of IntInf.int;
@@ -1678,10 +1686,6 @@ datatype ('a, 'b) pre_network_ext =
 datatype ('a, 'b, 'c) simple_state_nos_impl_ext =
   Simple_state_nos_impl_ext of 'a * 'b * 'c;
 
-fun suc n = plus_nat n one_nata;
-
-fun upt i j = (if less_nat i j then i :: upt (suc i) j else []);
-
 fun len A_ a =
   (fn () => let
               val i = (fn () => Array.length a) ();
@@ -2649,6 +2653,8 @@ fun swap p = (snd p, fst p);
 
 fun min A_ a b = (if less_eq A_ a b then a else b);
 
+fun get_ps ps v = ps v;
+
 fun div_integer k l = fst (divmod_integer k l);
 
 fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
@@ -2768,44 +2774,42 @@ fun edka_imp c s t n ps =
         ()
     end);
 
-fun imp_nfoldli (x :: ls) c f s =
-  (fn () =>
-    let
-      val b = c s ();
-    in
-      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
-        else (fn () => s))
-        ()
-    end)
-  | imp_nfoldli [] c f s = (fn () => s);
-
-fun get_flow c n s fi =
-  imp_nfoldli (upt zero_nata n) (fn _ => (fn () => true))
-    (fn v => fn cap =>
-      let
-        val csv = c (s, v);
-      in
-        (fn () =>
-          let
-            val cfsv = mtx_get heap_int n fi (s, v) ();
-          in
-            let
-              val fsv = minus_inta csv cfsv;
-            in
-              (fn () => (plus_inta cap fsv))
-            end
-              ()
-          end)
-      end)
-    zero_inta;
-
 fun edmonds_karp el s t =
   (case prepareNet el s t of NONE => (fn () => NONE)
     | SOME (c, (ps, n)) =>
-      (fn () => let
-                  val f = edka_imp c s t n ps ();
-                in
-                  SOME (n, f)
-                end));
+      (fn () =>
+        let
+          val f = edka_imp c s t n ps ();
+        in
+          SOME (c, (ps, (n, f)))
+        end));
+
+fun compute_flow_val_imp_0 c s n cfi x =
+  (case x of ([], sa) => (fn () => sa)
+    | (xa :: ls, sa) =>
+      (if true
+        then (fn () =>
+               let
+                 val xaa = mtx_get heap_int n cfi (s, xa) ();
+               in
+                 compute_flow_val_imp_0 c s n cfi
+                   (ls, plus_inta sa (minus_inta (c (s, xa)) xaa)) ()
+               end)
+        else (fn () => sa)));
+
+fun compute_flow_val_imp c s n ps cfi =
+  compute_flow_val_imp_0 c s n cfi (get_ps ps s, zero_inta);
+
+fun edmonds_karp_val el s t =
+  (fn () =>
+    let
+      val a = edmonds_karp el s t ();
+    in
+      (case a of NONE => (fn () => NONE)
+        | SOME (c, (ps, (n, cfi))) =>
+          (fn f_ => fn () => f_ ((compute_flow_val_imp c s n ps cfi) ()) ())
+            (fn v => (fn () => (SOME v))))
+        ()
+    end);
 
 end; (*struct Fofu*)
