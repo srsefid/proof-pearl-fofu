@@ -346,7 +346,7 @@ proof -
     hence "s\<noteq>t" by auto
     with CONN NCONN2 have "g'.ekMeasure < ekMeasure"
       unfolding g'.ekMeasure_def ekMeasure_def
-      using min_dist_less_V[OF SV] (* TODO: Move this result to finite-graph! *)
+      using min_dist_less_V[OF SV]
       by auto
   } moreover {
     assume SHORTER: "g'.min_dist s t < min_dist s t"
