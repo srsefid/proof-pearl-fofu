@@ -338,7 +338,9 @@ begin
       nf_invar.invar_N_ss_Vis
       nf_invar.finite_succ
       )
-    apply (vc_solve simp: outer_loop_rel_def nf_invar.C_ne_max_dist nf_invar.finite_C)
+    apply (vc_solve 
+      simp: remove_subset outer_loop_rel_def 
+      simp: nf_invar.C_ne_max_dist nf_invar.finite_C)
     done
 
 
