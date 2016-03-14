@@ -35,7 +35,7 @@ begin
       assumes "\<forall>i\<le>d. v\<notin>Vd i"
       shows "v\<in>Vd (Suc d)"
       using assms
-      by (metis connectedI_succ in_Vd_conv le_SucE min_dist_succ)
+      by (metis connected_append_edge in_Vd_conv le_SucE min_dist_succ)
 
   end
 

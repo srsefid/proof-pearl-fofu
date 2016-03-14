@@ -51,7 +51,7 @@ begin
     pn_V :: "nat set"
     pn_succ :: "nat \<Rightarrow> nat list"
     pn_pred :: "nat \<Rightarrow> nat list"
-    pn_psucc :: "nat \<Rightarrow> nat list"
+    pn_adjmap :: "nat \<Rightarrow> nat list"
     pn_s_node :: bool
     pn_t_node :: bool
 
@@ -62,7 +62,7 @@ begin
       pn_V = {}, 
       pn_succ = (\<lambda> _. []),
       pn_pred = (\<lambda> _. []),
-      pn_psucc = (\<lambda> _. []), 
+      pn_adjmap = (\<lambda> _. []), 
       pn_s_node = False, 
       pn_t_node = False
     \<rparr>"
@@ -77,7 +77,7 @@ begin
               pn_V := insert u (insert v (pn_V x)),
               pn_succ := (pn_succ x) (u := v # ((pn_succ x) u)),
               pn_pred := (pn_pred x) (v := u # ((pn_pred x) v)),
-              pn_psucc := ((pn_psucc x) (u := v # (pn_psucc x) u)) (v := u # (pn_psucc x) v),
+              pn_adjmap := ((pn_adjmap x) (u := v # (pn_adjmap x) u)) (v := u # (pn_adjmap x) v),
               pn_s_node := pn_s_node x \<or> u = s,
               pn_t_node := pn_t_node x \<or> v = t
             \<rparr>))
@@ -86,7 +86,7 @@ begin
     | None \<Rightarrow> None))"
       
   lemma read_correct1: "read es s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = succ, 
-    pn_pred = pred , pn_psucc = psucc, pn_s_node = s_n, pn_t_node = t_n\<rparr> \<Longrightarrow> 
+    pn_pred = pred , pn_adjmap = adjmap, pn_s_node = s_n, pn_t_node = t_n\<rparr> \<Longrightarrow> 
     (es, c) \<in> ln_rel \<and> Graph.V c = V \<and> finite V \<and> 
     (s_n \<longrightarrow> s \<in> V) \<and> (t_n \<longrightarrow> t \<in> V) \<and> (\<not>s_n \<longrightarrow> s \<notin> V) \<and> (\<not>t_n \<longrightarrow> t \<notin> V) \<and>
     (\<forall>u v. c (u,v) \<ge> 0) \<and>
@@ -94,8 +94,8 @@ begin
     (\<forall>u v. c (u, v) \<noteq> 0 \<longrightarrow> c (v, u) = 0) \<and> 
     (\<forall>u. set (succ u) = Graph.E c``{u} \<and> distinct (succ u)) \<and> 
     (\<forall>u. set (pred u) = (Graph.E c)\<inverse>``{u} \<and> distinct (pred u)) \<and> 
-    (\<forall>u. set (psucc u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (psucc u))"
-    proof (induction es arbitrary: c V succ pred psucc s_n t_n)
+    (\<forall>u. set (adjmap u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (adjmap u))"
+    proof (induction es arbitrary: c V succ pred adjmap s_n t_n)
       case Nil
         thus ?case unfolding Graph.V_def Graph.E_def ln_rel_def br_def ln_\<alpha>_def ln_invar_def by auto
     next
@@ -109,10 +109,10 @@ begin
           using Cons.prems obt1 obt2 by (auto split: option.splits if_splits)
         
         obtain c' V' sc' ps' pd' s_n' t_n' where obt3: "x = \<lparr>pn_c = c', pn_V = V',
-          pn_succ = sc', pn_pred = pd',  pn_psucc = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" 
+          pn_succ = sc', pn_pred = pd',  pn_adjmap = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" 
           apply (cases x) by auto
         then have "read es s t = Some \<lparr>pn_c = c', pn_V = V', pn_succ = sc', pn_pred = pd',
-          pn_psucc = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" using obt2 by blast
+          pn_adjmap = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" using obt2 by blast
         note fct = Cons.IH[OF this]
         have fct2: "s_n = (s_n' \<or> u1 = s)" 
           using fct0 fct1 Cons.prems obt1 obt2 obt3 by simp
@@ -126,7 +126,7 @@ begin
           using fct0 fct1 Cons.prems obt1 obt2 obt3 by simp
         have fct7: "pred = pd' (v1 := u1 # pd' v1)"
           using fct0 fct1 Cons.prems obt1 obt2 obt3 by simp
-        have fct8: "psucc = (ps' (u1 := v1 # ps' u1)) (v1 := u1 # ps' v1)"
+        have fct8: "adjmap = (ps' (u1 := v1 # ps' u1)) (v1 := u1 # ps' v1)"
           using fct0 fct1 Cons.prems obt1 obt2 obt3 by simp
         
           
@@ -360,16 +360,16 @@ begin
         {
           fix a
           assume "a \<noteq> u1 \<and> a \<noteq> v1"
-          then have "psucc a = ps' a" using fct8 by simp
+          then have "adjmap a = ps' a" using fct8 by simp
             moreover have "set (ps' a) = 
               Graph.E c'``{a} \<union> (Graph.E c')\<inverse>``{a} \<and> distinct (ps' a)" using fct by blast
-            ultimately have "set (psucc a) = Graph.E c``{a} \<union> (Graph.E c)\<inverse>``{a} \<and> 
-              distinct (psucc a)" unfolding Graph.E_def using fct4 `a \<noteq> u1 \<and> a \<noteq> v1` by auto
+            ultimately have "set (adjmap a) = Graph.E c``{a} \<union> (Graph.E c)\<inverse>``{a} \<and> 
+              distinct (adjmap a)" unfolding Graph.E_def using fct4 `a \<noteq> u1 \<and> a \<noteq> v1` by auto
         }
         moreover {
           fix a
           assume "a = u1 \<or> a = v1"
-          then have "set (psucc a) = Graph.E c``{a} \<union> (Graph.E c)\<inverse>``{a} \<and> distinct (psucc a)"
+          then have "set (adjmap a) = Graph.E c``{a} \<union> (Graph.E c)\<inverse>``{a} \<and> distinct (adjmap a)"
             proof
               assume "a = u1"
               show ?thesis
@@ -378,7 +378,7 @@ begin
                     have fct: "set (ps' a) = Graph.E c' `` {a} \<union> (Graph.E c')\<inverse> `` {a} \<and> 
                       distinct (ps' a)" using fct by blast
                     
-                    have "psucc a = v1 # ps' a" using `a = u1` fct8 True by simp
+                    have "adjmap a = v1 # ps' a" using `a = u1` fct8 True by simp
                     moreover have "Graph.E c = Graph.E c' \<union> {(u1, v1)}" 
                       unfolding Graph.E_def using fct4 fct0 by auto
                     moreover have "v1 \<notin> set (ps' a)"
@@ -401,7 +401,7 @@ begin
                     have fct: "set (ps' a) = Graph.E c' `` {a} \<union> (Graph.E c')\<inverse> `` {a} \<and> 
                       distinct (ps' a)" using fct by blast
                     
-                    have "psucc a = u1 # ps' a" using `a = v1` fct8 True by simp
+                    have "adjmap a = u1 # ps' a" using `a = v1` fct8 True by simp
                     moreover have "Graph.E c = Graph.E c' \<union> {(u1, v1)}" 
                       unfolding Graph.E_def using fct4 fct0 by auto
                     moreover have "u1 \<notin> set (ps' a)"
@@ -418,8 +418,8 @@ begin
                 qed
             qed
         }
-        ultimately have "\<forall>u. set (psucc u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and>
-          distinct (psucc u)" by metis
+        ultimately have "\<forall>u. set (adjmap u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and>
+          distinct (adjmap u)" by metis
       }
       ultimately show ?case by simp  
     qed
@@ -478,7 +478,7 @@ begin
             then obtain x where obt1: "read el s t = Some x" by auto
             obtain u1 v1 c1 where obt2: "e = (u1, v1, c1)" apply (cases e) by auto
             obtain c' V' sc' pd' ps' s_n' t_n' where obt3: "x = \<lparr>pn_c = c', pn_V = V', pn_succ = sc',
-              pn_pred = pd', pn_psucc = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" 
+              pn_pred = pd', pn_adjmap = ps', pn_s_node = s_n', pn_t_node = t_n'\<rparr>" 
               apply (cases x) by auto 
             then have "(el, c') \<in> ln_rel" using obt1 read_correct1[of el s t] by simp
             then have "c' = ln_\<alpha> el" unfolding ln_rel_def br_def by simp
@@ -535,7 +535,7 @@ begin
     pn_V' :: "nat ahs"
     pn_succ' :: "(nat,nat list) ahm"
     pn_pred' :: "(nat,nat list) ahm"
-    pn_psucc' :: "(nat,nat list) ahm"
+    pn_adjmap' :: "(nat,nat list) ahm"
     pn_s_node' :: bool
     pn_t_node' :: bool
 
@@ -545,7 +545,7 @@ begin
       pn_V = ahs_\<alpha> (pn_V' pn'), 
       pn_succ = the_default [] o (ahm.\<alpha> (pn_succ' pn')),
       pn_pred = the_default [] o (ahm.\<alpha> (pn_pred' pn')),
-      pn_psucc = the_default [] o (ahm.\<alpha> (pn_psucc' pn')), 
+      pn_adjmap = the_default [] o (ahm.\<alpha> (pn_adjmap' pn')), 
       pn_s_node = pn_s_node' pn', 
       pn_t_node = pn_t_node' pn'
   \<rparr>"  
@@ -564,7 +564,7 @@ begin
       pn_V' = ahs.empty (), 
       pn_succ' = ahm.empty (),
       pn_pred' = ahm.empty (),
-      pn_psucc' = ahm.empty (), 
+      pn_adjmap' = ahm.empty (), 
       pn_s_node' = False, 
       pn_t_node' = False
     \<rparr>"
@@ -579,8 +579,8 @@ begin
               pn_V' := ahs.ins u (ahs.ins v (pn_V' x)),
               pn_succ' := ahm.update u (v # (succ_lookup (pn_succ' x) u)) (pn_succ' x),
               pn_pred' := ahm.update v (u # (succ_lookup (pn_pred' x) v)) (pn_pred' x),
-              pn_psucc' := ahm.update u (v # (succ_lookup (pn_psucc' x) u))
-                (ahm.update v (u # (succ_lookup (pn_psucc' x) v)) (pn_psucc' x)),
+              pn_adjmap' := ahm.update u (v # (succ_lookup (pn_adjmap' x) u))
+                (ahm.update v (u # (succ_lookup (pn_adjmap' x) v)) (pn_adjmap' x)),
               pn_s_node' := pn_s_node' x \<or> u = s,
               pn_t_node' := pn_t_node' x \<or> v = t
             \<rparr>))
@@ -622,7 +622,7 @@ begin
               succ_s \<leftarrow> reachable_spec (pn_c x) s;
               pred_t \<leftarrow> reaching_spec (pn_c x) t;
               if (pn_V x) = succ_s \<and> (pn_V x) = pred_t then
-                RETURN (Some (pn_c x, pn_psucc x))
+                RETURN (Some (pn_c x, pn_adjmap x))
               else
                 RETURN None
             }
@@ -633,8 +633,8 @@ begin
     }"
 
   lemma checkNet_pre_correct1 : "checkNet el s t \<le> 
-    SPEC (\<lambda> r. r = Some (c, psucc) \<longrightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> 
-    (\<forall>u. set (psucc u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (psucc u)))"
+    SPEC (\<lambda> r. r = Some (c, adjmap) \<longrightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> 
+    (\<forall>u. set (adjmap u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (adjmap u)))"
     unfolding checkNet_def reachable_spec_def reaching_spec_def
     apply (refine_vcg)
     apply clarsimp_all
@@ -645,11 +645,11 @@ begin
           assume asm2: "read el s t = Some x"
           assume asm3: "pn_s_node x"
           assume asm4: "pn_t_node x"
-          obtain c V sc pd psucc  where obt: "x = \<lparr>pn_c = c, pn_V = V,
-            pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>"
+          obtain c V sc pd adjmap  where obt: "x = \<lparr>pn_c = c, pn_V = V,
+            pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>"
             apply (cases x) using asm3 asm4 by auto
           then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-            pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
+            pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
           note fct = read_correct1[OF this]
           
           then have [simp, intro!]: "finite (Graph.V c)" by blast
@@ -666,11 +666,11 @@ begin
           assume asm4: "finite (((Graph.E (pn_c x))\<inverse>)\<^sup>* `` {t})"
           assume asm5: "pn_s_node x"
           assume asm6: "pn_t_node x" 
-          obtain c V sc pd psucc  where obt: "x = \<lparr>pn_c = c, pn_V = V,
-            pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>"
+          obtain c V sc pd adjmap  where obt: "x = \<lparr>pn_c = c, pn_V = V,
+            pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>"
             apply (cases x) using asm5 asm6 by auto
           then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-            pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
+            pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
           note fct = read_correct1[OF this]
           
           have "\<And>u. set ((pn_succ x) u) = Graph.E (pn_c x) `` {u} \<and> distinct ((pn_succ x) u)"
@@ -690,12 +690,12 @@ begin
           assume asm5: "((Graph.E (pn_c x))\<inverse>)\<^sup>* `` {t} = (Graph.E (pn_c x))\<^sup>* `` {s}"
           assume asm6: "pn_V x = (Graph.E (pn_c x))\<^sup>* `` {s}" 
           assume asm7: "c = pn_c x"
-          assume asm8: "psucc = pn_psucc x"
+          assume asm8: "adjmap = pn_adjmap x"
           obtain V sc pd  where obt: "x = \<lparr>pn_c = c, pn_V = V,
-            pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>"
+            pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>"
             apply (cases x) using asm3 asm4 asm7 asm8 by auto
           then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-            pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
+            pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
           note fct = read_correct1[OF this]
           
           have "\<And>u. set ((pn_succ x) u) = Graph.E (pn_c x) `` {u} \<and> distinct ((pn_succ x) u)"
@@ -725,12 +725,12 @@ begin
             ultimately have "Network (pn_c x) s t" unfolding Network_def using asm1 fct asm7 
               by (simp add: Graph.E_def)
           }
-          moreover have "\<forall>u.(set (pn_psucc x u) =
+          moreover have "\<forall>u.(set (pn_adjmap x u) =
             Graph.E (pn_c x) `` {u} \<union> (Graph.E (pn_c x))\<inverse> `` {u})" using fct obt by simp
-          moreover have "\<forall>u. distinct (pn_psucc x u)" using fct obt by simp
+          moreover have "\<forall>u. distinct (pn_adjmap x u)" using fct obt by simp
           ultimately show "(el, pn_c x) \<in> ln_rel" and "Network (pn_c x) s t" and
-            "\<And>u. set (pn_psucc x u) = Graph.E (pn_c x) `` {u} \<union> (Graph.E (pn_c x))\<inverse> `` {u}" and
-            "\<And>u. distinct (pn_psucc x u)" by auto
+            "\<And>u. set (pn_adjmap x u) = Graph.E (pn_c x) `` {u} \<union> (Graph.E (pn_c x))\<inverse> `` {u}" and
+            "\<And>u. distinct (pn_adjmap x u)" by auto
         }
       qed
   
@@ -748,10 +748,10 @@ begin
     shows "False"
     proof -          
       obtain c V sc pd ps  where obt: "x = \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-        pn_psucc = ps, pn_s_node = True, pn_t_node = True\<rparr>"
+        pn_adjmap = ps, pn_s_node = True, pn_t_node = True\<rparr>"
         apply (cases x) using asm3 asm4 asm6 asm7 by auto
       then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-        pn_psucc = ps, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
+        pn_adjmap = ps, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
       note fct = read_correct1[OF this]
       
       have "pn_V x \<noteq> (Graph.E (pn_c x))\<^sup>* `` {s} \<or> (pn_V x = (Graph.E (pn_c x))\<^sup>* `` {s} \<and>
@@ -917,11 +917,11 @@ begin
         assume asm2: "read el s t = Some x"
         assume asm3: "pn_s_node x"
         assume asm4: "pn_t_node x"
-        obtain c V sc pd psucc  where obt: "x = \<lparr>pn_c = c, pn_V = V,
-          pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>"
+        obtain c V sc pd adjmap  where obt: "x = \<lparr>pn_c = c, pn_V = V,
+          pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>"
           apply (cases x) using asm3 asm4 by auto
         then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
+          pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
         note fct = read_correct1[OF this]
         
         then have [simp]: "finite (Graph.V c)" by blast
@@ -938,11 +938,11 @@ begin
         assume asm4: "finite (((Graph.E (pn_c x))\<inverse>)\<^sup>* `` {t})"
         assume asm5: "pn_s_node x"
         assume asm6: "pn_t_node x" 
-        obtain c V sc pd psucc  where obt: "x = \<lparr>pn_c = c, pn_V = V,
-          pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>"
+        obtain c V sc pd adjmap  where obt: "x = \<lparr>pn_c = c, pn_V = V,
+          pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>"
           apply (cases x) using asm5 asm6 by auto
         then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = psucc, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
+          pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True\<rparr>" using asm2 by simp
         note fct = read_correct1[OF this]
         
         have "\<And>u. set ((pn_succ x) u) = Graph.E (pn_c x) `` {u} \<and> distinct ((pn_succ x) u)"
@@ -961,9 +961,9 @@ begin
         assume asm4: "ln_invar el"
         assume asm5: "Network (ln_\<alpha> el) s t"
         obtain c V sc pd ps s_node t_node where obt: "x = \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = ps, pn_s_node = s_node, pn_t_node = t_node\<rparr>" apply (cases x) by auto 
+          pn_adjmap = ps, pn_s_node = s_node, pn_t_node = t_node\<rparr>" apply (cases x) by auto 
         then have "read el s t = Some \<lparr>pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = ps, pn_s_node = s_node, pn_t_node = t_node\<rparr>" using asm2 by simp
+          pn_adjmap = ps, pn_s_node = s_node, pn_t_node = t_node\<rparr>" using asm2 by simp
         note fct = read_correct1[OF this]
         
         have "(el, c) \<in> ln_rel" using fct obt by simp
@@ -993,18 +993,18 @@ begin
     qed
 
   lemma checkNet_correct' : "checkNet el s t \<le> SPEC (\<lambda> r. case r of 
-      Some (c, psucc) \<Rightarrow>
+      Some (c, adjmap) \<Rightarrow>
         (el, c) \<in> ln_rel \<and> Network c s t 
-        \<and> (\<forall>u. set (psucc u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (psucc u))
+        \<and> (\<forall>u. set (adjmap u) = Graph.E c``{u} \<union> (Graph.E c)\<inverse>``{u} \<and> distinct (adjmap u))
     | None \<Rightarrow> \<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)"
     using checkNet_pre_correct1[of el s t] checkNet_pre_correct2[of el s t]
     by (auto split: option.splits simp: pw_le_iff refine_pw_simps)
 
   lemma checkNet_correct : "checkNet el s t \<le> SPEC (\<lambda>r. case r of 
-      Some (c, psucc) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> is_pred_succ psucc c
+      Some (c, adjmap) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> Graph.is_adj_map c adjmap
     | None \<Rightarrow> \<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)"
     using checkNet_pre_correct1[of el s t] checkNet_pre_correct2[of el s t]
-    by (auto split: option.splits simp: is_pred_succ_def pw_le_iff refine_pw_simps)
+    by (auto split: option.splits simp: Graph.is_adj_map_def pw_le_iff refine_pw_simps)
 
   definition "graph_of pn s \<equiv> \<lparr>
     g_V = UNIV,
@@ -1037,7 +1037,7 @@ begin
               let succ_s = (op_reachable (graph_of x s));
               let pred_t = (op_reachable (rev_graph_of x t));
               if (pn_V x) = succ_s \<and> (pn_V x) = pred_t then
-                RETURN (Some (pn_c x, pn_psucc x))
+                RETURN (Some (pn_c x, pn_adjmap x))
               else
                 RETURN None
             }
@@ -1119,16 +1119,16 @@ begin
 
   end
   
-  definition "net_\<alpha> \<equiv> (\<lambda>(ci, psucci) . 
-    ((the_default 0 o (ahm.\<alpha> ci)), (the_default [] o (ahm.\<alpha> psucci))))"
+  definition "net_\<alpha> \<equiv> (\<lambda>(ci, adjmapi) . 
+    ((the_default 0 o (ahm.\<alpha> ci)), (the_default [] o (ahm.\<alpha> adjmapi))))"
 
-  lemma [code]: "net_\<alpha> (ci, psucci) = (
-    cap_lookup ci, succ_lookup psucci
+  lemma [code]: "net_\<alpha> (ci, adjmapi) = (
+    cap_lookup ci, succ_lookup adjmapi
     )"
     unfolding net_\<alpha>_def by (auto split: option.splits simp: ahm.correct ahm_ld_def)
 
     
-  (*definition "net_invar \<equiv>  (\<lambda>(ci, psucci) . ahm.invar ci \<and> ahm.invar psucci)"
+  (*definition "net_invar \<equiv>  (\<lambda>(ci, adjmapi) . ahm.invar ci \<and> ahm.invar adjmapi)"
   
   definition "net_rel \<equiv> br net_\<alpha> net_invar"*)
 
@@ -1152,7 +1152,7 @@ begin
               let succ_s = (reachable_impl (graph_of_impl x s));
               let pred_t = (reachable_impl (rev_graph_of_impl x t));
               if (sets_eq_impl (pn_V' x) succ_s) \<and> (sets_eq_impl (pn_V' x) pred_t) then
-                RETURN (Some (net_\<alpha> (pn_c' x, pn_psucc' x)))
+                RETURN (Some (net_\<alpha> (pn_c' x, pn_adjmap' x)))
               else
                 RETURN None
             }
@@ -1259,7 +1259,7 @@ begin
     
 
   lemma checkNet4_correct: "case checkNet4 el s t of 
-      Some (c, psucc) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> is_pred_succ psucc c
+      Some (c, adjmap) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> Graph.is_adj_map c adjmap
     | None \<Rightarrow> \<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t"
   proof -  
     note checkNet4.refine 
@@ -1272,15 +1272,15 @@ begin
   definition prepareNet :: "edge_list \<Rightarrow> node \<Rightarrow> node \<Rightarrow> (capacity_impl graph \<times> (node\<Rightarrow>node list) \<times> nat) option"
   where
     "prepareNet el s t \<equiv> do {
-      (c,psucc) \<leftarrow> checkNet4 el s t;
+      (c,adjmap) \<leftarrow> checkNet4 el s t;
       let N = ln_N el;
-      Some (c,psucc,N)
+      Some (c,adjmap,N)
     }"
 
   export_code prepareNet checking SML  
 
   lemma prepareNet_correct: "case (prepareNet el s t) of 
-      Some (c, psucc,N) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> is_pred_succ psucc c \<and> Graph.V c \<subseteq> {0..<N}
+      Some (c, adjmap,N) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t \<and> Graph.is_adj_map c adjmap \<and> Graph.V c \<subseteq> {0..<N}
     | None \<Rightarrow> \<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t"
     using checkNet4_correct[of el s t] ln_N_correct[of el]
     unfolding prepareNet_def

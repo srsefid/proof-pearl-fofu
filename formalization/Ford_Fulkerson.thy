@@ -10,6 +10,9 @@ text \<open>We fix a network with a flow and a cut\<close>
 locale NFlowCut = NFlow c s t f + NCut c s t k 
   for c :: "'capacity::linordered_idom graph" and s t f k
 begin
+
+lemma finite_k[simp, intro!]: "finite k" 
+  using cut_ss_V finite_V finite_subset[of k V] by blast
   
 subsection \<open>Net Flow\<close>
 text \<open>We define the \emph{net flow} to be the amount of flow effectively 
@@ -24,8 +27,8 @@ text \<open>We can show that the net flow equals the value of the flow.
 \<close>
 lemma flow_value: "netFlow = val"
 proof -
-  let ?LCL = "{(u, v) | u v. u \<in> k \<and> v \<in> k \<and> (u, v) \<in> E}"
-  let ?AOG = "{(u, v) | u v. u \<in> k \<and> (u, v) \<in> E}"
+  let ?LCL = "{(u, v). u \<in> k \<and> v \<in> k \<and> (u, v) \<in> E}"
+  let ?AOG = "{(u, v). u \<in> k \<and> (u, v) \<in> E}"
   let ?AIN = "{(v, u) | u v. u \<in> k \<and> (v, u) \<in> E}"
   let ?SOG = "\<lambda>u. (\<Sum>e \<in> outgoing u. f e)"
   let ?SIN = "\<lambda>u. (\<Sum>e \<in> incoming u. f e)"
@@ -36,23 +39,8 @@ proof -
   have [simp, intro!]: "finite ?LCL" 
     using finite_subset[of ?LCL E] finite_E by auto
 
-  have [simp, intro!]: "finite {(u, v). u \<in> k \<and> v \<in> k \<and> (u, v) \<in> E}" 
-    using finite_subset[of ?LCL E] finite_E by auto
-
   have [simp, intro!]: "finite {(a, y) |y a. (a, y) \<in> E}" 
     by (rule finite_subset[of _ E]) auto
-
-  have [simp, intro!]: "finite (outgoing' k)" (* TODO: Move to locale *)
-    using finite_subset[of "(outgoing' k)" E] finite_E 
-    by (auto simp: outgoing'_def)
-
-  have [simp, intro!]: "finite k" (* TODO: Move to locale *)
-    using cut_ss_V finite_V finite_subset[of k V] by blast
-
-  have [simp, intro!]: "finite (incoming' k)" (* TODO: Move to locale *)
-    using finite_subset[of "(incoming' k)" E] finite_E 
-    by (auto simp: incoming'_def)
-
 
   have fct1: 
     "netFlow = ?SOG' + (\<Sum>e \<in> ?LCL. f e) - (?SIN' + (\<Sum>e \<in> ?LCL. f e))" 
@@ -163,7 +151,7 @@ proof (rule ccontr)
   then obtain p where obt: "isAugmenting p" by blast
   have fct1: "Flow cf s t (augmentingFlow p)" using obt augFlow_resFlow by auto
   have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
-    bottleNeck_gzero isAugmenting_def cf.isSimplePath_def by auto
+    resCap_gzero isAugmenting_def cf.isSimplePath_def by auto
   have "NFlow c s t (augment (augmentingFlow p))" 
     using fct1 augment_flow_presv Network_axioms unfolding NFlow_def by auto
   moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 

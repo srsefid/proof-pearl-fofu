@@ -17,19 +17,19 @@ where "isAugmenting p \<equiv> cf.isSimplePath s p t"
 
 text \<open>The \emph{residual capacity} of an augmenting path is the smallest capacity 
   annotated to its edges:\<close>
-definition bottleNeck :: "path \<Rightarrow> 'capacity"  (* TODO: Rename to residualCapacity*)
-where "bottleNeck p \<equiv> Min {cf e | e. e \<in> set p}"
+definition resCap :: "path \<Rightarrow> 'capacity"  (* TODO: Rename to residualCapacity*)
+where "resCap p \<equiv> Min {cf e | e. e \<in> set p}"
 
-lemma bottleNeck_alt: "bottleNeck p = Min (cf`set p)"  
+lemma resCap_alt: "resCap p = Min (cf`set p)"  
   -- \<open>Useful characterization for finiteness arguments\<close>
-  unfolding bottleNeck_def apply (rule arg_cong[where f=Min]) by auto
+  unfolding resCap_def apply (rule arg_cong[where f=Min]) by auto
 
 text \<open>An augmenting path induces an \emph{augmenting flow}, which pushes as 
   much flow as possible along the path:\<close>
 definition augmentingFlow :: "path \<Rightarrow> 'capacity flow"
 where "augmentingFlow p \<equiv> \<lambda>(u, v).
   if (u, v) \<in> (set p) then
-    bottleNeck p
+    resCap p
   else
     0"
 
@@ -37,7 +37,7 @@ where "augmentingFlow p \<equiv> \<lambda>(u, v).
 end
   locale NFlow_Loc_Syntax = Graph_Loc_Syntax + NFlow begin
     notation isAugmenting ("\<langle>\<Rightarrow>\<^sup>A/ _\<rangle>" 1000)
-    notation bottleNeck ("\<langle>\<nabla>/ _\<rangle>" 1000)
+    notation resCap ("\<langle>\<nabla>/ _\<rangle>" 1000)
     notation augmentingFlow ("\<langle>\<F>\<^sub>\<p>/ _\<rangle>" 1000)
   end
 
@@ -46,9 +46,9 @@ end
       ("\<lbrace>_,/ _,/ _,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<Rightarrow>\<^sup>A/ _\<rangle>\<rbrace>" 1000)
     where "\<lbrace>c, s, t, f \<parallel>\<^sub>N\<^sub>F \<langle>\<Rightarrow>\<^sup>A p\<rangle>\<rbrace> \<equiv> NFlow.isAugmenting c s t f p"
     
-    abbreviation NFlow_bottleNeck :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _"
+    abbreviation NFlow_resCap :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<nabla>/ _\<rangle>\<rbrace>" 1000)
-    where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<nabla> p\<rangle>\<rbrace> \<equiv> NFlow.bottleNeck c f p"
+    where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<nabla> p\<rangle>\<rbrace> \<equiv> NFlow.resCap c f p"
     
     abbreviation NFlow_augmentingFlow :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _ flow"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<F>\<^sub>\<p>/ _\<rangle>\<rbrace>" 1000)
@@ -64,26 +64,26 @@ text \<open>In this section, we show that the augmenting flow induced by an
   We start with some auxiliary lemmas.\<close>
 
 text \<open>The residual capacity of an augmenting path is always positive.\<close>
-lemma bottleNeck_gzero_aux: "cf.isPath s p t \<Longrightarrow> 0<bottleNeck p"
+lemma resCap_gzero_aux: "cf.isPath s p t \<Longrightarrow> 0<resCap p"
 proof -
   assume PATH: "cf.isPath s p t"
   hence "set p\<noteq>{}" using s_not_t by (auto)
   moreover have "\<forall>e\<in>set p. cf e > 0"
     using cf.isPath_edgeset[OF PATH] resE_positive by (auto)
-  ultimately show ?thesis unfolding bottleNeck_alt by (auto)
+  ultimately show ?thesis unfolding resCap_alt by (auto)
 qed 
 
-lemma bottleNeck_gzero: "isAugmenting p \<Longrightarrow> 0<bottleNeck p"
-  using bottleNeck_gzero_aux[of p] by (auto simp: isAugmenting_def cf.isSimplePath_def)
+lemma resCap_gzero: "isAugmenting p \<Longrightarrow> 0<resCap p"
+  using resCap_gzero_aux[of p] by (auto simp: isAugmenting_def cf.isSimplePath_def)
 
 text \<open>As all edges of the augmenting flow have the same value, we can factor 
   this out from a summation:\<close>
 lemma setsum_augmenting_alt:
   assumes "finite A"          
   shows "(\<Sum>e \<in> A. (augmentingFlow p) e) 
-        = bottleNeck p * of_nat (card (A\<inter>set p))"
+        = resCap p * of_nat (card (A\<inter>set p))"
 proof -
-  have "(\<Sum>e \<in> A. (augmentingFlow p) e) = setsum (\<lambda>_. bottleNeck p) (A\<inter>set p)"
+  have "(\<Sum>e \<in> A. (augmentingFlow p) e) = setsum (\<lambda>_. resCap p) (A\<inter>set p)"
     apply (subst setsum.inter_restrict)
     apply (auto simp: augmentingFlow_def assms)
     done
@@ -101,10 +101,10 @@ proof (unfold_locales; intro allI ballI)
     show "0 \<le> (augmentingFlow p) e \<and> (augmentingFlow p) e \<le> cf e"
     proof cases 
       assume "e \<in> set p"
-      hence "bottleNeck p \<le> cf e" unfolding bottleNeck_alt by auto
-      moreover  have "(augmentingFlow p) e = bottleNeck p" 
+      hence "resCap p \<le> cf e" unfolding resCap_alt by auto
+      moreover  have "(augmentingFlow p) e = resCap p" 
         unfolding augmentingFlow_def using \<open>e \<in> set p\<close> by auto
-      moreover have "0 < bottleNeck p" using bottleNeck_gzero[OF AUG] by simp 
+      moreover have "0 < resCap p" using resCap_gzero[OF AUG] by simp 
       ultimately show ?thesis by auto
     next
       assume "e \<notin> set p"
@@ -156,7 +156,7 @@ text \<open>Finally, we show that the value of the augmenting flow is the residu
   capacity of the augmenting path\<close>
 
 lemma augFlow_val: 
-  "isAugmenting p \<Longrightarrow> Flow.val cf s (augmentingFlow p) = bottleNeck p"
+  "isAugmenting p \<Longrightarrow> Flow.val cf s (augmentingFlow p) = resCap p"
 proof -
   assume AUG: "isAugmenting p"
   with augFlow_resFlow interpret f!: Flow cf s t "augmentingFlow p" .

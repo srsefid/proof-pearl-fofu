@@ -45,9 +45,9 @@ subsection \<open>Combined Algorithm\<close>
 definition "edmonds_karp el s t \<equiv> do {
   case prepareNet el s t of
     None \<Rightarrow> return None
-  | Some (c,ps,N) \<Rightarrow> do {
-      f \<leftarrow> edka_imp c s t N ps ;
-      return (Some (c,ps,N,f))
+  | Some (c,am,N) \<Rightarrow> do {
+      f \<leftarrow> edka_imp c s t N am ;
+      return (Some (c,am,N,f))
   }
 }"
 export_code edmonds_karp checking SML
@@ -57,9 +57,9 @@ lemma network_is_impl: "Network c s t \<Longrightarrow> Network_Impl c s t" by i
 theorem edmonds_karp_correct:
   "<emp> edmonds_karp el s t <\<lambda>
       None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
-    | Some (c,ps,N,fi) \<Rightarrow> 
+    | Some (c,am,N,fi) \<Rightarrow> 
       \<exists>\<^sub>Af. Network_Impl.is_rflow c s t N f fi 
-      * \<up>(ln_\<alpha> el = c \<and> is_pred_succ ps c
+      * \<up>(ln_\<alpha> el = c \<and> Graph.is_adj_map c am
         \<and> Network.isMaxFlow c s t f
         \<and> ln_invar el \<and> Network c s t \<and> Graph.V c \<subseteq> {0..<N})
   >\<^sub>t"
@@ -92,24 +92,24 @@ subsection \<open>Usage Example: Computing Maxflow Value \<close>
 text \<open>We implement a function to compute the value of the maximum flow.\<close>
 
 
-lemma (in Network) ps_s_is_incoming:
-  assumes "is_pred_succ ps c"
-  shows "E``{s} = set (ps s)"
+lemma (in Network) am_s_is_incoming:
+  assumes "is_adj_map am"
+  shows "E``{s} = set (am s)"
   using assms no_incoming_s
-  unfolding is_pred_succ_def
+  unfolding is_adj_map_def
   by auto
   
 context RGraph begin
 
   lemma val_by_adj_map:
-    assumes "is_pred_succ ps c"
-    shows "f.val = (\<Sum>v\<in>set (ps s). c (s,v) - cf (s,v))"
+    assumes "is_adj_map am"
+    shows "f.val = (\<Sum>v\<in>set (am s). c (s,v) - cf (s,v))"
   proof -
     have "f.val = (\<Sum>v\<in>E``{s}. c (s,v) - cf (s,v))"
       unfolding f.val_alt
       by (simp add: sum_outgoing_pointwise f_def flow_of_cf_def)
-    also have "\<dots> = (\<Sum>v\<in>set (ps s). c (s,v) - cf (s,v))"  
-      by (simp add: ps_s_is_incoming[OF assms])
+    also have "\<dots> = (\<Sum>v\<in>set (am s). c (s,v) - cf (s,v))"  
+      by (simp add: am_s_is_incoming[OF assms])
     finally show ?thesis . 
   qed  
       
@@ -120,11 +120,11 @@ context Network
 begin
 
   definition "get_cap e \<equiv> c e"
-  definition (in -) get_ps :: "(node \<Rightarrow> node list) \<Rightarrow> node \<Rightarrow> node list" 
-    where "get_ps ps v \<equiv> ps v"
+  definition (in -) get_am :: "(node \<Rightarrow> node list) \<Rightarrow> node \<Rightarrow> node list" 
+    where "get_am am v \<equiv> am v"
 
-  definition "compute_flow_val ps cf \<equiv> do {
-      let succs = get_ps ps s;
+  definition "compute_flow_val am cf \<equiv> do {
+      let succs = get_am am s;
       setsum_impl 
       (\<lambda>v. do {
         let csv = get_cap (s,v);
@@ -134,19 +134,19 @@ begin
     }"
 
   lemma (in RGraph) compute_flow_val_correct:
-    assumes "is_pred_succ ps c"
-    shows "compute_flow_val ps cf \<le> (spec v. v = f.val)"
+    assumes "is_adj_map am"
+    shows "compute_flow_val am cf \<le> (spec v. v = f.val)"
     unfolding val_by_adj_map[OF assms]
-    unfolding compute_flow_val_def cf_get_def get_cap_def get_ps_def
+    unfolding compute_flow_val_def cf_get_def get_cap_def get_am_def
     apply (refine_vcg setsum_imp_correct)
     apply (vc_solve simp: s_node)
-    unfolding ps_s_is_incoming[symmetric, OF assms] 
+    unfolding am_s_is_incoming[symmetric, OF assms] 
     by (auto simp: V_def)
 
   text \<open>For technical reasons (poor foreach-support of Sepref tool), 
     we have to add another refinement step: \<close>  
-  definition "compute_flow_val2 ps cf \<equiv> (do {
-    let succs = get_ps ps s;
+  definition "compute_flow_val2 am cf \<equiv> (do {
+    let succs = get_am am s;
     nfoldli succs (\<lambda>_. True)
      (\<lambda>x a. do {
            b \<leftarrow> do {
@@ -160,8 +160,8 @@ begin
   })"  
 
   lemma (in RGraph) compute_flow_val2_correct:
-    assumes "is_pred_succ ps c"
-    shows "compute_flow_val2 ps cf \<le> (spec v. v = f.val)"
+    assumes "is_adj_map am"
+    shows "compute_flow_val2 am cf \<le> (spec v. v = f.val)"
   proof -
     have [refine_dref_RELATES]: "RELATES (\<langle>Id\<rangle>list_set_rel)" 
       by (simp add: RELATES_def)
@@ -174,7 +174,7 @@ begin
       apply vc_solve
       using assms
       by (auto 
-          simp: list_set_rel_def br_def get_ps_def is_pred_succ_def 
+          simp: list_set_rel_def br_def get_am_def is_adj_map_def 
           simp: refine_pw_simps)
   qed    
     
@@ -183,7 +183,7 @@ begin
 end
 
 context Edka_Impl begin
-  term is_ps
+  term is_am
 
   lemma [sepref_import_param]: "(c,PR_CONST get_cap) \<in> Id\<times>\<^sub>rId \<rightarrow> Id" 
     by (auto simp: get_cap_def)
@@ -192,23 +192,23 @@ context Edka_Impl begin
   sepref_register 
     "PR_CONST get_cap" "node\<times>node \<Rightarrow> capacity_impl"
 
-  lemma [sepref_import_param]: "(get_ps,get_ps) \<in> Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>list_rel" 
-    by (auto simp: get_ps_def intro!: ext)
+  lemma [sepref_import_param]: "(get_am,get_am) \<in> Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>list_rel" 
+    by (auto simp: get_am_def intro!: ext)
 
   schematic_lemma compute_flow_val_imp:
-    fixes ps :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
+    fixes am :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
     notes [id_rules] = 
-      itypeI[Pure.of ps "TYPE(node \<Rightarrow> node list)"]
+      itypeI[Pure.of am "TYPE(node \<Rightarrow> node list)"]
       itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
-    notes [sepref_import_param] = IdI[of N] IdI[of ps]
+    notes [sepref_import_param] = IdI[of N] IdI[of am]
     shows "hn_refine 
       (hn_ctxt (is_mtx N) cf cfi)
-      (?c::?'d Heap) ?\<Gamma> ?R (compute_flow_val2 ps cf)"
+      (?c::?'d Heap) ?\<Gamma> ?R (compute_flow_val2 am cf)"
     unfolding compute_flow_val2_def
     using [[id_debug, goals_limit = 1]]
     by sepref_keep
       
-  concrete_definition (in -) compute_flow_val_imp for c s N ps cfi
+  concrete_definition (in -) compute_flow_val_imp for c s N am cfi
     uses Edka_Impl.compute_flow_val_imp
 
   prepare_code_thms (in -) compute_flow_val_imp_def
@@ -219,11 +219,11 @@ context Network_Impl begin
 
 lemma compute_flow_val_imp_correct_aux: 
   assumes VN: "Graph.V c \<subseteq> {0..<N}"
-  assumes ABS_PS: "is_pred_succ ps c"
+  assumes ABS_PS: "is_adj_map am"
   assumes RG: "RGraph c s t cf"
   shows "
     <is_mtx N cf cfi> 
-      compute_flow_val_imp c s N ps cfi
+      compute_flow_val_imp c s N am cfi
     <\<lambda>v. is_mtx N cf cfi * \<up>(v = Flow.val c s (flow_of_cf cf))>\<^sub>t"
 proof -
   interpret rg!: RGraph c s t cf by fact
@@ -241,10 +241,10 @@ qed
 
 lemma compute_flow_val_imp_correct: 
   assumes VN: "Graph.V c \<subseteq> {0..<N}"
-  assumes ABS_PS: "is_pred_succ ps c"
+  assumes ABS_PS: "Graph.is_adj_map c am"
   shows "
     <is_rflow N f cfi> 
-      compute_flow_val_imp c s N ps cfi
+      compute_flow_val_imp c s N am cfi
     <\<lambda>v. is_rflow N f cfi * \<up>(v = Flow.val c s f)>\<^sub>t"
   apply (rule hoare_triple_preI)  
   apply (clarsimp simp: is_rflow_def)
@@ -260,8 +260,8 @@ definition "edmonds_karp_val el s t \<equiv> do {
   r \<leftarrow> edmonds_karp el s t;
   case r of
     None \<Rightarrow> return None
-  | Some (c,ps,N,cfi) \<Rightarrow> do {
-      v \<leftarrow> compute_flow_val_imp c s N ps cfi;
+  | Some (c,am,N,cfi) \<Rightarrow> do {
+      v \<leftarrow> compute_flow_val_imp c s N am cfi;
       return (Some v)
     } 
 }"
@@ -282,24 +282,6 @@ theorem edmonds_karp_val_correct:
 
 
 subsection \<open>Exporting Code\<close>
-
-(*
-(* TODO: Justify this by abstract definition + refinement *)  
-text \<open>Unverified function to extract the maximum flow value.\<close>
-definition get_flow 
-  :: "capacity_impl graph \<Rightarrow> nat \<Rightarrow> Graph.node \<Rightarrow> capacity_impl mtx 
-    \<Rightarrow> capacity_impl Heap" 
-  where
-  "get_flow c N s fi \<equiv> do {
-    imp_nfoldli ([0..<N]) (\<lambda>_. return True) (\<lambda>v cap. do {
-      let csv = c (s,v);
-      cfsv \<leftarrow> mtx_get N fi (s,v);
-      let fsv = csv - cfsv;
-      return (cap + fsv)
-    }) 0
-  }"
-*)
-
 export_code nat_of_integer integer_of_nat int_of_integer integer_of_int
   edmonds_karp edka_imp edka_imp_tabulate edka_imp_run prepareNet
   compute_flow_val_imp edmonds_karp_val

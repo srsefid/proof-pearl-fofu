@@ -94,16 +94,8 @@ lemma "cf.V = V"
   by auto
   
 text \<open>As the residual graph has the same nodes as the network, it is also finite:\<close>
-(* TODO: Move. Interpret finite-graph for cf, and move lemmas in general form their *)
-lemma finite_cf_incoming[simp, intro!]: "finite (cf.incoming v)" 
-  unfolding cf.incoming_def 
-  apply (rule finite_subset[where B="V\<times>V"])
-  using cf.E_ss_VxV by auto
-
-lemma finite_cf_outgoing[simp, intro!]: "finite (cf.outgoing v)" 
-  unfolding cf.outgoing_def 
-  apply (rule finite_subset[where B="V\<times>V"])
-  using cf.E_ss_VxV by auto
+sublocale cf!: Finite_Graph cf
+  by unfold_locales auto
 
 text \<open>The capacities on the edges of the residual graph are non-negative\<close>
 lemma resE_nonNegative: "cf e \<ge> 0"
@@ -159,4 +151,4 @@ qed
 
 end -- \<open>Network with flow\<close>
   
-end
+end -- \<open>Theory\<close>

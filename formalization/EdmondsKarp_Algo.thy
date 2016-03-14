@@ -497,13 +497,13 @@ lemma augment_alt:
   assumes AUG: "isAugmenting p"
   defines "f' \<equiv> augment (augmentingFlow p)"
   defines "cf' \<equiv> residualGraph c f'"
-  shows "cf' = Graph.augment_cf cf (set p) (bottleNeck p)"
+  shows "cf' = Graph.augment_cf cf (set p) (resCap p)"
 proof -
   {
     fix u v
     assume "(u,v)\<in>set p"
-    hence "bottleNeck p \<le> cf (u,v)"
-      unfolding bottleNeck_def by (auto intro: Min_le)
+    hence "resCap p \<le> cf (u,v)"
+      unfolding resCap_def by (auto intro: Min_le)
   } note bn_smallerI = this
 
   {
@@ -527,14 +527,14 @@ proof -
 qed    
 
 
-lemma augmenting_path_contains_bottleneck:
+lemma augmenting_path_contains_resCap:
   assumes "isAugmenting p"
-  obtains e where "e\<in>set p" "cf e = bottleNeck p" 
+  obtains e where "e\<in>set p" "cf e = resCap p" 
 proof -  
   from assms have "p\<noteq>[]" by (auto simp: isAugmenting_def s_not_t)
   hence "{cf e | e. e \<in> set p} \<noteq> {}" by (cases p) auto
-  with Min_in[OF aug_flows_finite this, folded bottleNeck_def]
-    obtain e where "e\<in>set p" "cf e = bottleNeck p" by auto
+  with Min_in[OF aug_flows_finite this, folded resCap_def]
+    obtain e where "e\<in>set p" "cf e = resCap p" by auto
   thus ?thesis by (blast intro: that)
 qed  
         
@@ -547,29 +547,26 @@ theorem shortest_path_decr_ek_measure:
   defines "cf' \<equiv> residualGraph c f'"
   shows "ek_analysis_defs.ekMeasure cf' s t < ek_analysis_defs.ekMeasure cf s t"
 proof -
-  interpret cf!: ek_analysis cf 
-    apply unfold_locales
-    by (auto simp: resV_netV finite_V)
-
+  interpret cf!: ek_analysis cf by unfold_locales
   interpret cf'!: ek_analysis_defs cf' .
 
   from SP have AUG: "isAugmenting p" 
     unfolding isAugmenting_def cf.isShortestPath_alt by simp
 
-  note BNGZ = bottleNeck_gzero[OF AUG]  
+  note BNGZ = resCap_gzero[OF AUG]  
 
-  have cf'_alt: "cf' = cf.augment_cf (set p) (bottleNeck p)"
+  have cf'_alt: "cf' = cf.augment_cf (set p) (resCap p)"
     using augment_alt[OF AUG] unfolding cf'_def f'_def by simp
 
   obtain e where
-    EIP: "e\<in>set p" and EBN: "cf e = bottleNeck p"
-    by (rule augmenting_path_contains_bottleneck[OF AUG]) auto
+    EIP: "e\<in>set p" and EBN: "cf e = resCap p"
+    by (rule augmenting_path_contains_resCap[OF AUG]) auto
 
   have ENIE': "e\<notin>cf'.E" 
     using cf.augment_saturate[OF EIP] EBN by (simp add: cf'_alt)
   
   { fix e  
-    have "cf e + bottleNeck p \<noteq> 0" using resE_nonNegative[of e] BNGZ by auto 
+    have "cf e + resCap p \<noteq> 0" using resE_nonNegative[of e] BNGZ by auto 
   } note [simp] = this  
   
   { fix e

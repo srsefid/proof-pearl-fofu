@@ -1764,62 +1764,67 @@ fun ln_N el =
 
 fun pn_t_node_update A_ pn_t_nodea
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_nodea pn_t_node,
+      (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_nodea pn_t_node,
         more);
 
 fun pn_s_node_update A_ pn_s_nodea
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_nodea pn_s_node, pn_t_node,
+      (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_nodea pn_s_node, pn_t_node,
         more);
 
-fun pn_psucc_update A_ pn_psucca
+fun pn_adjmap_update A_ pn_adjmapa
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_c, pn_V, pn_succ, pn_pred, pn_psucca pn_psucc, pn_s_node, pn_t_node,
+      (pn_c, pn_V, pn_succ, pn_pred, pn_adjmapa pn_adjmap, pn_s_node, pn_t_node,
         more);
 
 fun pn_succ_update A_ pn_succa
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_c, pn_V, pn_succa pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node,
+      (pn_c, pn_V, pn_succa pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node,
         more);
 
 fun pn_pred_update A_ pn_preda
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_c, pn_V, pn_succ, pn_preda pn_pred, pn_psucc, pn_s_node, pn_t_node,
+      (pn_c, pn_V, pn_succ, pn_preda pn_pred, pn_adjmap, pn_s_node, pn_t_node,
         more);
 
 fun pn_c_update A_ pn_ca
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_ca pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node,
+      (pn_ca pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node,
         more);
 
 fun pn_V_update A_ pn_Va
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = Pre_network_ext
-      (pn_c, pn_Va pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node,
+      (pn_c, pn_Va pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node,
         more);
 
 fun pn_t_node A_
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = pn_t_node;
 
 fun pn_s_node A_
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = pn_s_node;
+
+fun pn_adjmap A_
+  (Pre_network_ext
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
+  = pn_adjmap;
 
 fun new_array v = FArray.IsabelleMapping.new_array v o integer_of_nat;
 
@@ -1833,19 +1838,14 @@ fun ahm_empty A_ = (fn _ => ahm_empty_const A_);
 
 fun empty_ahm_basic_ops A_ = ahm_empty A_;
 
-fun pn_psucc A_
-  (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
-  = pn_psucc;
-
 fun pn_succ A_
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = pn_succ;
 
 fun pn_pred A_
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = pn_pred;
 
 fun sgn_integer k =
@@ -1961,12 +1961,12 @@ fun ins_ahm_basic_ops (A1_, A2_) x s = ahm_update (A1_, A2_) x () s;
 
 fun pn_c A_
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = pn_c;
 
 fun pn_V A_
   (Pre_network_ext
-    (pn_c, pn_V, pn_succ, pn_pred, pn_psucc, pn_s_node, pn_t_node, more))
+    (pn_c, pn_V, pn_succ, pn_pred, pn_adjmap, pn_s_node, pn_t_node, more))
   = pn_V;
 
 fun ahm_alpha_aux (A1_, A2_) a k =
@@ -2033,15 +2033,15 @@ fun read (A1_, A2_) [] uu uv =
                              (fn _ => pn_t_node A2_ x orelse equal_nata v t)
                              (pn_s_node_update A2_
                                (fn _ => pn_s_node A2_ x orelse equal_nata u s)
-                               (pn_psucc_update A2_
+                               (pn_adjmap_update A2_
                                  (fn _ =>
                                    ahm_update (equal_nat, hashable_nat) u
                                      (v :: ahm_ld (equal_nat, hashable_nat) []
-     (pn_psucc A2_ x) u)
+     (pn_adjmap A2_ x) u)
                                      (ahm_update (equal_nat, hashable_nat) v
                                        (u ::
- ahm_ld (equal_nat, hashable_nat) [] (pn_psucc A2_ x) v)
-                                       (pn_psucc A2_ x)))
+ ahm_ld (equal_nat, hashable_nat) [] (pn_adjmap A2_ x) v)
+                                       (pn_adjmap A2_ x)))
                                  (pn_pred_update A2_
                                    (fn _ =>
                                      ahm_update (equal_nat, hashable_nat) v
@@ -2419,8 +2419,8 @@ fun sets_eq_impl ai bi =
       (memb_ahm_basic_ops (equal_nat, hashable_nat)))
     ai bi;
 
-fun net_alpha (A1_, A2_) B_ (C1_, C2_) (ci, psucci) =
-  (ahm_ld (A1_, A2_) (zero B_) ci, ahm_ld (C1_, C2_) [] psucci);
+fun net_alpha (A1_, A2_) B_ (C1_, C2_) (ci, adjmapi) =
+  (ahm_ld (A1_, A2_) (zero B_) ci, ahm_ld (C1_, C2_) [] adjmapi);
 
 fun checkNet4 el s t =
   (if equal_nata s t then NONE
@@ -2442,18 +2442,18 @@ fun checkNet4 el s t =
                                       hashable_prod hashable_nat hashable_nat)
                                     zero_int (equal_nat, hashable_nat)
                                     (pn_c linordered_idom_int xa,
-                                      pn_psucc linordered_idom_int xa))
+                                      pn_adjmap linordered_idom_int xa))
                         else NONE)
                     end
                else NONE)));
 
 fun prepareNet el s t =
   bind (checkNet4 el s t)
-    (fn (c, psucc) => let
-                        val n = ln_N el;
-                      in
-                        SOME (c, (psucc, n))
-                      end);
+    (fn (c, adjmap) => let
+                         val n = ln_N el;
+                       in
+                         SOME (c, (adjmap, n))
+                       end);
 
 fun array_grow A_ a s x =
   (fn () =>
@@ -2653,7 +2653,7 @@ fun swap p = (snd p, fst p);
 
 fun min A_ a b = (if less_eq A_ a b then a else b);
 
-fun get_ps ps v = ps v;
+fun get_am am v = am v;
 
 fun div_integer k l = fst (divmod_integer k l);
 
@@ -2662,36 +2662,14 @@ fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
 fun mtx_new A_ n c =
   make A_ (times_nat n n) (fn i => c (div_nat i n, mod_nat i n));
 
-fun edka_imp_tabulate c n ps =
+fun edka_imp_tabulate c n am =
   (fn () =>
     let
       val x = mtx_new heap_int n c ();
-      val x_a = make (heap_list heap_nat) n ps ();
+      val x_a = make (heap_list heap_nat) n am ();
     in
       (x, x_a)
     end);
-
-fun bottleNeck_imp_0 n cfi x =
-  (case x of ([], s) => (fn () => s)
-    | (xa :: ls, s) =>
-      (if true
-        then (fn () =>
-               let
-                 val xb = mtx_get heap_int n cfi xa ();
-               in
-                 bottleNeck_imp_0 n cfi (ls, min ord_int xb s) ()
-               end)
-        else (fn () => s)));
-
-fun bottleNeck_imp n cfi pi =
-  (case pi of [] => (fn () => zero_inta)
-    | x_b :: xs =>
-      (fn () =>
-        let
-          val x_c = mtx_get heap_int n cfi x_b ();
-        in
-          bottleNeck_imp_0 n cfi (xs, x_c) ()
-        end));
 
 fun mtx_set A_ n mtx e v =
   upd A_ (plus_nat (times_nat (fst e) n) (snd e)) v mtx;
@@ -2717,6 +2695,28 @@ fun augment_imp_0 n capi x =
 
 fun augment_imp n cfi pi capi = augment_imp_0 n capi (pi, cfi);
 
+fun resCap_imp_0 n cfi x =
+  (case x of ([], s) => (fn () => s)
+    | (xa :: ls, s) =>
+      (if true
+        then (fn () =>
+               let
+                 val xb = mtx_get heap_int n cfi xa ();
+               in
+                 resCap_imp_0 n cfi (ls, min ord_int xb s) ()
+               end)
+        else (fn () => s)));
+
+fun resCap_imp n cfi pi =
+  (case pi of [] => (fn () => zero_inta)
+    | x_b :: xs =>
+      (fn () =>
+        let
+          val x_c = mtx_get heap_int n cfi x_b ();
+        in
+          resCap_imp_0 n cfi (xs, x_c) ()
+        end));
+
 fun edka_imp_run_0 s t n f brk =
   (fn () =>
     let
@@ -2735,8 +2735,7 @@ fun edka_imp_run_0 s t n f brk =
                     (fn a =>
                       (case a of NONE => (fn () => (a1, true))
                         | SOME x_d =>
-                          (fn f_ => fn () => f_ ((bottleNeck_imp n a1 x_d) ())
-                            ())
+                          (fn f_ => fn () => f_ ((resCap_imp n a1 x_d) ()) ())
                             (fn x_e =>
                               (fn f_ => fn () => f_ ((augment_imp n a1 x_d x_e)
                                 ()) ())
@@ -2761,10 +2760,10 @@ fun edka_imp_run s t n cfi psi =
         ()
     end);
 
-fun edka_imp c s t n ps =
+fun edka_imp c s t n am =
   (fn () =>
     let
-      val a = edka_imp_tabulate c n ps ();
+      val a = edka_imp_tabulate c n am ();
     in
       let
         val (aa, b) = a;
@@ -2776,12 +2775,12 @@ fun edka_imp c s t n ps =
 
 fun edmonds_karp el s t =
   (case prepareNet el s t of NONE => (fn () => NONE)
-    | SOME (c, (ps, n)) =>
+    | SOME (c, (am, n)) =>
       (fn () =>
         let
-          val f = edka_imp c s t n ps ();
+          val f = edka_imp c s t n am ();
         in
-          SOME (c, (ps, (n, f)))
+          SOME (c, (am, (n, f)))
         end));
 
 fun compute_flow_val_imp_0 c s n cfi x =
@@ -2797,8 +2796,8 @@ fun compute_flow_val_imp_0 c s n cfi x =
                end)
         else (fn () => sa)));
 
-fun compute_flow_val_imp c s n ps cfi =
-  compute_flow_val_imp_0 c s n cfi (get_ps ps s, zero_inta);
+fun compute_flow_val_imp c s n am cfi =
+  compute_flow_val_imp_0 c s n cfi (get_am am s, zero_inta);
 
 fun edmonds_karp_val el s t =
   (fn () =>
@@ -2806,8 +2805,8 @@ fun edmonds_karp_val el s t =
       val a = edmonds_karp el s t ();
     in
       (case a of NONE => (fn () => NONE)
-        | SOME (c, (ps, (n, cfi))) =>
-          (fn f_ => fn () => f_ ((compute_flow_val_imp c s n ps cfi) ()) ())
+        | SOME (c, (am, (n, cfi))) =>
+          (fn f_ => fn () => f_ ((compute_flow_val_imp c s n am cfi) ()) ())
             (fn v => (fn () => (SOME v))))
         ()
     end);

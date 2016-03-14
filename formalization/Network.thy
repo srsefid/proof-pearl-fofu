@@ -179,19 +179,9 @@ proof
     by auto
 qed (simp add: s_node reachable_ss_V)
 
-(* TODO: Use Finite_Graph local*)
-text \<open>This also implies that we have a finite graph,
-  as we assumed a finite set of reachable nodes in the locale 
-  definition.\<close>  
-corollary finite_V[simp, intro!]: "finite V"
+sublocale Finite_Graph 
+  apply unfold_locales
   using reachable_is_V finite_reachable by auto
-  
-corollary finite_E[simp, intro!]: "finite E"
-proof -
-  have "finite (V \<times> V)" using finite_V by auto
-  moreover have "E \<subseteq> V \<times> V" using V_def by auto
-  ultimately show ?thesis by (metis finite_subset)
-qed
   
 lemma cap_positive: "e \<in> E \<Longrightarrow> c e > 0"
   unfolding E_def using cap_non_negative le_neq_trans by fastforce 
