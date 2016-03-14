@@ -266,16 +266,14 @@ qed
 
 text \<open>Extend summations over incoming/outgoing edges to summations over
   all nodes, provided the summed-up function is zero for non-edges.\<close>
-lemma sum_incoming_extend:  
-  assumes "finite V"
+lemma (in Finite_Graph) sum_incoming_extend:  
   assumes "\<And>v. \<lbrakk> v\<in>V; (v,u)\<notin>E \<rbrakk> \<Longrightarrow> g (v,u) = 0"
   shows "(\<Sum>e\<in>incoming u. g e) = (\<Sum>v\<in>V. g (v,u))"
   apply (subst sum_incoming_pointwise)
   apply (rule setsum.mono_neutral_left)
   using assms pred_ss_V by auto
 
-lemma sum_outgoing_extend:  
-  assumes "finite V"
+lemma (in Finite_Graph) sum_outgoing_extend:  
   assumes "\<And>v. \<lbrakk> v\<in>V; (u,v)\<notin>E \<rbrakk> \<Longrightarrow> g (u,v) = 0"
   shows "(\<Sum>e\<in>outgoing u. g e) = (\<Sum>v\<in>V. g (u,v))"
   apply (subst sum_outgoing_pointwise)
@@ -286,14 +284,14 @@ text \<open>When summation is done over something that satisfies the capacity
   constraint, e.g., a flow, the summation can be extended to all 
   outgoing/incoming edges, as the additional edges must have zero capacity.\<close>
 (* TODO: Historical lemmas. Get rid of \<forall> quantifier. *)
-lemma sum_outgoing_alt: "\<lbrakk>finite V; \<forall>e. 0 \<le> g e \<and> g e \<le> c e\<rbrakk> \<Longrightarrow>
+lemma (in Finite_Graph) sum_outgoing_alt: "\<lbrakk>\<forall>e. 0 \<le> g e \<and> g e \<le> c e\<rbrakk> \<Longrightarrow>
   \<forall>v \<in> V. (\<Sum>e \<in> outgoing v. g e) = (\<Sum>u \<in> V. g (v, u))"
   apply (rule ballI)
   apply (rule sum_outgoing_extend)
   apply clarsimp
   by (metis antisym zero_cap_simp)
   
-lemma sum_incoming_alt: "\<lbrakk>finite V; \<forall>e. 0 \<le> g e \<and> g e \<le> c e\<rbrakk> \<Longrightarrow>
+lemma (in Finite_Graph) sum_incoming_alt: "\<lbrakk>\<forall>e. 0 \<le> g e \<and> g e \<le> c e\<rbrakk> \<Longrightarrow>
   \<forall>v \<in> V. (\<Sum>e \<in> incoming v. g e) = (\<Sum>u \<in> V. g (u, v))"
   apply (rule ballI)
   apply (rule sum_incoming_extend)
@@ -650,8 +648,7 @@ lemma (in Graph) isSimplePath_cons[split_path_simps]:
   using isSimplePath_append[of s "[e]" p t, simplified]
   by (auto simp: split_path_simps)
 
-lemma simplePath_length_less_V:
-  assumes FIN: "finite V"
+lemma (in Finite_Graph) simplePath_length_less_V:
   assumes UIV: "u\<in>V"
   assumes P: "isSimplePath u p v" 
   shows "length p < card V"
@@ -659,7 +656,7 @@ proof -
   from P have 1: "isPath u p v" and 2: "distinct (pathVertices u p)"
     by (auto simp: isSimplePath_def)
   from pathVertices_edgeset[OF UIV 1] have "set (pathVertices u p) \<subseteq> V" .
-  with 2 FIN have "length (pathVertices u p) \<le> card V"
+  with 2 finite_V have "length (pathVertices u p) \<le> card V"
     using distinct_card card_mono by metis
   hence "length p + 1 \<le> card V" by simp
   thus ?thesis by auto
@@ -1144,24 +1141,6 @@ lemma isShortestPath_alt:
 lemma shortestPath_is_path: "isShortestPath u p v \<Longrightarrow> isPath u p v"
   by (auto simp: isShortestPath_def)
   
-text \<open>In a finite graph, the length of a shortest path is less 
-  than the number of nodes\<close>  
-lemma isShortestPath_length_less_V:   
-  assumes FIN: "finite V" and SV: "s\<in>V"
-  assumes PATH: "isShortestPath s p t"
-  shows "length p < card V"
-  using simplePath_length_less_V[OF FIN SV]
-  using shortestPath_is_simple[OF PATH] .
-
-corollary min_dist_less_V:
-  assumes FIN: "finite V"
-  assumes SV: "s\<in>V"
-  assumes CONN: "connected s t"
-  shows "min_dist s t < card V"
-  apply (rule obtain_shortest_path[OF CONN])
-  apply (frule isShortestPath_length_less_V[OF FIN SV])
-  unfolding isShortestPath_min_dist_def by auto
-
 lemma split_shortest_path: "isShortestPath u (p1@p2) v 
   \<Longrightarrow> (\<exists>w. isShortestPath u p1 w \<and> isShortestPath w p2 v)"
   apply (auto simp: isShortestPath_min_dist_def isPath_append)
@@ -1210,5 +1189,26 @@ proof -
 qed  
 
 end -- \<open>Graph\<close>
+
+context Finite_Graph begin
+
+text \<open>In a finite graph, the length of a shortest path is less 
+  than the number of nodes\<close>  
+lemma isShortestPath_length_less_V:   
+  assumes SV: "s\<in>V"
+  assumes PATH: "isShortestPath s p t"
+  shows "length p < card V"
+  using simplePath_length_less_V[OF SV]
+  using shortestPath_is_simple[OF PATH] .
+
+corollary min_dist_less_V:
+  assumes SV: "s\<in>V"
+  assumes CONN: "connected s t"
+  shows "min_dist s t < card V"
+  apply (rule obtain_shortest_path[OF CONN])
+  apply (frule isShortestPath_length_less_V[OF SV])
+  unfolding isShortestPath_min_dist_def by auto
+
+end -- \<open>Finite_Graph\<close>
 
 end -- \<open>Theory\<close>

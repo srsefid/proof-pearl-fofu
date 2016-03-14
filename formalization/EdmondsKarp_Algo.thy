@@ -21,13 +21,13 @@ definition "find_shortest_augmenting_spec f \<equiv> ASSERT (NFlow c s t f) \<gu
 
 text \<open>Note, if there is an augmenting path, there is always a shortest one\<close>
 lemma (in NFlow) augmenting_path_imp_shortest: 
-  "isAugmenting p \<Longrightarrow> \<exists>p. Graph.isShortestPath cf s p t"
-  using Graph.obtain_shortest_path unfolding isAugmenting_def
+  "isAugmentingPath p \<Longrightarrow> \<exists>p. Graph.isShortestPath cf s p t"
+  using Graph.obtain_shortest_path unfolding isAugmentingPath_def
   by (fastforce simp: Graph.isSimplePath_def Graph.connected_def)
 
 lemma (in NFlow) shortest_is_augmenting: 
-  "Graph.isShortestPath cf s p t \<Longrightarrow> isAugmenting p"
-  unfolding isAugmenting_def using Graph.shortestPath_is_simple
+  "Graph.isShortestPath cf s p t \<Longrightarrow> isAugmentingPath p"
+  unfolding isAugmentingPath_def using Graph.shortestPath_is_simple
   by (fastforce)
 
 text \<open>We show that our refined procedure is actually a refinement\<close>  
@@ -54,7 +54,7 @@ definition "edka_partial \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
-          assert (NFlow.isAugmenting c s t f p);
+          assert (NFlow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
           let f' = NFlow.augmentingFlow c f p;
           let f = NFlow.augment c f f';
@@ -346,7 +346,7 @@ proof -
     hence "s\<noteq>t" by auto
     with CONN NCONN2 have "g'.ekMeasure < ekMeasure"
       unfolding g'.ekMeasure_def ekMeasure_def
-      using min_dist_less_V[OF finite_V SV] (* TODO: Move this result to finite-graph! *)
+      using min_dist_less_V[OF SV] (* TODO: Move this result to finite-graph! *)
       by auto
   } moreover {
     assume SHORTER: "g'.min_dist s t < min_dist s t"
@@ -380,7 +380,7 @@ proof -
       apply (simp only: Veq uE_eq CONN CONN2 if_True)
       apply (rule mlex_fst_decrI)
       using card_spEdges_less g'.card_spEdges_less 
-        and g'.min_dist_less_V[OF _ _ CONN2] SV
+        and g'.min_dist_less_V[OF _ CONN2] SV
         and LONGER
       apply auto
       done
@@ -479,9 +479,9 @@ end -- \<open>Graph\<close>
 
 context NFlow begin
 
-lemma augmenting_edge_no_swap: "isAugmenting p \<Longrightarrow> set p \<inter> (set p)\<inverse> = {}"
+lemma augmenting_edge_no_swap: "isAugmentingPath p \<Longrightarrow> set p \<inter> (set p)\<inverse> = {}"
   using cf.isSPath_nt_parallel_pf
-  by (auto simp: isAugmenting_def)
+  by (auto simp: isAugmentingPath_def)
 
 lemma aug_flows_finite[simp, intro!]: 
   "finite {cf e |e. e \<in> set p}"
@@ -494,7 +494,7 @@ lemma aug_flows_finite'[simp, intro!]:
   by auto
 
 lemma augment_alt:
-  assumes AUG: "isAugmenting p"
+  assumes AUG: "isAugmentingPath p"
   defines "f' \<equiv> augment (augmentingFlow p)"
   defines "cf' \<equiv> residualGraph c f'"
   shows "cf' = Graph.augment_cf cf (set p) (resCap p)"
@@ -510,7 +510,7 @@ proof -
     fix u v
     assume "(u,v)\<in>set p"
     hence "(u,v)\<in>cf.E" using AUG cf.isPath_edgeset
-      by (auto simp: isAugmenting_def cf.isSimplePath_def)
+      by (auto simp: isAugmentingPath_def cf.isSimplePath_def)
     hence "(u,v)\<in>E \<or> (v,u)\<in>E" using cfE_ss_invE by (auto)
   } note edge_or_swap = this 
 
@@ -528,10 +528,10 @@ qed
 
 
 lemma augmenting_path_contains_resCap:
-  assumes "isAugmenting p"
+  assumes "isAugmentingPath p"
   obtains e where "e\<in>set p" "cf e = resCap p" 
 proof -  
-  from assms have "p\<noteq>[]" by (auto simp: isAugmenting_def s_not_t)
+  from assms have "p\<noteq>[]" by (auto simp: isAugmentingPath_def s_not_t)
   hence "{cf e | e. e \<in> set p} \<noteq> {}" by (cases p) auto
   with Min_in[OF aug_flows_finite this, folded resCap_def]
     obtain e where "e\<in>set p" "cf e = resCap p" by auto
@@ -550,8 +550,8 @@ proof -
   interpret cf!: ek_analysis cf by unfold_locales
   interpret cf'!: ek_analysis_defs cf' .
 
-  from SP have AUG: "isAugmenting p" 
-    unfolding isAugmenting_def cf.isShortestPath_alt by simp
+  from SP have AUG: "isAugmentingPath p" 
+    unfolding isAugmentingPath_def cf.isShortestPath_alt by simp
 
   note BNGZ = resCap_gzero[OF AUG]  
 
@@ -613,7 +613,7 @@ definition "edka \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
-          assert (NFlow.isAugmenting c s t f p);
+          assert (NFlow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
           let f' = NFlow.augmentingFlow c f p;
           let f = NFlow.augment c f f';

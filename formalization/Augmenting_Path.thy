@@ -12,12 +12,12 @@ begin
 subsection \<open>Definitions\<close>
 
 text \<open>An \emph{augmenting path} is a simple path from the source to the sink in the residual graph:\<close>
-definition isAugmenting :: "path \<Rightarrow> bool" (* TODO: Rename to isAugmentingPath *)
-where "isAugmenting p \<equiv> cf.isSimplePath s p t"
+definition isAugmentingPath :: "path \<Rightarrow> bool"
+where "isAugmentingPath p \<equiv> cf.isSimplePath s p t"
 
 text \<open>The \emph{residual capacity} of an augmenting path is the smallest capacity 
   annotated to its edges:\<close>
-definition resCap :: "path \<Rightarrow> 'capacity"  (* TODO: Rename to residualCapacity*)
+definition resCap :: "path \<Rightarrow> 'capacity"
 where "resCap p \<equiv> Min {cf e | e. e \<in> set p}"
 
 lemma resCap_alt: "resCap p = Min (cf`set p)"  
@@ -36,15 +36,15 @@ where "augmentingFlow p \<equiv> \<lambda>(u, v).
 (*<*) (* Old syntax sugar, not used any more *)
 end
   locale NFlow_Loc_Syntax = Graph_Loc_Syntax + NFlow begin
-    notation isAugmenting ("\<langle>\<Rightarrow>\<^sup>A/ _\<rangle>" 1000)
+    notation isAugmentingPath ("\<langle>\<Rightarrow>\<^sup>A/ _\<rangle>" 1000)
     notation resCap ("\<langle>\<nabla>/ _\<rangle>" 1000)
     notation augmentingFlow ("\<langle>\<F>\<^sub>\<p>/ _\<rangle>" 1000)
   end
 
   context Graph_Syntax begin  
-    abbreviation NFlow_isAugmenting :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> bool"
+    abbreviation NFlow_isAugmentingPath :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> bool"
       ("\<lbrace>_,/ _,/ _,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<Rightarrow>\<^sup>A/ _\<rangle>\<rbrace>" 1000)
-    where "\<lbrace>c, s, t, f \<parallel>\<^sub>N\<^sub>F \<langle>\<Rightarrow>\<^sup>A p\<rangle>\<rbrace> \<equiv> NFlow.isAugmenting c s t f p"
+    where "\<lbrace>c, s, t, f \<parallel>\<^sub>N\<^sub>F \<langle>\<Rightarrow>\<^sup>A p\<rangle>\<rbrace> \<equiv> NFlow.isAugmentingPath c s t f p"
     
     abbreviation NFlow_resCap :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _"
       ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<nabla>/ _\<rangle>\<rbrace>" 1000)
@@ -73,8 +73,9 @@ proof -
   ultimately show ?thesis unfolding resCap_alt by (auto)
 qed 
 
-lemma resCap_gzero: "isAugmenting p \<Longrightarrow> 0<resCap p"
-  using resCap_gzero_aux[of p] by (auto simp: isAugmenting_def cf.isSimplePath_def)
+lemma resCap_gzero: "isAugmentingPath p \<Longrightarrow> 0<resCap p"
+  using resCap_gzero_aux[of p] 
+  by (auto simp: isAugmentingPath_def cf.isSimplePath_def)
 
 text \<open>As all edges of the augmenting flow have the same value, we can factor 
   this out from a summation:\<close>
@@ -90,10 +91,10 @@ proof -
   thus ?thesis by auto
 qed  
 
-lemma augFlow_resFlow: "isAugmenting p \<Longrightarrow> Flow cf s t (augmentingFlow p)"
+lemma augFlow_resFlow: "isAugmentingPath p \<Longrightarrow> Flow cf s t (augmentingFlow p)"
 proof (unfold_locales; intro allI ballI)
-  assume AUG: "isAugmenting p"
-  hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmenting_def)
+  assume AUG: "isAugmentingPath p"
+  hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmentingPath_def)
   hence PATH: "cf.isPath s p t" by (simp add: cf.isSimplePath_def)
 
   { text \<open>We first show the capacity constraint\<close>
@@ -156,13 +157,13 @@ text \<open>Finally, we show that the value of the augmenting flow is the residu
   capacity of the augmenting path\<close>
 
 lemma augFlow_val: 
-  "isAugmenting p \<Longrightarrow> Flow.val cf s (augmentingFlow p) = resCap p"
+  "isAugmentingPath p \<Longrightarrow> Flow.val cf s (augmentingFlow p) = resCap p"
 proof -
-  assume AUG: "isAugmenting p"
+  assume AUG: "isAugmentingPath p"
   with augFlow_resFlow interpret f!: Flow cf s t "augmentingFlow p" .
 
   note AUG 
-  hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmenting_def)
+  hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmentingPath_def)
   hence PATH: "cf.isPath s p t" by (simp add: cf.isSimplePath_def)
   then obtain v p' where "p=(s,v)#p'" "(s,v)\<in>cf.E" 
     using s_not_t by (cases p) auto

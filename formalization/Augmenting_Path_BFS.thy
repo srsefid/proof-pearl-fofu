@@ -81,7 +81,7 @@ begin
       "
     abbreviation "assn1 src dst \<equiv> \<lambda>(f,PRED,C,N,d). \<not>f \<and> nf_invar' c src dst PRED C N d"
 
-  definition "add_succ_spec dst succ v PRED N \<equiv> SPEC (\<lambda>(f,PRED',N').
+  definition "add_succ_spec dst succ v PRED N \<equiv> ASSERT (N \<subseteq> dom PRED) \<guillemotright> SPEC (\<lambda>(f,PRED',N').
     case f of
       False \<Rightarrow> dst \<notin> succ - dom PRED \<and> PRED' = map_mmupd PRED (succ - dom PRED) v \<and> N' = N \<union> (succ - dom PRED)
     | True \<Rightarrow> dst \<in> succ - dom PRED \<and> PRED \<subseteq>\<^sub>m PRED' \<and> PRED' \<subseteq>\<^sub>m map_mmupd PRED (succ - dom PRED) v \<and> dst\<in>dom PRED'
@@ -95,7 +95,6 @@ begin
         ASSERT (v\<in>V);
         let succ = (E``{v});
         ASSERT (finite succ);
-        ASSERT (N \<subseteq> dom PRED); (* Required for refinement of add_succ_spec. TODO: Move into add_succ_spec! *)
         (f,PRED,N) \<leftarrow> add_succ_spec dst succ v PRED N;
         if f then
           RETURN (f,PRED,C,N,d+1)
@@ -482,13 +481,13 @@ begin
 
 
   lemma inner_loop_refine[refine]: 
-    assumes NSS: "N \<subseteq> dom PRED"
+    (*assumes NSS: "N \<subseteq> dom PRED"*)
     assumes [simp]: "finite succ"
     assumes [simplified, simp]: "(succi,succ)\<in>Id" "(ui,u)\<in>Id" "(PREDi,PRED)\<in>Id" "(Ni,N)\<in>Id"
     shows "inner_loop dst succi ui PREDi Ni \<le> \<Down>Id (add_succ_spec dst succ u PRED N)"
     unfolding inner_loop_def add_succ_spec_def
     apply refine_vcg
-    using NSS apply (auto simp: it_step_insert_iff; fail) +
+    apply (auto simp: it_step_insert_iff; fail) +
     apply (auto simp: it_step_insert_iff fun_neq_ext_iff map_mmupd_def split: split_if_asm) []
     apply (auto simp: it_step_insert_iff split: bool.split; fail) +
     apply (auto simp: it_step_insert_iff intro: map_mmupd_update_less split: bool.split)
@@ -520,7 +519,7 @@ begin
 
   lemma inner_loop2_correct:
     assumes "(succl, succ) \<in> \<langle>Id\<rangle>list_set_rel"
-    assumes "N \<subseteq> dom PRED"
+    (*assumes "N \<subseteq> dom PRED"*)
     assumes [simplified, simp]: "(dsti,dst)\<in>Id" "(ui, u) \<in> Id" "(PREDi, PRED) \<in> Id" "(Ni, N) \<in> Id"
     shows "inner_loop2 dsti succl ui PREDi Ni \<le> \<Down> Id (add_succ_spec dst succ u PRED N)"
     apply simp
@@ -548,7 +547,6 @@ begin
             v \<leftarrow> op_set_pick C; let C = C-{v};
             ASSERT (v\<in>V);
             sl \<leftarrow> succ v;
-            ASSERT (N \<subseteq> dom PRED); (* Required for refinement of add_succ_spec *)
             (f,PRED,N) \<leftarrow> inner_loop2 dst sl v PRED N;
             if f then
               RETURN (f,PRED,C,N,d+1)

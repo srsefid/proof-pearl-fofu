@@ -229,12 +229,12 @@ proof -
     calculation work to the computer.\<close>
   (*<*)
   note setsum_simp_setup[simp] = 
-    sum_outgoing_alt[OF finite_V capacity_const] s_node
-    sum_incoming_alt[OF finite_V capacity_const]
-    cf.sum_outgoing_alt[OF _ f'.capacity_const]
-    cf.sum_incoming_alt[OF _ f'.capacity_const]
-    sum_outgoing_alt[OF finite_V f''.capacity_const]
-    sum_incoming_alt[OF finite_V f''.capacity_const]
+    sum_outgoing_alt[OF capacity_const] s_node
+    sum_incoming_alt[OF capacity_const]
+    cf.sum_outgoing_alt[OF f'.capacity_const]
+    cf.sum_incoming_alt[OF f'.capacity_const]
+    sum_outgoing_alt[OF f''.capacity_const]
+    sum_incoming_alt[OF f''.capacity_const]
     setsum_subtractf setsum.distrib
   (*>*)  
   
@@ -267,12 +267,12 @@ proof -
     unfolding val_def f'.val_def f''.val_def
     apply (simp del: setsum_simp_setup
       add: 
-      sum_outgoing_alt[OF finite_V capacity_const] s_node
-      sum_incoming_alt[OF finite_V capacity_const]
-      sum_outgoing_alt[OF finite_V f''.capacity_const]
-      sum_incoming_alt[OF finite_V f''.capacity_const]
-      cf.sum_outgoing_alt[OF _ f'.capacity_const]
-      cf.sum_incoming_alt[OF _ f'.capacity_const]
+      sum_outgoing_alt[OF capacity_const] s_node
+      sum_incoming_alt[OF capacity_const]
+      sum_outgoing_alt[OF f''.capacity_const]
+      sum_incoming_alt[OF f''.capacity_const]
+      cf.sum_outgoing_alt[OF f'.capacity_const]
+      cf.sum_incoming_alt[OF f'.capacity_const]
       setsum_subtractf[symmetric] setsum.distrib[symmetric]
       )
     apply (rule setsum.cong)

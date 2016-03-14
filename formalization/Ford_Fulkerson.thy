@@ -142,16 +142,16 @@ subsection \<open>Ford-Fulkerson Theorem\<close>
 context NFlow begin
 
 text \<open>We prove three auxiliary lemmas first, and the state the theorem as a corollary\<close>
-lemma fofu_I_II: "isMaxFlow f \<Longrightarrow> \<not> (\<exists> p. isAugmenting p)"
+lemma fofu_I_II: "isMaxFlow f \<Longrightarrow> \<not> (\<exists> p. isAugmentingPath p)"
 unfolding isMaxFlow_alt
 proof (rule ccontr)
   assume asm: "NFlow c s t f 
     \<and> (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
-  assume asm_c: "\<not> \<not> (\<exists> p. isAugmenting p)"
-  then obtain p where obt: "isAugmenting p" by blast
+  assume asm_c: "\<not> \<not> (\<exists> p. isAugmentingPath p)"
+  then obtain p where obt: "isAugmentingPath p" by blast
   have fct1: "Flow cf s t (augmentingFlow p)" using obt augFlow_resFlow by auto
   have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
-    resCap_gzero isAugmenting_def cf.isSimplePath_def by auto
+    resCap_gzero isAugmentingPath_def cf.isSimplePath_def by auto
   have "NFlow c s t (augment (augmentingFlow p))" 
     using fct1 augment_flow_presv Network_axioms unfolding NFlow_def by auto
   moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 
@@ -160,12 +160,12 @@ proof (rule ccontr)
 qed
 
 lemma fofu_II_III: 
-  "\<not> (\<exists> p. isAugmenting p) \<Longrightarrow> \<exists>k'. NCut c s t k' \<and> val = NCut.cap c k'" 
+  "\<not> (\<exists> p. isAugmentingPath p) \<Longrightarrow> \<exists>k'. NCut c s t k' \<and> val = NCut.cap c k'" 
 proof (intro exI conjI)
   let ?S = "cf.reachableNodes s"
-  assume asm: "\<not> (\<exists> p. isAugmenting p)"
+  assume asm: "\<not> (\<exists> p. isAugmentingPath p)"
   hence "t\<notin>?S"
-    unfolding isAugmenting_def cf.reachableNodes_def cf.connected_def
+    unfolding isAugmentingPath_def cf.reachableNodes_def cf.connected_def
     by (auto dest: cf.isSPath_pathLE)
   then show CUT: "NCut c s t ?S"
   proof unfold_locales
@@ -242,7 +242,7 @@ qed
 text \<open>Finally we can state the Ford-Fulkerson theorem: \<close>
 theorem ford_fulkerson: shows
   "isMaxFlow f \<longleftrightarrow> 
-  \<not> Ex isAugmenting" and "\<not> Ex isAugmenting \<longleftrightarrow> 
+  \<not> Ex isAugmentingPath" and "\<not> Ex isAugmentingPath \<longleftrightarrow> 
   (\<exists>k. NCut c s t k \<and> val = NCut.cap c k)"
   using fofu_I_II fofu_II_III fofu_III_I by auto
   
@@ -278,7 +278,7 @@ qed
 
 text \<open>As an immediate consequence of the Ford-Fulkerson theorem, we get that
   there is no augmenting path if and only if the flow is maximal.\<close>
-lemma noAugPath_iff_maxFlow: "\<not> (\<exists> p. isAugmenting p) \<longleftrightarrow> isMaxFlow f"
+lemma noAugPath_iff_maxFlow: "\<not> (\<exists> p. isAugmentingPath p) \<longleftrightarrow> isMaxFlow f"
   using ford_fulkerson by blast
 
 end -- \<open>Network with flow\<close>

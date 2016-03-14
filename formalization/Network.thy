@@ -35,6 +35,9 @@ begin
     where "val \<equiv> (\<Sum>e \<in> outgoing s. f e) - (\<Sum>e \<in> incoming s. f e)"
 end
 
+locale Finite_Flow = Flow c s t f + Finite_Graph c 
+  for c :: "'capacity::linordered_idom graph" and s t f
+
 (*<*) (* Old syntax, not used any more *)
   context Graph_Syntax begin    
     abbreviation Flow_val :: "'capacity::linordered_idom graph \<Rightarrow> node \<Rightarrow> 'capacity flow \<Rightarrow> 'capacity"
@@ -94,7 +97,7 @@ text \<open>For convenience, we define locales for a network with a fixed flow,
 
 locale NFlow = Network c s t + Flow c s t f 
   for c :: "'capacity::linordered_idom graph" and s t f
-    
+
 lemma (in Network) isMaxFlow_alt: 
   "isMaxFlow f \<longleftrightarrow> NFlow c s t f \<and> 
     (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
@@ -145,12 +148,17 @@ lemma conservation_const_pointwise:
   using conservation_const assms
   by (auto simp: sum_incoming_pointwise sum_outgoing_pointwise)
 
+end -- \<open>Flow\<close>   
+
+context Finite_Flow 
+begin
+
 text \<open>The summation of flows over incoming/outgoing edges can be 
   extended to a summation over all possible predecessor/successor nodes,
   as the additional flows are all zero.\<close>  
 lemma sum_outgoing_alt_flow:
   fixes g :: "edge \<Rightarrow> 'capacity"
-  assumes "finite V" "u\<in>V"
+  assumes "u\<in>V"
   shows "(\<Sum>e\<in>outgoing u. f e) = (\<Sum>v\<in>V. f (u,v))"
   apply (subst sum_outgoing_alt)
   using assms capacity_const
@@ -158,13 +166,12 @@ lemma sum_outgoing_alt_flow:
   
 lemma sum_incoming_alt_flow:
   fixes g :: "edge \<Rightarrow> 'capacity"
-  assumes "finite V" "u\<in>V"
+  assumes "u\<in>V"
   shows "(\<Sum>e\<in>incoming u. f e) = (\<Sum>v\<in>V. f (v,u))"
   apply (subst sum_incoming_alt)
   using assms capacity_const
   by auto
-
-end -- \<open>Flow\<close>   
+end -- \<open>Finite_Flow\<close>   
 
 subsubsection \<open>Networks\<close>  
 context Network
@@ -195,6 +202,9 @@ subsubsection \<open>Networks with Flow\<close>
 
 context NFlow 
 begin
+
+sublocale Finite_Flow by unfold_locales
+
 text \<open>As there are no edges entering the source/leaving the sink, 
   also the corresponding flow values are zero:\<close>
 lemma no_inflow_s: "\<forall>e \<in> incoming s. f e = 0" (is ?thesis)

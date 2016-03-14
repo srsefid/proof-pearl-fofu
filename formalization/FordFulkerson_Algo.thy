@@ -19,7 +19,7 @@ text \<open>
   \<close>
 definition "find_augmenting_spec f \<equiv> do {
     assert (NFlow c s t f);
-    selectp p. NFlow.isAugmenting c s t f p
+    selectp p. NFlow.isAugmentingPath c s t f p
   }"
 
 text \<open>
@@ -27,7 +27,7 @@ text \<open>
 \<close>
 abbreviation "fofu_invar \<equiv> \<lambda>(f,brk). 
         NFlow c s t f 
-      \<and> (brk \<longrightarrow> (\<forall>p. \<not>NFlow.isAugmenting c s t f p))
+      \<and> (brk \<longrightarrow> (\<forall>p. \<not>NFlow.isAugmentingPath c s t f p))
     "  
 
 text \<open>Finally, we obtain the Ford-Fulkerson algorithm.
@@ -43,7 +43,7 @@ definition "fofu \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
-          assert (NFlow.isAugmenting c s t f p);
+          assert (NFlow.isAugmentingPath c s t f p);
           let f' = NFlow.augmentingFlow c f p;
           let f = NFlow.augment c f f';
           assert (NFlow c s t f);
@@ -69,7 +69,7 @@ lemma zero_flow: "NFlow c s t (\<lambda>_. 0)"
 
 text \<open>Augmentation preserves the flow property\<close>
 lemma (in NFlow) augment_pres_nflow:
-  assumes AUG: "isAugmenting p"
+  assumes AUG: "isAugmentingPath p"
   shows "NFlow c s t (augment (augmentingFlow p))"
 proof -
   note augment_flow_presv[OF augFlow_resFlow[OF AUG]]
@@ -79,8 +79,8 @@ qed
 
 text \<open>Augmenting paths cannot be empty\<close>
 lemma (in NFlow) augmenting_path_not_empty:
-  "\<not>isAugmenting []"
-  unfolding isAugmenting_def using s_not_t by auto
+  "\<not>isAugmentingPath []"
+  unfolding isAugmentingPath_def using s_not_t by auto
 
 
 text \<open>Finally, we can use the verification condition generator to
@@ -107,7 +107,7 @@ context begin
 private abbreviation (input) "augment 
   \<equiv> NFlow.augment_with_path"
 private abbreviation (input) "is_augmenting_path f p 
-  \<equiv> NFlow.isAugmenting c s t f p"
+  \<equiv> NFlow.isAugmentingPath c s t f p"
 
 text \<open> {} \<close>
 text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       

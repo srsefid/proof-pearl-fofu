@@ -150,7 +150,7 @@ begin
 
     
     lemma (in NFlow) augment_cf_refine_aux: (* For snippet *)
-      assumes AUG: "isAugmenting p"
+      assumes AUG: "isAugmentingPath p"
       shows "residualGraph c (augment (augmentingFlow p)) (u,v) = (
         if (u,v)\<in>set p then (residualGraph c f (u,v) - resCap p)
         else if (v,u)\<in>set p then (residualGraph c f (u,v) + resCap p)
@@ -159,7 +159,7 @@ begin
 
     lemma augment_cf_refine:
       assumes R: "(cf,f)\<in>cfi_rel"
-      assumes AUG: "NFlow.isAugmenting c s t f p"
+      assumes AUG: "NFlow.isAugmentingPath c s t f p"
       shows "(Graph.augment_cf cf (set p) (resCap_cf cf p), 
           NFlow.augment c f (NFlow.augmentingFlow c f p)) \<in> cfi_rel"
     proof -    
@@ -198,7 +198,7 @@ begin
       by (auto 
         simp: pw_le_iff refine_pw_simps 
         simp: this_loc rg_is_cf
-        simp: f.isAugmenting_def Graph.connected_def Graph.isSimplePath_def 
+        simp: f.isAugmentingPath_def Graph.connected_def Graph.isSimplePath_def 
         dest: cf.shortestPath_is_path
         split: option.split)
       
