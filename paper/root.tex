@@ -822,7 +822,7 @@ results in a program that refines the original program. This gives us a natural 
   \item It is important to keep the levels of abstraction strictly separated.
     For example, when implementing the capacity function with arrays, one needs to show that it is only applied to valid nodes.
     However, proving that, e.g., augmenting paths only contain valid nodes is hard at this low level. 
-    Instead, one can protect the application of the capacity function by an assertion--- already on a high abstraction level where it can be easily discharged. 
+    Instead, one can protect the application of the capacity function by an assertion --- already on a high abstraction level where it can be easily discharged. 
     On refinement, this assertion is passed down, and ultimately available for the implementation.
     Optimally, one wraps the function together with an assertion of its precondition into a new constant, which is then refined independently.
   \item Profiling has helped a lot in identifying candidates for optimization. For example, based on profiling data, we decided to delay a 
