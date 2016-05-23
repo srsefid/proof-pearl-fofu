@@ -246,12 +246,12 @@
     calculation work to the computer.&#8250;</span>
   <span class="comment">(*&lt;*)</span>
   <span class="keyword1">note</span> setsum_simp_setup<span class="delimiter">[</span>simp<span class="delimiter">]</span> <span class="delimiter">=</span> 
-    sum_outgoing_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span> s_node
-    sum_incoming_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span>
-    cf.sum_outgoing_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
-    cf.sum_incoming_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
-    sum_outgoing_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
-    sum_incoming_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+    sum_outgoing_alt<span class="delimiter">[</span>OF capacity_const<span class="delimiter">]</span> s_node
+    sum_incoming_alt<span class="delimiter">[</span>OF capacity_const<span class="delimiter">]</span>
+    cf.sum_outgoing_alt<span class="delimiter">[</span>OF f&#39;.capacity_const<span class="delimiter">]</span>
+    cf.sum_incoming_alt<span class="delimiter">[</span>OF f&#39;.capacity_const<span class="delimiter">]</span>
+    sum_outgoing_alt<span class="delimiter">[</span>OF f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+    sum_incoming_alt<span class="delimiter">[</span>OF f&#39;&#39;.capacity_const<span class="delimiter">]</span>
     setsum_subtractf setsum.distrib
   <span class="comment">(*&gt;*)</span>  
   
@@ -284,12 +284,12 @@
     <span class="keyword1">unfolding</span> val_def f&#39;.val_def f&#39;&#39;.val_def
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp del<span class="delimiter">:</span> setsum_simp_setup
       add<span class="delimiter">:</span> 
-      sum_outgoing_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span> s_node
-      sum_incoming_alt<span class="delimiter">[</span>OF finite_V capacity_const<span class="delimiter">]</span>
-      sum_outgoing_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
-      sum_incoming_alt<span class="delimiter">[</span>OF finite_V f&#39;&#39;.capacity_const<span class="delimiter">]</span>
-      cf.sum_outgoing_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
-      cf.sum_incoming_alt<span class="delimiter">[</span>OF _ f&#39;.capacity_const<span class="delimiter">]</span>
+      sum_outgoing_alt<span class="delimiter">[</span>OF capacity_const<span class="delimiter">]</span> s_node
+      sum_incoming_alt<span class="delimiter">[</span>OF capacity_const<span class="delimiter">]</span>
+      sum_outgoing_alt<span class="delimiter">[</span>OF f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+      sum_incoming_alt<span class="delimiter">[</span>OF f&#39;&#39;.capacity_const<span class="delimiter">]</span>
+      cf.sum_outgoing_alt<span class="delimiter">[</span>OF f&#39;.capacity_const<span class="delimiter">]</span>
+      cf.sum_incoming_alt<span class="delimiter">[</span>OF f&#39;.capacity_const<span class="delimiter">]</span>
       setsum_subtractf<span class="delimiter">[</span>symmetric<span class="delimiter">]</span> setsum.distrib<span class="delimiter">[</span>symmetric<span class="delimiter">]</span>
       <span class="delimiter">)</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule setsum.cong<span class="delimiter">)</span>

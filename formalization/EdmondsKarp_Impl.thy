@@ -1061,6 +1061,10 @@ begin
     concrete_definition (in -) edka_imp uses Edka_Impl.edka_imp_impl
     prepare_code_thms (in -) edka_imp_def
     lemmas edka_imp_refine = edka_imp.refine[OF this_loc]
+
+    thm pat_rules TrueI def_pat_rules
+    
+
   end
 
   export_code edka_imp checking SML_imp

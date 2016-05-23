@@ -171,7 +171,7 @@ lemma sum_incoming_alt_flow:
   apply (subst sum_incoming_alt)
   using assms capacity_const
   by auto
-end -- \<open>Finite_Flow\<close>   
+end -- \<open>Finite Flow\<close>   
 
 subsubsection \<open>Networks\<close>  
 context Network

@@ -84,7 +84,7 @@ proof -
       using conservation_const cut_ss_V t_ni_cut by force
     thus ?thesis by auto  
   qed
-  ultimately show ?thesis unfolding val_def by simp
+  finally show ?thesis unfolding val_def by simp
 qed
 
 text \<open>The value of any flow is bounded by the capacity of any cut.

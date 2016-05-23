@@ -52,6 +52,9 @@
     <span class="keyword2">where</span> <span class="string">&quot;val &equiv; (&sum;e &isin; outgoing s. f e) - (&sum;e &isin; incoming s. f e)&quot;</span>
 <span class="keyword2">end</span>
 
+<span class="keyword1">locale</span> Finite_Flow <span class="delimiter">=</span> Flow c s t f <span class="delimiter">+</span> Finite_Graph c 
+  <span class="keyword2">for</span> c <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity::linordered_idom graph&quot;</span> <span class="keyword2">and</span> s t f
+
 <span class="comment">(*&lt;*)</span> <span class="comment">(* Old syntax, not used any more *)</span>
   <span class="keyword1">context</span> Graph_Syntax <span class="keyword2">begin</span>    
     <span class="keyword1">abbreviation</span> Flow_val <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity::linordered_idom graph =&gt; node =&gt; &#39;capacity flow =&gt; &#39;capacity&quot;</span>
@@ -111,7 +114,7 @@
 
 <span class="keyword1">locale</span> NFlow <span class="delimiter">=</span> Network c s t <span class="delimiter">+</span> Flow c s t f 
   <span class="keyword2">for</span> c <span class="delimiter">::</span> <span class="string">&quot;&#39;capacity::linordered_idom graph&quot;</span> <span class="keyword2">and</span> s t f
-    
+
 <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> Network<span class="delimiter">)</span> isMaxFlow_alt<span class="delimiter">:</span> 
   <span class="string">&quot;isMaxFlow f &lt;-&gt; NFlow c s t f &and; 
     (&forall;f&#39;. NFlow c s t f&#39; --&gt; Flow.val c s f&#39; &le; Flow.val c s f)&quot;</span>
@@ -162,12 +165,17 @@
   <span class="keyword1">using</span> conservation_const assms
   <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> sum_incoming_pointwise sum_outgoing_pointwise<span class="delimiter">)</span>
 
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Flow&#8250;</span>   
+
+<span class="keyword1">context</span> Finite_Flow 
+<span class="keyword2">begin</span>
+
 <span class="keyword1">text</span> <span class="cartouche">&#8249;The summation of flows over incoming/outgoing edges can be 
   extended to a summation over all possible predecessor/successor nodes,
   as the additional flows are all zero.&#8250;</span>  
 <span class="keyword1">lemma</span> sum_outgoing_alt_flow<span class="delimiter">:</span>
   <span class="keyword2">fixes</span> g <span class="delimiter">::</span> <span class="string">&quot;edge =&gt; &#39;capacity&quot;</span>
-  <span class="keyword2">assumes</span> <span class="string">&quot;finite V&quot;</span> <span class="string">&quot;u&isin;V&quot;</span>
+  <span class="keyword2">assumes</span> <span class="string">&quot;u&isin;V&quot;</span>
   <span class="keyword2">shows</span> <span class="string">&quot;(&sum;e&isin;outgoing u. f e) = (&sum;v&isin;V. f (u,v))&quot;</span>
   <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst sum_outgoing_alt<span class="delimiter">)</span>
   <span class="keyword1">using</span> assms capacity_const
@@ -175,13 +183,12 @@
   
 <span class="keyword1">lemma</span> sum_incoming_alt_flow<span class="delimiter">:</span>
   <span class="keyword2">fixes</span> g <span class="delimiter">::</span> <span class="string">&quot;edge =&gt; &#39;capacity&quot;</span>
-  <span class="keyword2">assumes</span> <span class="string">&quot;finite V&quot;</span> <span class="string">&quot;u&isin;V&quot;</span>
+  <span class="keyword2">assumes</span> <span class="string">&quot;u&isin;V&quot;</span>
   <span class="keyword2">shows</span> <span class="string">&quot;(&sum;e&isin;incoming u. f e) = (&sum;v&isin;V. f (v,u))&quot;</span>
   <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst sum_incoming_alt<span class="delimiter">)</span>
   <span class="keyword1">using</span> assms capacity_const
   <span class="keyword1">by</span> auto
-
-<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Flow&#8250;</span>   
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Finite Flow&#8250;</span>   
 
 <span class="keyword1">subsubsection</span> <span class="cartouche">&#8249;Networks&#8250;</span>  
 <span class="keyword1">context</span> Network
@@ -196,19 +203,9 @@
     <span class="keyword1">by</span> auto
 <span class="keyword1">qed</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> s_node reachable_ss_V<span class="delimiter">)</span>
 
-<span class="comment">(* TODO: Use Finite_Graph local*)</span>
-<span class="keyword1">text</span> <span class="cartouche">&#8249;This also implies that we have a finite graph,
-  as we assumed a finite set of reachable nodes in the locale 
-  definition.&#8250;</span>  
-<span class="keyword1">corollary</span> finite_V<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite V&quot;</span>
+<span class="keyword1">sublocale</span> Finite_Graph 
+  <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
   <span class="keyword1">using</span> reachable_is_V finite_reachable <span class="keyword1">by</span> auto
-  
-<span class="keyword1">corollary</span> finite_E<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite E&quot;</span>
-<span class="keyword1">proof</span> -
-  <span class="keyword1">have</span> <span class="string">&quot;finite (V &times; V)&quot;</span> <span class="keyword1">using</span> finite_V <span class="keyword1">by</span> auto
-  <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;E &sube; V &times; V&quot;</span> <span class="keyword1">using</span> V_def <span class="keyword1">by</span> auto
-  <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="var">?thesis</span> <span class="keyword1">by</span> <span class="delimiter">(</span>metis finite_subset<span class="delimiter">)</span>
-<span class="keyword1">qed</span>
   
 <span class="keyword1">lemma</span> cap_positive<span class="delimiter">:</span> <span class="string">&quot;e &isin; E ==&gt; c e &gt; 0&quot;</span>
   <span class="keyword1">unfolding</span> E_def <span class="keyword1">using</span> cap_non_negative le_neq_trans <span class="keyword1">by</span> fastforce 
@@ -222,6 +219,9 @@
 
 <span class="keyword1">context</span> NFlow 
 <span class="keyword2">begin</span>
+
+<span class="keyword1">sublocale</span> Finite_Flow <span class="keyword1">by</span> unfold_locales
+
 <span class="keyword1">text</span> <span class="cartouche">&#8249;As there are no edges entering the source/leaving the sink, 
   also the corresponding flow values are zero:&#8250;</span>
 <span class="keyword1">lemma</span> no_inflow_s<span class="delimiter">:</span> <span class="string">&quot;&forall;e &isin; incoming s. f e = 0&quot;</span> <span class="delimiter">(</span><span class="keyword2">is</span> <span class="var">?thesis</span><span class="delimiter">)</span>

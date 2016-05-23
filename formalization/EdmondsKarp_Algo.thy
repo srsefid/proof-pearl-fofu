@@ -643,7 +643,6 @@ theorem edka_refine[refine]: "edka \<le> \<Down>Id edka_partial"
     WHILEIT_refine_WHILEI[where V=edka_wf_rel])
   apply (refine_dref_type)
   apply (simp; fail)
-
   txt \<open>Unfortunately, the verification condition for introducing 
     the variant requires a bit of manual massaging to be solved:\<close>
   apply (simp)

@@ -38,13 +38,13 @@
 
 <span class="keyword1">text</span> <span class="cartouche">&#8249;Note, if there is an augmenting path, there is always a shortest one&#8250;</span>
 <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> augmenting_path_imp_shortest<span class="delimiter">:</span> 
-  <span class="string">&quot;isAugmenting p ==&gt; &exist;p. Graph.isShortestPath cf s p t&quot;</span>
-  <span class="keyword1">using</span> Graph.obtain_shortest_path <span class="keyword1">unfolding</span> isAugmenting_def
+  <span class="string">&quot;isAugmentingPath p ==&gt; &exist;p. Graph.isShortestPath cf s p t&quot;</span>
+  <span class="keyword1">using</span> Graph.obtain_shortest_path <span class="keyword1">unfolding</span> isAugmentingPath_def
   <span class="keyword1">by</span> <span class="delimiter">(</span>fastforce simp<span class="delimiter">:</span> Graph.isSimplePath_def Graph.connected_def<span class="delimiter">)</span>
 
 <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> NFlow<span class="delimiter">)</span> shortest_is_augmenting<span class="delimiter">:</span> 
-  <span class="string">&quot;Graph.isShortestPath cf s p t ==&gt; isAugmenting p&quot;</span>
-  <span class="keyword1">unfolding</span> isAugmenting_def <span class="keyword1">using</span> Graph.shortestPath_is_simple
+  <span class="string">&quot;Graph.isShortestPath cf s p t ==&gt; isAugmentingPath p&quot;</span>
+  <span class="keyword1">unfolding</span> isAugmentingPath_def <span class="keyword1">using</span> Graph.shortestPath_is_simple
   <span class="keyword1">by</span> <span class="delimiter">(</span>fastforce<span class="delimiter">)</span>
 
 <span class="keyword1">text</span> <span class="cartouche">&#8249;We show that our refined procedure is actually a refinement&#8250;</span>  
@@ -71,7 +71,7 @@
         None =&gt; return (f,True)
       | Some p =&gt; do {
           assert (p&ne;[]);
-          assert (NFlow.isAugmenting c s t f p);
+          assert (NFlow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
           let f&#39; = NFlow.augmentingFlow c f p;
           let f = NFlow.augment c f f&#39;;
@@ -363,7 +363,7 @@
     <span class="keyword1">hence</span> <span class="string">&quot;s&ne;t&quot;</span> <span class="keyword1">by</span> auto
     <span class="keyword1">with</span> CONN NCONN2 <span class="keyword1">have</span> <span class="string">&quot;g&#39;.ekMeasure &lt; ekMeasure&quot;</span>
       <span class="keyword1">unfolding</span> g&#39;.ekMeasure_def ekMeasure_def
-      <span class="keyword1">using</span> min_dist_less_V<span class="delimiter">[</span>OF finite_V SV<span class="delimiter">]</span> <span class="comment">(* TODO: Move this result to finite-graph! *)</span>
+      <span class="keyword1">using</span> min_dist_less_V<span class="delimiter">[</span>OF SV<span class="delimiter">]</span>
       <span class="keyword1">by</span> auto
   <span class="keyword1">}</span> <span class="keyword1">moreover</span> <span class="keyword1">{</span>
     <span class="keyword3">assume</span> SHORTER<span class="delimiter">:</span> <span class="string">&quot;g&#39;.min_dist s t &lt; min_dist s t&quot;</span>
@@ -397,7 +397,7 @@
       <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp only<span class="delimiter">:</span> Veq uE_eq CONN CONN2 if_True<span class="delimiter">)</span>
       <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule mlex_fst_decrI<span class="delimiter">)</span>
       <span class="keyword1">using</span> card_spEdges_less g&#39;.card_spEdges_less 
-        <span class="keyword2">and</span> g&#39;.min_dist_less_V<span class="delimiter">[</span>OF _ _ CONN2<span class="delimiter">]</span> SV
+        <span class="keyword2">and</span> g&#39;.min_dist_less_V<span class="delimiter">[</span>OF _ CONN2<span class="delimiter">]</span> SV
         <span class="keyword2">and</span> LONGER
       <span class="keyword1"><span class="improper">apply</span></span> auto
       <span class="keyword1"><span class="improper">done</span></span>
@@ -496,9 +496,9 @@
 
 <span class="keyword1">context</span> NFlow <span class="keyword2">begin</span>
 
-<span class="keyword1">lemma</span> augmenting_edge_no_swap<span class="delimiter">:</span> <span class="string">&quot;isAugmenting p ==&gt; set p &cap; (set p)&macr; = {}&quot;</span>
+<span class="keyword1">lemma</span> augmenting_edge_no_swap<span class="delimiter">:</span> <span class="string">&quot;isAugmentingPath p ==&gt; set p &cap; (set p)&macr; = {}&quot;</span>
   <span class="keyword1">using</span> cf.isSPath_nt_parallel_pf
-  <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isAugmenting_def<span class="delimiter">)</span>
+  <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isAugmentingPath_def<span class="delimiter">)</span>
 
 <span class="keyword1">lemma</span> aug_flows_finite<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> 
   <span class="string">&quot;finite {cf e |e. e &isin; set p}&quot;</span>
@@ -511,23 +511,23 @@
   <span class="keyword1">by</span> auto
 
 <span class="keyword1">lemma</span> augment_alt<span class="delimiter">:</span>
-  <span class="keyword2">assumes</span> AUG<span class="delimiter">:</span> <span class="string">&quot;isAugmenting p&quot;</span>
+  <span class="keyword2">assumes</span> AUG<span class="delimiter">:</span> <span class="string">&quot;isAugmentingPath p&quot;</span>
   <span class="keyword2">defines</span> <span class="string">&quot;f&#39; &equiv; augment (augmentingFlow p)&quot;</span>
   <span class="keyword2">defines</span> <span class="string">&quot;cf&#39; &equiv; residualGraph c f&#39;&quot;</span>
-  <span class="keyword2">shows</span> <span class="string">&quot;cf&#39; = Graph.augment_cf cf (set p) (bottleNeck p)&quot;</span>
+  <span class="keyword2">shows</span> <span class="string">&quot;cf&#39; = Graph.augment_cf cf (set p) (resCap p)&quot;</span>
 <span class="keyword1">proof</span> -
   <span class="keyword1">{</span>
     <span class="keyword3">fix</span> u v
     <span class="keyword3">assume</span> <span class="string">&quot;(u,v)&isin;set p&quot;</span>
-    <span class="keyword1">hence</span> <span class="string">&quot;bottleNeck p &le; cf (u,v)&quot;</span>
-      <span class="keyword1">unfolding</span> bottleNeck_def <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> Min_le<span class="delimiter">)</span>
+    <span class="keyword1">hence</span> <span class="string">&quot;resCap p &le; cf (u,v)&quot;</span>
+      <span class="keyword1">unfolding</span> resCap_def <span class="keyword1">by</span> <span class="delimiter">(</span>auto intro<span class="delimiter">:</span> Min_le<span class="delimiter">)</span>
   <span class="keyword1">}</span> <span class="keyword1">note</span> bn_smallerI <span class="delimiter">=</span> this
 
   <span class="keyword1">{</span>
     <span class="keyword3">fix</span> u v
     <span class="keyword3">assume</span> <span class="string">&quot;(u,v)&isin;set p&quot;</span>
     <span class="keyword1">hence</span> <span class="string">&quot;(u,v)&isin;cf.E&quot;</span> <span class="keyword1">using</span> AUG cf.isPath_edgeset
-      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isAugmenting_def cf.isSimplePath_def<span class="delimiter">)</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isAugmentingPath_def cf.isSimplePath_def<span class="delimiter">)</span>
     <span class="keyword1">hence</span> <span class="string">&quot;(u,v)&isin;E &or; (v,u)&isin;E&quot;</span> <span class="keyword1">using</span> cfE_ss_invE <span class="keyword1">by</span> <span class="delimiter">(</span>auto<span class="delimiter">)</span>
   <span class="keyword1">}</span> <span class="keyword1">note</span> edge_or_swap <span class="delimiter">=</span> this 
 
@@ -544,14 +544,14 @@
 <span class="keyword1">qed</span>    
 
 
-<span class="keyword1">lemma</span> augmenting_path_contains_bottleneck<span class="delimiter">:</span>
-  <span class="keyword2">assumes</span> <span class="string">&quot;isAugmenting p&quot;</span>
-  <span class="keyword2">obtains</span> e <span class="keyword2">where</span> <span class="string">&quot;e&isin;set p&quot;</span> <span class="string">&quot;cf e = bottleNeck p&quot;</span> 
+<span class="keyword1">lemma</span> augmenting_path_contains_resCap<span class="delimiter">:</span>
+  <span class="keyword2">assumes</span> <span class="string">&quot;isAugmentingPath p&quot;</span>
+  <span class="keyword2">obtains</span> e <span class="keyword2">where</span> <span class="string">&quot;e&isin;set p&quot;</span> <span class="string">&quot;cf e = resCap p&quot;</span> 
 <span class="keyword1">proof</span> -  
-  <span class="keyword1">from</span> assms <span class="keyword1">have</span> <span class="string">&quot;p&ne;[]&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isAugmenting_def s_not_t<span class="delimiter">)</span>
+  <span class="keyword1">from</span> assms <span class="keyword1">have</span> <span class="string">&quot;p&ne;[]&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> isAugmentingPath_def s_not_t<span class="delimiter">)</span>
   <span class="keyword1">hence</span> <span class="string">&quot;{cf e | e. e &isin; set p} &ne; {}&quot;</span> <span class="keyword1">by</span> <span class="delimiter">(</span>cases p<span class="delimiter">)</span> auto
-  <span class="keyword1">with</span> Min_in<span class="delimiter">[</span>OF aug_flows_finite this<span class="delimiter">,</span> folded bottleNeck_def<span class="delimiter">]</span>
-    <span class="keyword3">obtain</span> e <span class="keyword2">where</span> <span class="string">&quot;e&isin;set p&quot;</span> <span class="string">&quot;cf e = bottleNeck p&quot;</span> <span class="keyword1">by</span> auto
+  <span class="keyword1">with</span> Min_in<span class="delimiter">[</span>OF aug_flows_finite this<span class="delimiter">,</span> folded resCap_def<span class="delimiter">]</span>
+    <span class="keyword3">obtain</span> e <span class="keyword2">where</span> <span class="string">&quot;e&isin;set p&quot;</span> <span class="string">&quot;cf e = resCap p&quot;</span> <span class="keyword1">by</span> auto
   <span class="keyword3">thus</span> <span class="var">?thesis</span> <span class="keyword1">by</span> <span class="delimiter">(</span>blast intro<span class="delimiter">:</span> that<span class="delimiter">)</span>
 <span class="keyword1">qed</span>  
         
@@ -564,29 +564,26 @@
   <span class="keyword2">defines</span> <span class="string">&quot;cf&#39; &equiv; residualGraph c f&#39;&quot;</span>
   <span class="keyword2">shows</span> <span class="string">&quot;ek_analysis_defs.ekMeasure cf&#39; s t &lt; ek_analysis_defs.ekMeasure cf s t&quot;</span>
 <span class="keyword1">proof</span> -
-  <span class="keyword1">interpret</span> cf<span class="delimiter">!</span><span class="delimiter">:</span> ek_analysis cf 
-    <span class="keyword1"><span class="improper">apply</span></span> unfold_locales
-    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> resV_netV finite_V<span class="delimiter">)</span>
-
+  <span class="keyword1">interpret</span> cf<span class="delimiter">!</span><span class="delimiter">:</span> ek_analysis cf <span class="keyword1">by</span> unfold_locales
   <span class="keyword1">interpret</span> cf&#39;<span class="delimiter">!</span><span class="delimiter">:</span> ek_analysis_defs cf&#39; <span class="keyword1">.</span>
 
-  <span class="keyword1">from</span> SP <span class="keyword1">have</span> AUG<span class="delimiter">:</span> <span class="string">&quot;isAugmenting p&quot;</span> 
-    <span class="keyword1">unfolding</span> isAugmenting_def cf.isShortestPath_alt <span class="keyword1">by</span> simp
+  <span class="keyword1">from</span> SP <span class="keyword1">have</span> AUG<span class="delimiter">:</span> <span class="string">&quot;isAugmentingPath p&quot;</span> 
+    <span class="keyword1">unfolding</span> isAugmentingPath_def cf.isShortestPath_alt <span class="keyword1">by</span> simp
 
-  <span class="keyword1">note</span> BNGZ <span class="delimiter">=</span> bottleNeck_gzero<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span>  
+  <span class="keyword1">note</span> BNGZ <span class="delimiter">=</span> resCap_gzero<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span>  
 
-  <span class="keyword1">have</span> cf&#39;_alt<span class="delimiter">:</span> <span class="string">&quot;cf&#39; = cf.augment_cf (set p) (bottleNeck p)&quot;</span>
+  <span class="keyword1">have</span> cf&#39;_alt<span class="delimiter">:</span> <span class="string">&quot;cf&#39; = cf.augment_cf (set p) (resCap p)&quot;</span>
     <span class="keyword1">using</span> augment_alt<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span> <span class="keyword1">unfolding</span> cf&#39;_def f&#39;_def <span class="keyword1">by</span> simp
 
   <span class="keyword3">obtain</span> e <span class="keyword2">where</span>
-    EIP<span class="delimiter">:</span> <span class="string">&quot;e&isin;set p&quot;</span> <span class="keyword2">and</span> EBN<span class="delimiter">:</span> <span class="string">&quot;cf e = bottleNeck p&quot;</span>
-    <span class="keyword1">by</span> <span class="delimiter">(</span>rule augmenting_path_contains_bottleneck<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span><span class="delimiter">)</span> auto
+    EIP<span class="delimiter">:</span> <span class="string">&quot;e&isin;set p&quot;</span> <span class="keyword2">and</span> EBN<span class="delimiter">:</span> <span class="string">&quot;cf e = resCap p&quot;</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>rule augmenting_path_contains_resCap<span class="delimiter">[</span>OF AUG<span class="delimiter">]</span><span class="delimiter">)</span> auto
 
   <span class="keyword1">have</span> ENIE&#39;<span class="delimiter">:</span> <span class="string">&quot;e&notin;cf&#39;.E&quot;</span> 
     <span class="keyword1">using</span> cf.augment_saturate<span class="delimiter">[</span>OF EIP<span class="delimiter">]</span> EBN <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> cf&#39;_alt<span class="delimiter">)</span>
   
   <span class="keyword1">{</span> <span class="keyword3">fix</span> e  
-    <span class="keyword1">have</span> <span class="string">&quot;cf e + bottleNeck p &ne; 0&quot;</span> <span class="keyword1">using</span> resE_nonNegative<span class="delimiter">[</span>of e<span class="delimiter">]</span> BNGZ <span class="keyword1">by</span> auto 
+    <span class="keyword1">have</span> <span class="string">&quot;cf e + resCap p &ne; 0&quot;</span> <span class="keyword1">using</span> resE_nonNegative<span class="delimiter">[</span>of e<span class="delimiter">]</span> BNGZ <span class="keyword1">by</span> auto 
   <span class="keyword1">}</span> <span class="keyword1">note</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span> <span class="delimiter">=</span> this  
   
   <span class="keyword1">{</span> <span class="keyword3">fix</span> e
@@ -633,7 +630,7 @@
         None =&gt; return (f,True)
       | Some p =&gt; do {
           assert (p&ne;[]);
-          assert (NFlow.isAugmenting c s t f p);
+          assert (NFlow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
           let f&#39; = NFlow.augmentingFlow c f p;
           let f = NFlow.augment c f f&#39;;
@@ -663,7 +660,6 @@
     WHILEIT_refine_WHILEI<span class="delimiter">[</span><span class="keyword2">where</span> V<span class="delimiter">=</span>edka_wf_rel<span class="delimiter">]</span><span class="delimiter">)</span>
   <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_dref_type<span class="delimiter">)</span>
   <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp<span class="delimiter">;</span> fail<span class="delimiter">)</span>
-
   <span class="keyword1">txt</span> <span class="cartouche">&#8249;Unfortunately, the verification condition for introducing 
     the variant requires a bit of manual massaging to be solved:&#8250;</span>
   <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>simp<span class="delimiter">)</span>

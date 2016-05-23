@@ -68,7 +68,7 @@
     pn_V <span class="delimiter">::</span> <span class="string">&quot;nat set&quot;</span>
     pn_succ <span class="delimiter">::</span> <span class="string">&quot;nat =&gt; nat list&quot;</span>
     pn_pred <span class="delimiter">::</span> <span class="string">&quot;nat =&gt; nat list&quot;</span>
-    pn_psucc <span class="delimiter">::</span> <span class="string">&quot;nat =&gt; nat list&quot;</span>
+    pn_adjmap <span class="delimiter">::</span> <span class="string">&quot;nat =&gt; nat list&quot;</span>
     pn_s_node <span class="delimiter">::</span> bool
     pn_t_node <span class="delimiter">::</span> bool
 
@@ -79,7 +79,7 @@
       pn_V = {}, 
       pn_succ = (&lambda; _. []),
       pn_pred = (&lambda; _. []),
-      pn_psucc = (&lambda; _. []), 
+      pn_adjmap = (&lambda; _. []), 
       pn_s_node = False, 
       pn_t_node = False
     |)),&quot;</span>
@@ -94,7 +94,7 @@
               pn_V := insert u (insert v (pn_V x)),
               pn_succ := (pn_succ x) (u := v # ((pn_succ x) u)),
               pn_pred := (pn_pred x) (v := u # ((pn_pred x) v)),
-              pn_psucc := ((pn_psucc x) (u := v # (pn_psucc x) u)) (v := u # (pn_psucc x) v),
+              pn_adjmap := ((pn_adjmap x) (u := v # (pn_adjmap x) u)) (v := u # (pn_adjmap x) v),
               pn_s_node := pn_s_node x &or; u = s,
               pn_t_node := pn_t_node x &or; v = t
             |)),))
@@ -103,7 +103,7 @@
     | None =&gt; None))&quot;</span>
       
   <span class="keyword1">lemma</span> read_correct1<span class="delimiter">:</span> <span class="string">&quot;read es s t = Some (|pn_c = c, pn_V = V, pn_succ = succ, 
-    pn_pred = pred , pn_psucc = psucc, pn_s_node = s_n, pn_t_node = t_n|)), ==&gt; 
+    pn_pred = pred , pn_adjmap = adjmap, pn_s_node = s_n, pn_t_node = t_n|)), ==&gt; 
     (es, c) &isin; ln_rel &and; Graph.V c = V &and; finite V &and; 
     (s_n --&gt; s &isin; V) &and; (t_n --&gt; t &isin; V) &and; (&not;s_n --&gt; s &notin; V) &and; (&not;t_n --&gt; t &notin; V) &and;
     (&forall;u v. c (u,v) &ge; 0) &and;
@@ -111,8 +111,8 @@
     (&forall;u v. c (u, v) &ne; 0 --&gt; c (v, u) = 0) &and; 
     (&forall;u. set (succ u) = Graph.E c``{u} &and; distinct (succ u)) &and; 
     (&forall;u. set (pred u) = (Graph.E c)&macr;``{u} &and; distinct (pred u)) &and; 
-    (&forall;u. set (psucc u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and; distinct (psucc u))&quot;</span>
-    <span class="keyword1">proof</span> <span class="delimiter">(</span>induction es arbitrary<span class="delimiter">:</span> c V succ pred psucc s_n t_n<span class="delimiter">)</span>
+    (&forall;u. set (adjmap u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and; distinct (adjmap u))&quot;</span>
+    <span class="keyword1">proof</span> <span class="delimiter">(</span>induction es arbitrary<span class="delimiter">:</span> c V succ pred adjmap s_n t_n<span class="delimiter">)</span>
       <span class="keyword3">case</span> Nil
         <span class="keyword3">thus</span> <span class="var">?case</span> <span class="keyword1">unfolding</span> Graph.V_def Graph.E_def ln_rel_def br_def ln_&alpha;_def ln_invar_def <span class="keyword1">by</span> auto
     <span class="keyword1">next</span>
@@ -126,10 +126,10 @@
           <span class="keyword1">using</span> Cons.prems obt1 obt2 <span class="keyword1">by</span> <span class="delimiter">(</span>auto split<span class="delimiter">:</span> option.splits if_splits<span class="delimiter">)</span>
         
         <span class="keyword3">obtain</span> c&#39; V&#39; sc&#39; ps&#39; pd&#39; s_n&#39; t_n&#39; <span class="keyword2">where</span> obt3<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c&#39;, pn_V = V&#39;,
-          pn_succ = sc&#39;, pn_pred = pd&#39;,  pn_psucc = ps&#39;, pn_s_node = s_n&#39;, pn_t_node = t_n&#39;|)),&quot;</span> 
+          pn_succ = sc&#39;, pn_pred = pd&#39;,  pn_adjmap = ps&#39;, pn_s_node = s_n&#39;, pn_t_node = t_n&#39;|)),&quot;</span> 
           <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">by</span> auto
         <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read es s t = Some (|pn_c = c&#39;, pn_V = V&#39;, pn_succ = sc&#39;, pn_pred = pd&#39;,
-          pn_psucc = ps&#39;, pn_s_node = s_n&#39;, pn_t_node = t_n&#39;|)),&quot;</span> <span class="keyword1">using</span> obt2 <span class="keyword1">by</span> blast
+          pn_adjmap = ps&#39;, pn_s_node = s_n&#39;, pn_t_node = t_n&#39;|)),&quot;</span> <span class="keyword1">using</span> obt2 <span class="keyword1">by</span> blast
         <span class="keyword1">note</span> fct <span class="delimiter">=</span> Cons.IH<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
         <span class="keyword1">have</span> fct2<span class="delimiter">:</span> <span class="string">&quot;s_n = (s_n&#39; &or; u1 = s)&quot;</span> 
           <span class="keyword1">using</span> fct0 fct1 Cons.prems obt1 obt2 obt3 <span class="keyword1">by</span> simp
@@ -143,7 +143,7 @@
           <span class="keyword1">using</span> fct0 fct1 Cons.prems obt1 obt2 obt3 <span class="keyword1">by</span> simp
         <span class="keyword1">have</span> fct7<span class="delimiter">:</span> <span class="string">&quot;pred = pd&#39; (v1 := u1 # pd&#39; v1)&quot;</span>
           <span class="keyword1">using</span> fct0 fct1 Cons.prems obt1 obt2 obt3 <span class="keyword1">by</span> simp
-        <span class="keyword1">have</span> fct8<span class="delimiter">:</span> <span class="string">&quot;psucc = (ps&#39; (u1 := v1 # ps&#39; u1)) (v1 := u1 # ps&#39; v1)&quot;</span>
+        <span class="keyword1">have</span> fct8<span class="delimiter">:</span> <span class="string">&quot;adjmap = (ps&#39; (u1 := v1 # ps&#39; u1)) (v1 := u1 # ps&#39; v1)&quot;</span>
           <span class="keyword1">using</span> fct0 fct1 Cons.prems obt1 obt2 obt3 <span class="keyword1">by</span> simp
         
           
@@ -377,16 +377,16 @@
         <span class="keyword1">{</span>
           <span class="keyword3">fix</span> a
           <span class="keyword3">assume</span> <span class="string">&quot;a &ne; u1 &and; a &ne; v1&quot;</span>
-          <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;psucc a = ps&#39; a&quot;</span> <span class="keyword1">using</span> fct8 <span class="keyword1">by</span> simp
+          <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;adjmap a = ps&#39; a&quot;</span> <span class="keyword1">using</span> fct8 <span class="keyword1">by</span> simp
             <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;set (ps&#39; a) = 
               Graph.E c&#39;``{a} &cup; (Graph.E c&#39;)&macr;``{a} &and; distinct (ps&#39; a)&quot;</span> <span class="keyword1">using</span> fct <span class="keyword1">by</span> blast
-            <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;set (psucc a) = Graph.E c``{a} &cup; (Graph.E c)&macr;``{a} &and; 
-              distinct (psucc a)&quot;</span> <span class="keyword1">unfolding</span> Graph.E_def <span class="keyword1">using</span> fct4 <span class="alt_string">`a &ne; u1 &and; a &ne; v1`</span> <span class="keyword1">by</span> auto
+            <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;set (adjmap a) = Graph.E c``{a} &cup; (Graph.E c)&macr;``{a} &and; 
+              distinct (adjmap a)&quot;</span> <span class="keyword1">unfolding</span> Graph.E_def <span class="keyword1">using</span> fct4 <span class="alt_string">`a &ne; u1 &and; a &ne; v1`</span> <span class="keyword1">by</span> auto
         <span class="keyword1">}</span>
         <span class="keyword1">moreover</span> <span class="keyword1">{</span>
           <span class="keyword3">fix</span> a
           <span class="keyword3">assume</span> <span class="string">&quot;a = u1 &or; a = v1&quot;</span>
-          <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;set (psucc a) = Graph.E c``{a} &cup; (Graph.E c)&macr;``{a} &and; distinct (psucc a)&quot;</span>
+          <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;set (adjmap a) = Graph.E c``{a} &cup; (Graph.E c)&macr;``{a} &and; distinct (adjmap a)&quot;</span>
             <span class="keyword1">proof</span>
               <span class="keyword3">assume</span> <span class="string">&quot;a = u1&quot;</span>
               <span class="keyword3">show</span> <span class="var">?thesis</span>
@@ -395,7 +395,7 @@
                     <span class="keyword1">have</span> fct<span class="delimiter">:</span> <span class="string">&quot;set (ps&#39; a) = Graph.E c&#39; `` {a} &cup; (Graph.E c&#39;)&macr; `` {a} &and; 
                       distinct (ps&#39; a)&quot;</span> <span class="keyword1">using</span> fct <span class="keyword1">by</span> blast
                     
-                    <span class="keyword1">have</span> <span class="string">&quot;psucc a = v1 # ps&#39; a&quot;</span> <span class="keyword1">using</span> <span class="alt_string">`a = u1`</span> fct8 True <span class="keyword1">by</span> simp
+                    <span class="keyword1">have</span> <span class="string">&quot;adjmap a = v1 # ps&#39; a&quot;</span> <span class="keyword1">using</span> <span class="alt_string">`a = u1`</span> fct8 True <span class="keyword1">by</span> simp
                     <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;Graph.E c = Graph.E c&#39; &cup; {(u1, v1)}&quot;</span> 
                       <span class="keyword1">unfolding</span> Graph.E_def <span class="keyword1">using</span> fct4 fct0 <span class="keyword1">by</span> auto
                     <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;v1 &notin; set (ps&#39; a)&quot;</span>
@@ -418,7 +418,7 @@
                     <span class="keyword1">have</span> fct<span class="delimiter">:</span> <span class="string">&quot;set (ps&#39; a) = Graph.E c&#39; `` {a} &cup; (Graph.E c&#39;)&macr; `` {a} &and; 
                       distinct (ps&#39; a)&quot;</span> <span class="keyword1">using</span> fct <span class="keyword1">by</span> blast
                     
-                    <span class="keyword1">have</span> <span class="string">&quot;psucc a = u1 # ps&#39; a&quot;</span> <span class="keyword1">using</span> <span class="alt_string">`a = v1`</span> fct8 True <span class="keyword1">by</span> simp
+                    <span class="keyword1">have</span> <span class="string">&quot;adjmap a = u1 # ps&#39; a&quot;</span> <span class="keyword1">using</span> <span class="alt_string">`a = v1`</span> fct8 True <span class="keyword1">by</span> simp
                     <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;Graph.E c = Graph.E c&#39; &cup; {(u1, v1)}&quot;</span> 
                       <span class="keyword1">unfolding</span> Graph.E_def <span class="keyword1">using</span> fct4 fct0 <span class="keyword1">by</span> auto
                     <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;u1 &notin; set (ps&#39; a)&quot;</span>
@@ -435,8 +435,8 @@
                 <span class="keyword1">qed</span>
             <span class="keyword1">qed</span>
         <span class="keyword1">}</span>
-        <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;&forall;u. set (psucc u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and;
-          distinct (psucc u)&quot;</span> <span class="keyword1">by</span> metis
+        <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;&forall;u. set (adjmap u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and;
+          distinct (adjmap u)&quot;</span> <span class="keyword1">by</span> metis
       <span class="keyword1">}</span>
       <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="var">?case</span> <span class="keyword1">by</span> simp  
     <span class="keyword1">qed</span>
@@ -495,7 +495,7 @@
             <span class="keyword1">then</span> <span class="keyword3">obtain</span> x <span class="keyword2">where</span> obt1<span class="delimiter">:</span> <span class="string">&quot;read el s t = Some x&quot;</span> <span class="keyword1">by</span> auto
             <span class="keyword3">obtain</span> u1 v1 c1 <span class="keyword2">where</span> obt2<span class="delimiter">:</span> <span class="string">&quot;e = (u1, v1, c1)&quot;</span> <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases e<span class="delimiter">)</span> <span class="keyword1">by</span> auto
             <span class="keyword3">obtain</span> c&#39; V&#39; sc&#39; pd&#39; ps&#39; s_n&#39; t_n&#39; <span class="keyword2">where</span> obt3<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c&#39;, pn_V = V&#39;, pn_succ = sc&#39;,
-              pn_pred = pd&#39;, pn_psucc = ps&#39;, pn_s_node = s_n&#39;, pn_t_node = t_n&#39;|)),&quot;</span> 
+              pn_pred = pd&#39;, pn_adjmap = ps&#39;, pn_s_node = s_n&#39;, pn_t_node = t_n&#39;|)),&quot;</span> 
               <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">by</span> auto 
             <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;(el, c&#39;) &isin; ln_rel&quot;</span> <span class="keyword1">using</span> obt1 read_correct1<span class="delimiter">[</span>of el s t<span class="delimiter">]</span> <span class="keyword1">by</span> simp
             <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;c&#39; = ln_&alpha; el&quot;</span> <span class="keyword1">unfolding</span> ln_rel_def br_def <span class="keyword1">by</span> simp
@@ -552,7 +552,7 @@
     pn_V&#39; <span class="delimiter">::</span> <span class="string">&quot;nat ahs&quot;</span>
     pn_succ&#39; <span class="delimiter">::</span> <span class="string">&quot;(nat,nat list) ahm&quot;</span>
     pn_pred&#39; <span class="delimiter">::</span> <span class="string">&quot;(nat,nat list) ahm&quot;</span>
-    pn_psucc&#39; <span class="delimiter">::</span> <span class="string">&quot;(nat,nat list) ahm&quot;</span>
+    pn_adjmap&#39; <span class="delimiter">::</span> <span class="string">&quot;(nat,nat list) ahm&quot;</span>
     pn_s_node&#39; <span class="delimiter">::</span> bool
     pn_t_node&#39; <span class="delimiter">::</span> bool
 
@@ -562,7 +562,7 @@
       pn_V = ahs_&alpha; (pn_V&#39; pn&#39;), 
       pn_succ = the_default [] o (ahm.&alpha; (pn_succ&#39; pn&#39;)),
       pn_pred = the_default [] o (ahm.&alpha; (pn_pred&#39; pn&#39;)),
-      pn_psucc = the_default [] o (ahm.&alpha; (pn_psucc&#39; pn&#39;)), 
+      pn_adjmap = the_default [] o (ahm.&alpha; (pn_adjmap&#39; pn&#39;)), 
       pn_s_node = pn_s_node&#39; pn&#39;, 
       pn_t_node = pn_t_node&#39; pn&#39;
   |)),&quot;</span>  
@@ -581,7 +581,7 @@
       pn_V&#39; = ahs.empty (), 
       pn_succ&#39; = ahm.empty (),
       pn_pred&#39; = ahm.empty (),
-      pn_psucc&#39; = ahm.empty (), 
+      pn_adjmap&#39; = ahm.empty (), 
       pn_s_node&#39; = False, 
       pn_t_node&#39; = False
     |)),&quot;</span>
@@ -596,8 +596,8 @@
               pn_V&#39; := ahs.ins u (ahs.ins v (pn_V&#39; x)),
               pn_succ&#39; := ahm.update u (v # (succ_lookup (pn_succ&#39; x) u)) (pn_succ&#39; x),
               pn_pred&#39; := ahm.update v (u # (succ_lookup (pn_pred&#39; x) v)) (pn_pred&#39; x),
-              pn_psucc&#39; := ahm.update u (v # (succ_lookup (pn_psucc&#39; x) u))
-                (ahm.update v (u # (succ_lookup (pn_psucc&#39; x) v)) (pn_psucc&#39; x)),
+              pn_adjmap&#39; := ahm.update u (v # (succ_lookup (pn_adjmap&#39; x) u))
+                (ahm.update v (u # (succ_lookup (pn_adjmap&#39; x) v)) (pn_adjmap&#39; x)),
               pn_s_node&#39; := pn_s_node&#39; x &or; u = s,
               pn_t_node&#39; := pn_t_node&#39; x &or; v = t
             |)),))
@@ -639,7 +639,7 @@
               succ_s \&lt;leftarrow&gt; reachable_spec (pn_c x) s;
               pred_t \&lt;leftarrow&gt; reaching_spec (pn_c x) t;
               if (pn_V x) = succ_s &and; (pn_V x) = pred_t then
-                RETURN (Some (pn_c x, pn_psucc x))
+                RETURN (Some (pn_c x, pn_adjmap x))
               else
                 RETURN None
             }
@@ -650,8 +650,8 @@
     }&quot;</span>
 
   <span class="keyword1">lemma</span> checkNet_pre_correct1 <span class="delimiter">:</span> <span class="string">&quot;checkNet el s t &le; 
-    SPEC (&lambda; r. r = Some (c, psucc) --&gt; (el, c) &isin; ln_rel &and; Network c s t &and; 
-    (&forall;u. set (psucc u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and; distinct (psucc u)))&quot;</span>
+    SPEC (&lambda; r. r = Some (c, adjmap) --&gt; (el, c) &isin; ln_rel &and; Network c s t &and; 
+    (&forall;u. set (adjmap u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and; distinct (adjmap u)))&quot;</span>
     <span class="keyword1">unfolding</span> checkNet_def reachable_spec_def reaching_spec_def
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>refine_vcg<span class="delimiter">)</span>
     <span class="keyword1"><span class="improper">apply</span></span> clarsimp_all
@@ -662,11 +662,11 @@
           <span class="keyword3">assume</span> asm2<span class="delimiter">:</span> <span class="string">&quot;read el s t = Some x&quot;</span>
           <span class="keyword3">assume</span> asm3<span class="delimiter">:</span> <span class="string">&quot;pn_s_node x&quot;</span>
           <span class="keyword3">assume</span> asm4<span class="delimiter">:</span> <span class="string">&quot;pn_t_node x&quot;</span>
-          <span class="keyword3">obtain</span> c V sc pd psucc  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
-            pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span>
+          <span class="keyword3">obtain</span> c V sc pd adjmap  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
+            pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span>
             <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">using</span> asm3 asm4 <span class="keyword1">by</span> auto
           <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-            pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+            pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
           <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
           
           <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite (Graph.V c)&quot;</span> <span class="keyword1">by</span> blast
@@ -683,11 +683,11 @@
           <span class="keyword3">assume</span> asm4<span class="delimiter">:</span> <span class="string">&quot;finite (((Graph.E (pn_c x))&macr;)<span class="hidden">&#8679;</span><sup>*</sup> `` {t})&quot;</span>
           <span class="keyword3">assume</span> asm5<span class="delimiter">:</span> <span class="string">&quot;pn_s_node x&quot;</span>
           <span class="keyword3">assume</span> asm6<span class="delimiter">:</span> <span class="string">&quot;pn_t_node x&quot;</span> 
-          <span class="keyword3">obtain</span> c V sc pd psucc  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
-            pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span>
+          <span class="keyword3">obtain</span> c V sc pd adjmap  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
+            pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span>
             <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">using</span> asm5 asm6 <span class="keyword1">by</span> auto
           <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-            pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+            pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
           <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
           
           <span class="keyword1">have</span> <span class="string">&quot;!!u. set ((pn_succ x) u) = Graph.E (pn_c x) `` {u} &and; distinct ((pn_succ x) u)&quot;</span>
@@ -707,12 +707,12 @@
           <span class="keyword3">assume</span> asm5<span class="delimiter">:</span> <span class="string">&quot;((Graph.E (pn_c x))&macr;)<span class="hidden">&#8679;</span><sup>*</sup> `` {t} = (Graph.E (pn_c x))<span class="hidden">&#8679;</span><sup>*</sup> `` {s}&quot;</span>
           <span class="keyword3">assume</span> asm6<span class="delimiter">:</span> <span class="string">&quot;pn_V x = (Graph.E (pn_c x))<span class="hidden">&#8679;</span><sup>*</sup> `` {s}&quot;</span> 
           <span class="keyword3">assume</span> asm7<span class="delimiter">:</span> <span class="string">&quot;c = pn_c x&quot;</span>
-          <span class="keyword3">assume</span> asm8<span class="delimiter">:</span> <span class="string">&quot;psucc = pn_psucc x&quot;</span>
+          <span class="keyword3">assume</span> asm8<span class="delimiter">:</span> <span class="string">&quot;adjmap = pn_adjmap x&quot;</span>
           <span class="keyword3">obtain</span> V sc pd  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
-            pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span>
+            pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span>
             <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">using</span> asm3 asm4 asm7 asm8 <span class="keyword1">by</span> auto
           <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-            pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+            pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
           <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
           
           <span class="keyword1">have</span> <span class="string">&quot;!!u. set ((pn_succ x) u) = Graph.E (pn_c x) `` {u} &and; distinct ((pn_succ x) u)&quot;</span>
@@ -742,12 +742,12 @@
             <span class="keyword1">ultimately</span> <span class="keyword1">have</span> <span class="string">&quot;Network (pn_c x) s t&quot;</span> <span class="keyword1">unfolding</span> Network_def <span class="keyword1">using</span> asm1 fct asm7 
               <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> Graph.E_def<span class="delimiter">)</span>
           <span class="keyword1">}</span>
-          <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;&forall;u.(set (pn_psucc x u) =
+          <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;&forall;u.(set (pn_adjmap x u) =
             Graph.E (pn_c x) `` {u} &cup; (Graph.E (pn_c x))&macr; `` {u})&quot;</span> <span class="keyword1">using</span> fct obt <span class="keyword1">by</span> simp
-          <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;&forall;u. distinct (pn_psucc x u)&quot;</span> <span class="keyword1">using</span> fct obt <span class="keyword1">by</span> simp
+          <span class="keyword1">moreover</span> <span class="keyword1">have</span> <span class="string">&quot;&forall;u. distinct (pn_adjmap x u)&quot;</span> <span class="keyword1">using</span> fct obt <span class="keyword1">by</span> simp
           <span class="keyword1">ultimately</span> <span class="keyword3">show</span> <span class="string">&quot;(el, pn_c x) &isin; ln_rel&quot;</span> <span class="keyword2">and</span> <span class="string">&quot;Network (pn_c x) s t&quot;</span> <span class="keyword2">and</span>
-            <span class="string">&quot;!!u. set (pn_psucc x u) = Graph.E (pn_c x) `` {u} &cup; (Graph.E (pn_c x))&macr; `` {u}&quot;</span> <span class="keyword2">and</span>
-            <span class="string">&quot;!!u. distinct (pn_psucc x u)&quot;</span> <span class="keyword1">by</span> auto
+            <span class="string">&quot;!!u. set (pn_adjmap x u) = Graph.E (pn_c x) `` {u} &cup; (Graph.E (pn_c x))&macr; `` {u}&quot;</span> <span class="keyword2">and</span>
+            <span class="string">&quot;!!u. distinct (pn_adjmap x u)&quot;</span> <span class="keyword1">by</span> auto
         <span class="keyword1">}</span>
       <span class="keyword1">qed</span>
   
@@ -765,10 +765,10 @@
     <span class="keyword2">shows</span> <span class="string">&quot;False&quot;</span>
     <span class="keyword1">proof</span> -          
       <span class="keyword3">obtain</span> c V sc pd ps  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-        pn_psucc = ps, pn_s_node = True, pn_t_node = True|)),&quot;</span>
+        pn_adjmap = ps, pn_s_node = True, pn_t_node = True|)),&quot;</span>
         <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">using</span> asm3 asm4 asm6 asm7 <span class="keyword1">by</span> auto
       <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-        pn_psucc = ps, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+        pn_adjmap = ps, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
       <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
       
       <span class="keyword1">have</span> <span class="string">&quot;pn_V x &ne; (Graph.E (pn_c x))<span class="hidden">&#8679;</span><sup>*</sup> `` {s} &or; (pn_V x = (Graph.E (pn_c x))<span class="hidden">&#8679;</span><sup>*</sup> `` {s} &and;
@@ -934,11 +934,11 @@
         <span class="keyword3">assume</span> asm2<span class="delimiter">:</span> <span class="string">&quot;read el s t = Some x&quot;</span>
         <span class="keyword3">assume</span> asm3<span class="delimiter">:</span> <span class="string">&quot;pn_s_node x&quot;</span>
         <span class="keyword3">assume</span> asm4<span class="delimiter">:</span> <span class="string">&quot;pn_t_node x&quot;</span>
-        <span class="keyword3">obtain</span> c V sc pd psucc  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
-          pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span>
+        <span class="keyword3">obtain</span> c V sc pd adjmap  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
+          pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span>
           <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">using</span> asm3 asm4 <span class="keyword1">by</span> auto
         <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+          pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
         <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
         
         <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite (Graph.V c)&quot;</span> <span class="keyword1">by</span> blast
@@ -955,11 +955,11 @@
         <span class="keyword3">assume</span> asm4<span class="delimiter">:</span> <span class="string">&quot;finite (((Graph.E (pn_c x))&macr;)<span class="hidden">&#8679;</span><sup>*</sup> `` {t})&quot;</span>
         <span class="keyword3">assume</span> asm5<span class="delimiter">:</span> <span class="string">&quot;pn_s_node x&quot;</span>
         <span class="keyword3">assume</span> asm6<span class="delimiter">:</span> <span class="string">&quot;pn_t_node x&quot;</span> 
-        <span class="keyword3">obtain</span> c V sc pd psucc  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
-          pn_succ = sc, pn_pred = pd,  pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span>
+        <span class="keyword3">obtain</span> c V sc pd adjmap  <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V,
+          pn_succ = sc, pn_pred = pd,  pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span>
           <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">using</span> asm5 asm6 <span class="keyword1">by</span> auto
         <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = psucc, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+          pn_adjmap = adjmap, pn_s_node = True, pn_t_node = True|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
         <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
         
         <span class="keyword1">have</span> <span class="string">&quot;!!u. set ((pn_succ x) u) = Graph.E (pn_c x) `` {u} &and; distinct ((pn_succ x) u)&quot;</span>
@@ -978,9 +978,9 @@
         <span class="keyword3">assume</span> asm4<span class="delimiter">:</span> <span class="string">&quot;ln_invar el&quot;</span>
         <span class="keyword3">assume</span> asm5<span class="delimiter">:</span> <span class="string">&quot;Network (ln_&alpha; el) s t&quot;</span>
         <span class="keyword3">obtain</span> c V sc pd ps s_node t_node <span class="keyword2">where</span> obt<span class="delimiter">:</span> <span class="string">&quot;x = (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = ps, pn_s_node = s_node, pn_t_node = t_node|)),&quot;</span> <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">by</span> auto 
+          pn_adjmap = ps, pn_s_node = s_node, pn_t_node = t_node|)),&quot;</span> <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>cases x<span class="delimiter">)</span> <span class="keyword1">by</span> auto 
         <span class="keyword1">then</span> <span class="keyword1">have</span> <span class="string">&quot;read el s t = Some (|pn_c = c, pn_V = V, pn_succ = sc, pn_pred = pd, 
-          pn_psucc = ps, pn_s_node = s_node, pn_t_node = t_node|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
+          pn_adjmap = ps, pn_s_node = s_node, pn_t_node = t_node|)),&quot;</span> <span class="keyword1">using</span> asm2 <span class="keyword1">by</span> simp
         <span class="keyword1">note</span> fct <span class="delimiter">=</span> read_correct1<span class="delimiter">[</span>OF this<span class="delimiter">]</span>
         
         <span class="keyword1">have</span> <span class="string">&quot;(el, c) &isin; ln_rel&quot;</span> <span class="keyword1">using</span> fct obt <span class="keyword1">by</span> simp
@@ -1010,18 +1010,18 @@
     <span class="keyword1">qed</span>
 
   <span class="keyword1">lemma</span> checkNet_correct&#39; <span class="delimiter">:</span> <span class="string">&quot;checkNet el s t &le; SPEC (&lambda; r. case r of 
-      Some (c, psucc) =&gt;
+      Some (c, adjmap) =&gt;
         (el, c) &isin; ln_rel &and; Network c s t 
-        &and; (&forall;u. set (psucc u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and; distinct (psucc u))
+        &and; (&forall;u. set (adjmap u) = Graph.E c``{u} &cup; (Graph.E c)&macr;``{u} &and; distinct (adjmap u))
     | None =&gt; &not;ln_invar el &or; &not;Network (ln_&alpha; el) s t)&quot;</span>
     <span class="keyword1">using</span> checkNet_pre_correct1<span class="delimiter">[</span>of el s t<span class="delimiter">]</span> checkNet_pre_correct2<span class="delimiter">[</span>of el s t<span class="delimiter">]</span>
     <span class="keyword1">by</span> <span class="delimiter">(</span>auto split<span class="delimiter">:</span> option.splits simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
 
   <span class="keyword1">lemma</span> checkNet_correct <span class="delimiter">:</span> <span class="string">&quot;checkNet el s t &le; SPEC (&lambda;r. case r of 
-      Some (c, psucc) =&gt; (el, c) &isin; ln_rel &and; Network c s t &and; is_pred_succ psucc c
+      Some (c, adjmap) =&gt; (el, c) &isin; ln_rel &and; Network c s t &and; Graph.is_adj_map c adjmap
     | None =&gt; &not;ln_invar el &or; &not;Network (ln_&alpha; el) s t)&quot;</span>
     <span class="keyword1">using</span> checkNet_pre_correct1<span class="delimiter">[</span>of el s t<span class="delimiter">]</span> checkNet_pre_correct2<span class="delimiter">[</span>of el s t<span class="delimiter">]</span>
-    <span class="keyword1">by</span> <span class="delimiter">(</span>auto split<span class="delimiter">:</span> option.splits simp<span class="delimiter">:</span> is_pred_succ_def pw_le_iff refine_pw_simps<span class="delimiter">)</span>
+    <span class="keyword1">by</span> <span class="delimiter">(</span>auto split<span class="delimiter">:</span> option.splits simp<span class="delimiter">:</span> Graph.is_adj_map_def pw_le_iff refine_pw_simps<span class="delimiter">)</span>
 
   <span class="keyword1">definition</span> <span class="string">&quot;graph_of pn s &equiv; (|
     g_V = UNIV,
@@ -1054,7 +1054,7 @@
               let succ_s = (op_reachable (graph_of x s));
               let pred_t = (op_reachable (rev_graph_of x t));
               if (pn_V x) = succ_s &and; (pn_V x) = pred_t then
-                RETURN (Some (pn_c x, pn_psucc x))
+                RETURN (Some (pn_c x, pn_adjmap x))
               else
                 RETURN None
             }
@@ -1136,16 +1136,16 @@
 
   <span class="keyword2">end</span>
   
-  <span class="keyword1">definition</span> <span class="string">&quot;net_&alpha; &equiv; (&lambda;(ci, psucci) . 
-    ((the_default 0 o (ahm.&alpha; ci)), (the_default [] o (ahm.&alpha; psucci))))&quot;</span>
+  <span class="keyword1">definition</span> <span class="string">&quot;net_&alpha; &equiv; (&lambda;(ci, adjmapi) . 
+    ((the_default 0 o (ahm.&alpha; ci)), (the_default [] o (ahm.&alpha; adjmapi))))&quot;</span>
 
-  <span class="keyword1">lemma</span> <span class="delimiter">[</span>code<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;net_&alpha; (ci, psucci) = (
-    cap_lookup ci, succ_lookup psucci
+  <span class="keyword1">lemma</span> <span class="delimiter">[</span>code<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;net_&alpha; (ci, adjmapi) = (
+    cap_lookup ci, succ_lookup adjmapi
     )&quot;</span>
     <span class="keyword1">unfolding</span> net_&alpha;_def <span class="keyword1">by</span> <span class="delimiter">(</span>auto split<span class="delimiter">:</span> option.splits simp<span class="delimiter">:</span> ahm.correct ahm_ld_def<span class="delimiter">)</span>
 
     
-  <span class="comment">(*definition &quot;net_invar &equiv;  (&lambda;(ci, psucci) . ahm.invar ci &and; ahm.invar psucci)&quot;
+  <span class="comment">(*definition &quot;net_invar &equiv;  (&lambda;(ci, adjmapi) . ahm.invar ci &and; ahm.invar adjmapi)&quot;
   
   definition &quot;net_rel &equiv; br net_&alpha; net_invar&quot;*)</span>
 
@@ -1169,7 +1169,7 @@
               let succ_s = (reachable_impl (graph_of_impl x s));
               let pred_t = (reachable_impl (rev_graph_of_impl x t));
               if (sets_eq_impl (pn_V&#39; x) succ_s) &and; (sets_eq_impl (pn_V&#39; x) pred_t) then
-                RETURN (Some (net_&alpha; (pn_c&#39; x, pn_psucc&#39; x)))
+                RETURN (Some (net_&alpha; (pn_c&#39; x, pn_adjmap&#39; x)))
               else
                 RETURN None
             }
@@ -1276,7 +1276,7 @@
     
 
   <span class="keyword1">lemma</span> checkNet4_correct<span class="delimiter">:</span> <span class="string">&quot;case checkNet4 el s t of 
-      Some (c, psucc) =&gt; (el, c) &isin; ln_rel &and; Network c s t &and; is_pred_succ psucc c
+      Some (c, adjmap) =&gt; (el, c) &isin; ln_rel &and; Network c s t &and; Graph.is_adj_map c adjmap
     | None =&gt; &not;ln_invar el &or; &not;Network (ln_&alpha; el) s t&quot;</span>
   <span class="keyword1">proof</span> -  
     <span class="keyword1">note</span> checkNet4.refine 
@@ -1289,15 +1289,15 @@
   <span class="keyword1">definition</span> prepareNet <span class="delimiter">::</span> <span class="string">&quot;edge_list =&gt; node =&gt; node =&gt; (capacity_impl graph &times; (node=&gt;node list) &times; nat) option&quot;</span>
   <span class="keyword2">where</span>
     <span class="string">&quot;prepareNet el s t &equiv; do {
-      (c,psucc) \&lt;leftarrow&gt; checkNet4 el s t;
+      (c,adjmap) \&lt;leftarrow&gt; checkNet4 el s t;
       let N = ln_N el;
-      Some (c,psucc,N)
+      Some (c,adjmap,N)
     }&quot;</span>
 
   <span class="keyword1">export_code</span> prepareNet <span class="keyword2">checking</span> SML  
 
   <span class="keyword1">lemma</span> prepareNet_correct<span class="delimiter">:</span> <span class="string">&quot;case (prepareNet el s t) of 
-      Some (c, psucc,N) =&gt; (el, c) &isin; ln_rel &and; Network c s t &and; is_pred_succ psucc c &and; Graph.V c &sube; {0..&lt;N}
+      Some (c, adjmap,N) =&gt; (el, c) &isin; ln_rel &and; Network c s t &and; Graph.is_adj_map c adjmap &and; Graph.V c &sube; {0..&lt;N}
     | None =&gt; &not;ln_invar el &or; &not;Network (ln_&alpha; el) s t&quot;</span>
     <span class="keyword1">using</span> checkNet4_correct<span class="delimiter">[</span>of el s t<span class="delimiter">]</span> ln_N_correct<span class="delimiter">[</span>of el<span class="delimiter">]</span>
     <span class="keyword1">unfolding</span> prepareNet_def

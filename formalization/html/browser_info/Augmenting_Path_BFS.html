@@ -52,7 +52,7 @@
       <span class="keyword2">assumes</span> <span class="string">&quot;&forall;i&le;d. v&notin;Vd i&quot;</span>
       <span class="keyword2">shows</span> <span class="string">&quot;v&isin;Vd (Suc d)&quot;</span>
       <span class="keyword1">using</span> assms
-      <span class="keyword1">by</span> <span class="delimiter">(</span>metis connectedI_succ in_Vd_conv le_SucE min_dist_succ<span class="delimiter">)</span>
+      <span class="keyword1">by</span> <span class="delimiter">(</span>metis connected_append_edge in_Vd_conv le_SucE min_dist_succ<span class="delimiter">)</span>
 
   <span class="keyword2">end</span>
 
@@ -98,7 +98,7 @@
       &quot;</span>
     <span class="keyword1">abbreviation</span> <span class="string">&quot;assn1 src dst &equiv; &lambda;(f,PRED,C,N,d). &not;f &and; nf_invar&#39; c src dst PRED C N d&quot;</span>
 
-  <span class="keyword1">definition</span> <span class="string">&quot;add_succ_spec dst succ v PRED N &equiv; SPEC (&lambda;(f,PRED&#39;,N&#39;).
+  <span class="keyword1">definition</span> <span class="string">&quot;add_succ_spec dst succ v PRED N &equiv; ASSERT (N &sube; dom PRED) &raquo; SPEC (&lambda;(f,PRED&#39;,N&#39;).
     case f of
       False =&gt; dst &notin; succ - dom PRED &and; PRED&#39; = map_mmupd PRED (succ - dom PRED) v &and; N&#39; = N &cup; (succ - dom PRED)
     | True =&gt; dst &isin; succ - dom PRED &and; PRED &sube;<span class="hidden">&#8681;</span><sub>m</sub> PRED&#39; &and; PRED&#39; &sube;<span class="hidden">&#8681;</span><sub>m</sub> map_mmupd PRED (succ - dom PRED) v &and; dst&isin;dom PRED&#39;
@@ -112,7 +112,6 @@
         ASSERT (v&isin;V);
         let succ = (E``{v});
         ASSERT (finite succ);
-        ASSERT (N &sube; dom PRED); (* Required for refinement of add_succ_spec. TODO: Move into add_succ_spec! *)
         (f,PRED,N) \&lt;leftarrow&gt; add_succ_spec dst succ v PRED N;
         if f then
           RETURN (f,PRED,C,N,d+1)
@@ -356,7 +355,9 @@
       nf_invar.invar_N_ss_Vis
       nf_invar.finite_succ
       <span class="delimiter">)</span>
-    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve simp<span class="delimiter">:</span> outer_loop_rel_def nf_invar.C_ne_max_dist nf_invar.finite_C<span class="delimiter">)</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>vc_solve 
+      simp<span class="delimiter">:</span> remove_subset outer_loop_rel_def 
+      simp<span class="delimiter">:</span> nf_invar.C_ne_max_dist nf_invar.finite_C<span class="delimiter">)</span>
     <span class="keyword1"><span class="improper">done</span></span>
 
 
@@ -499,13 +500,13 @@
 
 
   <span class="keyword1">lemma</span> inner_loop_refine<span class="delimiter">[</span>refine<span class="delimiter">]</span><span class="delimiter">:</span> 
-    <span class="keyword2">assumes</span> NSS<span class="delimiter">:</span> <span class="string">&quot;N &sube; dom PRED&quot;</span>
+    <span class="comment">(*assumes NSS: &quot;N &sube; dom PRED&quot;*)</span>
     <span class="keyword2">assumes</span> <span class="delimiter">[</span>simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite succ&quot;</span>
     <span class="keyword2">assumes</span> <span class="delimiter">[</span>simplified<span class="delimiter">,</span> simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(succi,succ)&isin;Id&quot;</span> <span class="string">&quot;(ui,u)&isin;Id&quot;</span> <span class="string">&quot;(PREDi,PRED)&isin;Id&quot;</span> <span class="string">&quot;(Ni,N)&isin;Id&quot;</span>
     <span class="keyword2">shows</span> <span class="string">&quot;inner_loop dst succi ui PREDi Ni &le; \&lt;Down&gt;Id (add_succ_spec dst succ u PRED N)&quot;</span>
     <span class="keyword1">unfolding</span> inner_loop_def add_succ_spec_def
     <span class="keyword1"><span class="improper">apply</span></span> refine_vcg
-    <span class="keyword1">using</span> NSS <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff<span class="delimiter">;</span> fail<span class="delimiter">)</span> <span class="delimiter">+</span>
+    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff<span class="delimiter">;</span> fail<span class="delimiter">)</span> <span class="delimiter">+</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff fun_neq_ext_iff map_mmupd_def split<span class="delimiter">:</span> split_if_asm<span class="delimiter">)</span> <span class="delimiter">[</span><span class="delimiter">]</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff split<span class="delimiter">:</span> bool.split<span class="delimiter">;</span> fail<span class="delimiter">)</span> <span class="delimiter">+</span>
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> it_step_insert_iff intro<span class="delimiter">:</span> map_mmupd_update_less split<span class="delimiter">:</span> bool.split<span class="delimiter">)</span>
@@ -537,7 +538,7 @@
 
   <span class="keyword1">lemma</span> inner_loop2_correct<span class="delimiter">:</span>
     <span class="keyword2">assumes</span> <span class="string">&quot;(succl, succ) &isin; &lang;Id&rang;list_set_rel&quot;</span>
-    <span class="keyword2">assumes</span> <span class="string">&quot;N &sube; dom PRED&quot;</span>
+    <span class="comment">(*assumes &quot;N &sube; dom PRED&quot;*)</span>
     <span class="keyword2">assumes</span> <span class="delimiter">[</span>simplified<span class="delimiter">,</span> simp<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(dsti,dst)&isin;Id&quot;</span> <span class="string">&quot;(ui, u) &isin; Id&quot;</span> <span class="string">&quot;(PREDi, PRED) &isin; Id&quot;</span> <span class="string">&quot;(Ni, N) &isin; Id&quot;</span>
     <span class="keyword2">shows</span> <span class="string">&quot;inner_loop2 dsti succl ui PREDi Ni &le; \&lt;Down&gt; Id (add_succ_spec dst succ u PRED N)&quot;</span>
     <span class="keyword1"><span class="improper">apply</span></span> simp
@@ -565,7 +566,6 @@
             v \&lt;leftarrow&gt; op_set_pick C; let C = C-{v};
             ASSERT (v&isin;V);
             sl \&lt;leftarrow&gt; succ v;
-            ASSERT (N &sube; dom PRED); (* Required for refinement of add_succ_spec *)
             (f,PRED,N) \&lt;leftarrow&gt; inner_loop2 dst sl v PRED N;
             if f then
               RETURN (f,PRED,C,N,d+1)

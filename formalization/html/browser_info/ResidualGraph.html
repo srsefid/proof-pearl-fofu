@@ -111,16 +111,8 @@
   <span class="keyword1">by</span> auto
   
 <span class="keyword1">text</span> <span class="cartouche">&#8249;As the residual graph has the same nodes as the network, it is also finite:&#8250;</span>
-<span class="comment">(* TODO: Move. Interpret finite-graph for cf, and move lemmas in general form their *)</span>
-<span class="keyword1">lemma</span> finite_cf_incoming<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite (cf.incoming v)&quot;</span> 
-  <span class="keyword1">unfolding</span> cf.incoming_def 
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule finite_subset<span class="delimiter">[</span><span class="keyword2">where</span> B<span class="delimiter">=</span><span class="string">&quot;V&times;V&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
-  <span class="keyword1">using</span> cf.E_ss_VxV <span class="keyword1">by</span> auto
-
-<span class="keyword1">lemma</span> finite_cf_outgoing<span class="delimiter">[</span>simp<span class="delimiter">,</span> intro<span class="delimiter">!</span><span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;finite (cf.outgoing v)&quot;</span> 
-  <span class="keyword1">unfolding</span> cf.outgoing_def 
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule finite_subset<span class="delimiter">[</span><span class="keyword2">where</span> B<span class="delimiter">=</span><span class="string">&quot;V&times;V&quot;</span><span class="delimiter">]</span><span class="delimiter">)</span>
-  <span class="keyword1">using</span> cf.E_ss_VxV <span class="keyword1">by</span> auto
+<span class="keyword1">sublocale</span> cf<span class="delimiter">!</span><span class="delimiter">:</span> Finite_Graph cf
+  <span class="keyword1">by</span> unfold_locales auto
 
 <span class="keyword1">text</span> <span class="cartouche">&#8249;The capacities on the edges of the residual graph are non-negative&#8250;</span>
 <span class="keyword1">lemma</span> resE_nonNegative<span class="delimiter">:</span> <span class="string">&quot;cf e &ge; 0&quot;</span>
@@ -176,7 +168,7 @@
 
 <span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Network with flow&#8250;</span>
   
-<span class="keyword2">end</span>
+<span class="keyword2">end</span> <span class="delimiter">--</span> <span class="cartouche">&#8249;Theory&#8250;</span>
 </pre>
 
 </div>

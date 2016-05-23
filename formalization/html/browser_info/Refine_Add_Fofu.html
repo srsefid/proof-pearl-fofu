@@ -89,46 +89,6 @@
     <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule assms <span class="delimiter">|</span> simp<span class="delimiter">)</span><span class="delimiter">+</span>
     <span class="keyword1"><span class="improper">done</span></span>
 
-  
-
-<span class="comment">(* TODO: Move! *)</span>
-<span class="comment">(* TODO: We do not really need the lower-bound for D in most cases.
-  So let the default rules be without lower bound *)</span>
-<span class="keyword1">lemma</span> REC_rule_arb&#39;<span class="delimiter">:</span>
-  <span class="keyword2">fixes</span> x<span class="delimiter">::</span><span class="string">&quot;&#39;x&quot;</span> <span class="keyword2">and</span> arb<span class="delimiter">::</span><span class="tfree">&#39;arb</span>
-  <span class="keyword2">assumes</span> M<span class="delimiter">:</span> <span class="string">&quot;trimono body&quot;</span>
-  <span class="keyword2">assumes</span> I0<span class="delimiter">:</span> <span class="string">&quot;pre arb x&quot;</span>
-  <span class="keyword2">assumes</span> IS<span class="delimiter">:</span> <span class="string">&quot;!!f arb x. [|
-    !!arb&#39; x. pre arb&#39; x ==&gt; f x &le; M arb&#39; x; pre arb x
-  |] ==&gt; body f x &le; M arb x&quot;</span>
-  <span class="keyword2">shows</span> <span class="string">&quot;REC body x &le; M arb x&quot;</span>
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule REC_rule_arb<span class="delimiter">[</span><span class="keyword2">where</span> M<span class="delimiter">=</span>M <span class="keyword2">and</span> pre<span class="delimiter">=</span>pre<span class="delimiter">]</span><span class="delimiter">)</span>
-  <span class="keyword1"><span class="improper">apply</span></span> fact
-  <span class="keyword1"><span class="improper">apply</span></span> fact
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule IS<span class="delimiter">)</span>
-  <span class="keyword1"><span class="improper">apply</span></span> assumption<span class="delimiter">+</span>
-  <span class="keyword1"><span class="improper">done</span></span>
-
-<span class="keyword1">lemma</span> RECT_rule_arb&#39;<span class="delimiter">:</span>
-  <span class="keyword2">fixes</span> x<span class="delimiter">::</span><span class="string">&quot;&#39;x&quot;</span> <span class="keyword2">and</span> arb<span class="delimiter">::</span><span class="tfree">&#39;arb</span>
-  <span class="keyword2">assumes</span> <span class="string">&quot;trimono body&quot;</span>
-    <span class="keyword2">and</span> <span class="string">&quot;wf V&quot;</span>
-    <span class="keyword2">and</span> <span class="string">&quot;pre arb x&quot;</span>
-    <span class="keyword2">and</span>
-    IS<span class="delimiter">:</span> <span class="string">&quot;!!f arb x.
-        [|!!arb&#39; x&#39;. [|pre arb&#39; x&#39;; (x&#39;, x) &isin; V|] ==&gt; f x&#39; &le; M arb&#39; x&#39;; pre arb x;
-         f &le; REC<span class="hidden">&#8681;</span><sub>T</sub> body|]
-        ==&gt; body f x &le; M arb x&quot;</span>
-  <span class="keyword2">shows</span> <span class="string">&quot;REC<span class="hidden">&#8681;</span><sub>T</sub> body x &le; M arb x&quot;</span>
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule RECT_rule_arb<span class="delimiter">[</span><span class="keyword2">where</span> M<span class="delimiter">=</span>M <span class="keyword2">and</span> pre<span class="delimiter">=</span>pre<span class="delimiter">]</span><span class="delimiter">)</span>
-  <span class="keyword1"><span class="improper">apply</span></span> fact
-  <span class="keyword1"><span class="improper">apply</span></span> fact
-  <span class="keyword1"><span class="improper">apply</span></span> fact
-  <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule IS<span class="delimiter">)</span>
-  <span class="keyword1"><span class="improper">apply</span></span> assumption<span class="delimiter">+</span>
-  <span class="keyword1"><span class="improper">apply</span></span> simp
-  <span class="keyword1"><span class="improper">done</span></span>
-
   <span class="comment">(* TODO: Move to refinement framework. Combine with select from CAVA-Base. *)</span>
   <span class="keyword1">definition</span> <span class="string">&quot;SELECTp &equiv; select o Collect&quot;</span>
 
@@ -176,58 +136,6 @@
     <span class="keyword1">term</span> <span class="string">&quot;selectp x. P x&quot;</span>
   <span class="keyword2">end</span>
 
-  <span class="comment">(* TODO: Move to refinement framework! *)</span>
-  <span class="keyword1">lemma</span> WHILEIT_less_WHILEI<span class="delimiter">:</span>
-    <span class="keyword2">assumes</span> <span class="string">&quot;wf V&quot;</span>
-    <span class="keyword2">assumes</span> VAR<span class="delimiter">:</span> <span class="string">&quot;!!s. [| I s; b s; f s &le; SPEC I |] ==&gt; f s &le; SPEC (&lambda;s&#39;. (s&#39;,s)&isin;V)&quot;</span>
-    <span class="keyword2">shows</span> <span class="string">&quot;WHILEIT I b f s &le; WHILEI I b f s&quot;</span>
-    <span class="keyword1">using</span> <span class="cartouche">&#8249;wf V&#8250;</span>
-    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>induction s rule<span class="delimiter">:</span> wf_induct<span class="delimiter">[</span>consumes 1<span class="delimiter">]</span><span class="delimiter">)</span>
-    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst WHILEIT_unfold<span class="delimiter">)</span> 
-    <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst WHILEI_unfold<span class="delimiter">)</span>
-  <span class="keyword1">proof</span> <span class="delimiter">(</span>clarsimp<span class="delimiter">)</span>
-    <span class="keyword3">fix</span> x
-    <span class="keyword3">assume</span> A<span class="delimiter">:</span> <span class="string">&quot;I x&quot;</span> <span class="string">&quot;b x&quot;</span>
-    <span class="keyword3">assume</span> IH<span class="delimiter">:</span> <span class="string">&quot;&forall;y. (y, x) &isin; V --&gt; WHILE<span class="hidden">&#8681;</span><sub>T</sub><span class="hidden">&#8663;</span><sup>I<span class="hidden">&#8662;</span></sup> b f y &le; WHILE<span class="hidden">&#8663;</span><sup>I<span class="hidden">&#8662;</span></sup> b f y&quot;</span>
-
-    <span class="keyword3">show</span> <span class="string">&quot;f x &raquo;= WHILE<span class="hidden">&#8681;</span><sub>T</sub><span class="hidden">&#8663;</span><sup>I<span class="hidden">&#8662;</span></sup> b f &le; f x &raquo;= WHILE<span class="hidden">&#8663;</span><sup>I<span class="hidden">&#8662;</span></sup> b f&quot;</span>
-    <span class="keyword1">proof</span> cases
-      <span class="keyword3">assume</span> B<span class="delimiter">:</span> <span class="string">&quot;f x &le; SPEC I&quot;</span>
-      <span class="keyword3">show</span> <span class="string">&quot;?thesis&quot;</span>
-        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule Refine_Basic.bind_mono<span class="delimiter">(</span>1<span class="delimiter">)</span><span class="delimiter">[</span>OF order_refl<span class="delimiter">]</span><span class="delimiter">)</span>
-        <span class="keyword1">using</span> IH VAR<span class="delimiter">[</span>OF A B<span class="delimiter">]</span>
-        <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff<span class="delimiter">)</span>
-    <span class="keyword1">next</span>
-      <span class="keyword3">assume</span> B<span class="delimiter">:</span> <span class="string">&quot;&not;(f x &le; SPEC I)&quot;</span>
-      <span class="keyword1">hence</span> <span class="string">&quot;f x &raquo;= WHILE<span class="hidden">&#8663;</span><sup>I<span class="hidden">&#8662;</span></sup> b f = FAIL&quot;</span>
-        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>subst WHILEI_unfold<span class="delimiter">[</span>abs_def<span class="delimiter">]</span><span class="delimiter">)</span>
-        <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_eq_iff pw_le_iff refine_pw_simps<span class="delimiter">)</span>
-        <span class="keyword1"><span class="improper">done</span></span>
-      <span class="keyword3">thus</span> <span class="var">?thesis</span> <span class="keyword1">by</span> simp  
-    <span class="keyword1">qed</span>
-  <span class="keyword1">qed</span>
-
-  <span class="keyword1">lemmas</span> WHILEIT_refine_WHILEI <span class="delimiter">=</span> order_trans<span class="delimiter">[</span>OF WHILEIT_less_WHILEI WHILEI_refine<span class="delimiter">]</span>
-
-  <span class="comment">(* TODO: Move to refinement framework! *)</span>
-  <span class="keyword1">lemma</span> bind_sim_select_rule<span class="delimiter">:</span>
-    <span class="keyword2">assumes</span> <span class="string">&quot;m&raquo;=f&#39; &le; SPEC &Psi;&quot;</span>
-    <span class="keyword2">assumes</span> <span class="string">&quot;!!x. [|nofail m; inres m x; f&#39; x&le;SPEC &Psi;|] ==&gt; f x&le;SPEC &Phi;&quot;</span>
-    <span class="keyword2">shows</span> <span class="string">&quot;m&raquo;=f &le; SPEC &Phi;&quot;</span>
-    <span class="delimiter">--</span> <span class="cartouche">&#8249;Simultaneously select a result from assumption and verification goal.
-      Useful to work with assumptions that restrict the current program to 
-      be verified, as, e.g., introduced by @{thm [source] WHILEIT_less_WHILEI}.&#8250;</span>
-    <span class="keyword1">using</span> assms 
-    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
-
-  <span class="comment">(* TODO: Move to refinement framework! *)</span>
-  <span class="keyword1">lemma</span> assert_bind_spec_conv<span class="delimiter">:</span> <span class="string">&quot;ASSERT &Phi; &raquo; m &le; SPEC &Psi; &lt;-&gt; (&Phi; &and; m &le; SPEC &Psi;)&quot;</span>  
-    <span class="delimiter">--</span> <span class="cartouche">&#8249;Simplify a bind-assert verification condition. 
-      Useful if this occurs in the assumptions, and considerably faster than 
-      using pointwise reasoning, which may causes a blowup for many chained 
-      assertions.&#8250;</span>
-    <span class="keyword1">by</span> <span class="delimiter">(</span>auto simp<span class="delimiter">:</span> pw_le_iff refine_pw_simps<span class="delimiter">)</span>
-
 
 <span class="keyword1">definition</span> setsum_impl <span class="delimiter">::</span> <span class="string">&quot;(&#39;a =&gt; &#39;b::comm_monoid_add nres) =&gt; &#39;a set =&gt; &#39;b nres&quot;</span> <span class="keyword2">where</span>
   <span class="string">&quot;setsum_impl g S &equiv; foreach S (&lambda;x a. do { b \&lt;leftarrow&gt; g x; return (a+b)}) 0&quot;</span>
@@ -244,23 +152,10 @@
 
 
     <span class="comment">(* TODO: Move *)</span>
-    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> fold_partial_uncurry<span class="delimiter">:</span> <span class="string">&quot;uncurry (&lambda;(ps, cf). f ps cf) = uncurry2 f&quot;</span> <span class="keyword1">by</span> auto
 
 
 
     <span class="comment">(* TODO: Move. Should this replace hn_refine_cons? *)</span>
-    <span class="keyword1">lemma</span> <span class="delimiter">(</span><span class="keyword2">in</span> -<span class="delimiter">)</span> hn_refine_cons&#39;<span class="delimiter">:</span>
-      <span class="keyword2">assumes</span> I<span class="delimiter">:</span> <span class="string">&quot;P==&gt;<span class="hidden">&#8681;</span><sub>A</sub>P&#39;&quot;</span>
-      <span class="keyword2">assumes</span> R<span class="delimiter">:</span> <span class="string">&quot;hn_refine P&#39; c Q R m&quot;</span>
-      <span class="keyword2">assumes</span> I&#39;<span class="delimiter">:</span> <span class="string">&quot;Q==&gt;<span class="hidden">&#8681;</span><sub>A</sub>Q&#39;*true&quot;</span>
-      <span class="keyword2">assumes</span> R&#39;<span class="delimiter">:</span> <span class="string">&quot;!!x y. R x y ==&gt;<span class="hidden">&#8681;</span><sub>A</sub> R&#39; x y&quot;</span>
-      <span class="keyword2">shows</span> <span class="string">&quot;hn_refine P c Q&#39; R&#39; m&quot;</span>
-      <span class="keyword1">using</span> R <span class="keyword1">unfolding</span> hn_refine_def
-      <span class="keyword1"><span class="improper">apply</span></span> clarsimp
-      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>rule cons_pre_rule<span class="delimiter">[</span>OF I<span class="delimiter">]</span><span class="delimiter">)</span>
-      <span class="keyword1"><span class="improper">apply</span></span> <span class="delimiter">(</span>erule cons_post_rule<span class="delimiter">)</span>
-      <span class="keyword1"><span class="improper">apply</span></span> sep_auto
-      <span class="keyword1">by</span> <span class="delimiter">(</span>simp add<span class="delimiter">:</span> I&#39; R&#39; assn_aci<span class="delimiter">(</span>10<span class="delimiter">)</span> ent_star_mono ent_true_drop<span class="delimiter">(</span>1<span class="delimiter">)</span><span class="delimiter">)</span>
       
     <span class="comment">(* TODO: Move *)</span>  
     <span class="keyword1">lemma</span> param_prod_swap<span class="delimiter">[</span>param<span class="delimiter">]</span><span class="delimiter">:</span> <span class="string">&quot;(prod.swap, prod.swap)&isin;A&times;<span class="hidden">&#8681;</span><sub>r</sub>B -&gt; B&times;<span class="hidden">&#8681;</span><sub>r</sub>A&quot;</span> <span class="keyword1">by</span> auto
