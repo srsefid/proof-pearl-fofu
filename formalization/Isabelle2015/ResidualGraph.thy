@@ -28,7 +28,7 @@ context NFlow
 begin
   text \<open>We abbreviate the residual graph by @{term cf}.\<close>
   abbreviation "cf \<equiv> residualGraph c f"
-  sublocale cf: Graph cf .
+  sublocale cf!: Graph cf .
   lemmas cf_def = residualGraph_def[of c f]
 
 subsection \<open>Properties\<close>
@@ -94,7 +94,7 @@ lemma "cf.V = V"
   by auto
   
 text \<open>As the residual graph has the same nodes as the network, it is also finite:\<close>
-sublocale cf: Finite_Graph cf
+sublocale cf!: Finite_Graph cf
   by unfold_locales auto
 
 text \<open>The capacities on the edges of the residual graph are non-negative\<close>

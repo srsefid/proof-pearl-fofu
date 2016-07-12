@@ -81,7 +81,7 @@ begin
       "
     abbreviation "assn1 src dst \<equiv> \<lambda>(f,PRED,C,N,d). \<not>f \<and> nf_invar' c src dst PRED C N d"
 
-  definition "add_succ_spec dst succ v PRED N \<equiv> ASSERT (N \<subseteq> dom PRED) \<then> SPEC (\<lambda>(f,PRED',N').
+  definition "add_succ_spec dst succ v PRED N \<equiv> ASSERT (N \<subseteq> dom PRED) \<guillemotright> SPEC (\<lambda>(f,PRED',N').
     case f of
       False \<Rightarrow> dst \<notin> succ - dom PRED \<and> PRED' = map_mmupd PRED (succ - dom PRED) v \<and> N' = N \<union> (succ - dom PRED)
     | True \<Rightarrow> dst \<in> succ - dom PRED \<and> PRED \<subseteq>\<^sub>m PRED' \<and> PRED' \<subseteq>\<^sub>m map_mmupd PRED (succ - dom PRED) v \<and> dst\<in>dom PRED'
@@ -623,30 +623,27 @@ subsection \<open>Imperative Implementation\<close>
     lemma pat_op_dfs[pat_rules]: 
       "Graph.bfs2$(absG$c)$(succ$c)$s$t \<equiv> UNPROTECT op_bfs$c$s$t" by simp 
   
-    sepref_register "PR_CONST op_bfs" :: "'ig \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres"  
+    sepref_register "PR_CONST op_bfs" "'ig \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres"  
   
     type_synonym ibfs_state = "bool \<times> (node,node) i_map \<times> node set \<times> node set \<times> nat"
 
-    sepref_register Graph.init_state :: "node \<Rightarrow> ibfs_state nres"
-    schematic_goal init_state_impl:
+    sepref_register Graph.init_state "node \<Rightarrow> ibfs_state nres"
+    schematic_lemma init_state_impl:
       fixes src :: nat
       notes [id_rules] = 
         itypeI[Pure.of src "TYPE(nat)"]
       shows "hn_refine (hn_val nat_rel src srci) (?c::?'c Heap) ?\<Gamma>' ?R (Graph.init_state src)"
       using [[id_debug, goals_limit = 1]]
       unfolding Graph.init_state_def
-      (*apply (subst CTYPE_ANNOT_def[symmetric, Pure.of "[src\<mapsto>src]" "TYPE((nat,nat)i_map)"])*)
-      apply (rewrite in "[src\<mapsto>src]" iam.fold_custom_empty)
-      apply (subst ls.fold_custom_empty)
-      apply (subst ls.fold_custom_empty)
-      apply (rewrite in "insert src _" fold_set_insert_dj)
-      apply (rewrite in "_(\<hole>\<mapsto>src)" fold_COPY)
-      apply sepref
-      done
+      apply (subst CTYPE_ANNOT_def[symmetric, Pure.of "[src\<mapsto>src]" "TYPE((nat,nat)i_map)"])
+      apply (subst op_empty_ls_def[symmetric])
+      apply (subst op_empty_ls_def[symmetric])
+      apply (rewrite in "insert src _" op_set_ins_dj_def[symmetric])
+      by sepref_keep
     concrete_definition (in -) init_state_impl uses Impl_Succ.init_state_impl
     lemmas [sepref_fr_rules] = init_state_impl.refine[OF this_loc,to_hfref]
 
-    schematic_goal bfs_impl:
+    schematic_lemma bfs_impl:
       (*notes [sepref_opt_simps del] = imp_nfoldli_def 
           -- \<open>Prevent the foreach-loop to be unfolded to a fixed-point, 
               to produce more readable code for presentation purposes.\<close>*)
@@ -665,11 +662,9 @@ subsection \<open>Imperative Implementation\<close>
       unfolding Graph.bfs2_def Graph.pre_bfs2_def 
         Graph.inner_loop2_def Graph.extract_rpath_def
       unfolding nres_monad_laws  
-      apply (rewrite in "nfoldli _ _ \<hole> _" fold_set_insert_dj)
-      apply (subst HOL_list.fold_custom_empty)+
-      apply (rewrite in "let N={} in _" ls.fold_custom_empty)
+      apply (rewrite in "nfoldli _ _ \<hole> _" op_set_ins_dj_def[symmetric])
       using [[id_debug, goals_limit = 1]]
-      apply sepref
+      apply sepref_keep (* Takes looooong *)
       done
     
     concrete_definition (in -) bfs_impl uses Impl_Succ.bfs_impl

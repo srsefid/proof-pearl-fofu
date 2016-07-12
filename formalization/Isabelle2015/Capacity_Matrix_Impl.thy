@@ -1,6 +1,5 @@
-*** Obsolete, Now in IICF ***
 section \<open>Capacity Matrix by Fixed-Size Array\<close>
-xxtheory Capacity_Matrix_Impl
+theory Capacity_Matrix_Impl
 imports 
   Fofu_Impl_Base   
   Graph

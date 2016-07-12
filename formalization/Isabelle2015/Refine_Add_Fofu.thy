@@ -1,6 +1,5 @@
 theory Refine_Add_Fofu
 imports Fofu_Impl_Base Refine_Monadic_Syntax_Sugar
-  "IRF/DFS_Framework/Misc/DFS_Framework_Refine_Aux"
 begin
 
   notation Heap_Monad.return ("return")
@@ -74,19 +73,19 @@ begin
     done
 
   (* TODO: Move to refinement framework. Combine with select from CAVA-Base. *)
-  definition "SELECTp P \<equiv> if Ex P then RES {Some x | x. P x} else RETURN None"
+  definition "SELECTp \<equiv> select o Collect"
 
   lemma selectp_rule[refine_vcg]: 
     assumes "\<forall>x. \<not>P x \<Longrightarrow> RETURN None \<le> SPEC \<Phi>"
     assumes "\<And>x. P x \<Longrightarrow> RETURN (Some x) \<le> SPEC \<Phi>"
     shows "SELECTp P \<le> SPEC \<Phi>"
-    using assms unfolding SELECTp_def
+    using assms unfolding SELECTp_def select_def[abs_def]
     by (auto)
 
   lemma selectp_refine_eq:
     "SELECTp P \<le> \<Down>(\<langle>R\<rangle>option_rel) (SELECTp Q) \<longleftrightarrow> 
     (\<forall>x. P x \<longrightarrow> (\<exists>y. (x,y)\<in>R \<and> Q y)) \<and> ((\<forall>x. \<not>P x) \<longrightarrow> (\<forall>y. \<not>Q y))"
-    by (auto simp: SELECTp_def option_rel_def
+    by (auto simp: SELECTp_def select_def option_rel_def
       simp: pw_le_iff refine_pw_simps)
 
   lemma selectp_refine[refine]:
@@ -105,7 +104,7 @@ begin
   lemma selectp_pw[refine_pw_simps]:
     "nofail (SELECTp P)"  
     "inres (SELECTp P) r \<longleftrightarrow> (r=None \<longrightarrow> (\<forall>x. \<not>P x)) \<and> (\<forall>x. r=Some x \<longrightarrow> P x)"
-    unfolding SELECTp_def
+    unfolding SELECTp_def select_def[abs_def]
     by auto
 
   lemma selectp_pw_simps[simp]:

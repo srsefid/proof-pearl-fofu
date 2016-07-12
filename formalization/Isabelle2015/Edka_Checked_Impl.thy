@@ -10,10 +10,10 @@ text \<open>
 subsection \<open>Adding Statistic Counters\<close>
 text \<open>We first add some statistic counters, that we use for profiling\<close>
 definition stat_outer_c :: "unit Heap" where "stat_outer_c = return ()"
-lemma insert_stat_outer_c: "m = stat_outer_c \<then> m" 
+lemma insert_stat_outer_c: "m = stat_outer_c \<guillemotright> m" 
   unfolding stat_outer_c_def by simp
 definition stat_inner_c :: "unit Heap" where "stat_inner_c = return ()"
-lemma insert_stat_inner_c: "m = stat_inner_c \<then> m" 
+lemma insert_stat_inner_c: "m = stat_inner_c \<guillemotright> m" 
   unfolding stat_inner_c_def by simp
 
 code_printing
@@ -29,15 +29,15 @@ code_printing
 | constant stat_inner_c \<rightharpoonup> (SML) "stat.inner'_c'_incr"  
 
 
-schematic_goal [code]: "edka_imp_run_0 s t N f brk = ?foo"
+schematic_lemma [code]: "edka_imp_run_0 s t N f brk = ?foo"
   apply (subst edka_imp_run.code)
   apply (rewrite in "\<hole>" insert_stat_outer_c)
   by (rule refl)
   
-thm bfs_impl.code
-schematic_goal [code]: "bfs_impl_0 succ_impl ci ti x = ?foo"
+
+schematic_lemma [code]: "bfs_impl_0 t u l = ?foo"
   apply (subst bfs_impl.code)
-  apply (rewrite in "imp_nfoldli _ _ \<hole> _" insert_stat_inner_c)
+  apply (rewrite in "\<hole>" insert_stat_inner_c)
   by (rule refl)
 
 subsection \<open>Combined Algorithm\<close>
@@ -190,26 +190,29 @@ context Edka_Impl begin
   lemma [def_pat_rules]: 
     "Network.get_cap$c \<equiv> UNPROTECT get_cap" by simp
   sepref_register 
-    "PR_CONST get_cap" :: "node\<times>node \<Rightarrow> capacity_impl"
+    "PR_CONST get_cap" "node\<times>node \<Rightarrow> capacity_impl"
 
   lemma [sepref_import_param]: "(get_am,get_am) \<in> Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>list_rel" 
     by (auto simp: get_am_def intro!: ext)
 
-  schematic_goal compute_flow_val_imp:
+  schematic_lemma compute_flow_val_imp:
     fixes am :: "node \<Rightarrow> node list" and cf :: "capacity_impl graph"
     notes [id_rules] = 
       itypeI[Pure.of am "TYPE(node \<Rightarrow> node list)"]
       itypeI[Pure.of cf "TYPE(capacity_impl i_mtx)"]
     notes [sepref_import_param] = IdI[of N] IdI[of am]
     shows "hn_refine 
-      (hn_ctxt (asmtx_assn N id_assn) cf cfi)
+      (hn_ctxt (is_mtx N) cf cfi)
       (?c::?'d Heap) ?\<Gamma> ?R (compute_flow_val2 am cf)"
     unfolding compute_flow_val2_def
     using [[id_debug, goals_limit = 1]]
-    by sepref
+    by sepref_keep
+      
   concrete_definition (in -) compute_flow_val_imp for c s N am cfi
     uses Edka_Impl.compute_flow_val_imp
+
   prepare_code_thms (in -) compute_flow_val_imp_def
+
 end
 
 context Network_Impl begin
@@ -219,11 +222,11 @@ lemma compute_flow_val_imp_correct_aux:
   assumes ABS_PS: "is_adj_map am"
   assumes RG: "RGraph c s t cf"
   shows "
-    <asmtx_assn N id_assn cf cfi> 
+    <is_mtx N cf cfi> 
       compute_flow_val_imp c s N am cfi
-    <\<lambda>v. asmtx_assn N id_assn cf cfi * \<up>(v = Flow.val c s (flow_of_cf cf))>\<^sub>t"
+    <\<lambda>v. is_mtx N cf cfi * \<up>(v = Flow.val c s (flow_of_cf cf))>\<^sub>t"
 proof -
-  interpret rg: RGraph c s t cf by fact
+  interpret rg!: RGraph c s t cf by fact
 
   have EI: "Edka_Impl c s t N" by unfold_locales fact
   from hn_refine_ref[OF 

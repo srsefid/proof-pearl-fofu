@@ -160,7 +160,7 @@ lemma augFlow_val:
   "isAugmentingPath p \<Longrightarrow> Flow.val cf s (augmentingFlow p) = resCap p"
 proof -
   assume AUG: "isAugmentingPath p"
-  with augFlow_resFlow interpret f: Flow cf s t "augmentingFlow p" .
+  with augFlow_resFlow interpret f!: Flow cf s t "augmentingFlow p" .
 
   note AUG 
   hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmentingPath_def)

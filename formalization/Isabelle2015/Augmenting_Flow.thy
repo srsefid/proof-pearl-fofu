@@ -49,7 +49,7 @@ context
   assumes f'_flow: "Flow cf s t f'"
 begin  
 
-interpretation f': Flow cf s t f' by (rule f'_flow)
+interpretation f'!: Flow cf s t f' by (rule f'_flow)
 
 subsubsection \<open>Capacity Constraint\<close>
 text \<open>First, we have to show that the new flow satisfies the capacity constraint:\<close>
@@ -220,7 +220,7 @@ text \<open>Next, we show that the value of the augmented flow is the sum of the
   
 lemma augment_flow_value: "Flow.val c s (f\<up>f') = val + Flow.val cf s f'"
 proof -
-  interpret f'': Flow c s t "f\<up>f'" using augment_flow_presv[OF assms] . 
+  interpret f''!: Flow c s t "f\<up>f'" using augment_flow_presv[OF assms] . 
 
   txt \<open>For this proof, we set up Isabelle's rewriting engine for rewriting of sums.
     In particular, we add lemmas to convert sums over incoming or outgoing 

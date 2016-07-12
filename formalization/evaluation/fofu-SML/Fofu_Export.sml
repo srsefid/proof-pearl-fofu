@@ -93,11 +93,11 @@ fun update (aref,idx,v) =
 fun length (Unsynchronized.ref Invalid) = raise AccessedOldVersion |
     length (Unsynchronized.ref (Value a)) = Array.length a
 
-fun grow (aref, i, x) = case aref of 
+fun grow (aref, i, x) = case aref of
   (Unsynchronized.ref Invalid) => raise AccessedOldVersion |
   (Unsynchronized.ref (Value a)) => (
     let val len=Array.length a;
-        val na = Array.array (len+i,x) 
+        val na = Array.array (len+i,x)
     in
       aref := Invalid;
       Array.copy {src=a, dst=na, di=0};
@@ -108,7 +108,7 @@ fun grow (aref, i, x) = case aref of
 fun shrink (aref, sz) = case aref of
   (Unsynchronized.ref Invalid) => raise AccessedOldVersion |
   (Unsynchronized.ref (Value a)) => (
-    if sz > Array.length a then 
+    if sz > Array.length a then
       raise Size
     else (
       aref:=Invalid;
@@ -194,10 +194,10 @@ structure FArray = struct
         end
       ;
 
-  fun grow (aref, inc, x) = case aref of 
+  fun grow (aref, inc, x) = case aref of
     (Unsynchronized.ref (Value a)) => (
       let val len=Array.length a;
-          val na = Array.array (len+inc,x) 
+          val na = Array.array (len+inc,x)
       in
         Array.copy {src=a, dst=na, di=0};
         Unsynchronized.ref (Value na)
@@ -209,7 +209,7 @@ structure FArray = struct
 
   fun shrink (aref, sz) = case aref of
     (Unsynchronized.ref (Value a)) => (
-      if sz > Array.length a then 
+      if sz > Array.length a then
         raise Size
       else (
         Unsynchronized.ref (Value (Array.tabulate (sz,fn i => Array.sub (a,i))))
@@ -236,10 +236,10 @@ fun array_grow (a:'a ArrayType) (i:int) (x:'a) = grow (a, i, x);
 
 fun array_shrink (a:'a ArrayType) (sz:int) = shrink (a,sz);
 
-fun array_get_oo (d:'a) (a:'a ArrayType) (i:int) = 
+fun array_get_oo (d:'a) (a:'a ArrayType) (i:int) =
   sub (a,i) handle Subscript => d
 
-fun array_set_oo (d:(unit->'a ArrayType)) (a:'a ArrayType) (i:int) (e:'a) = 
+fun array_set_oo (d:(unit->'a ArrayType)) (a:'a ArrayType) (i:int) (e:'a) =
   update (a, i, e) handle Subscript => d ()
 
 end;
@@ -709,6 +709,24 @@ type 'a semiring_no_zero_divisors =
 val semiring_0_semiring_no_zero_divisors = #semiring_0_semiring_no_zero_divisors
   : 'a semiring_no_zero_divisors -> 'a semiring_0;
 
+type 'a semiring_1_no_zero_divisors =
+  {semiring_1_semiring_1_no_zero_divisors : 'a semiring_1,
+    semiring_no_zero_divisors_semiring_1_no_zero_divisors :
+      'a semiring_no_zero_divisors};
+val semiring_1_semiring_1_no_zero_divisors =
+  #semiring_1_semiring_1_no_zero_divisors :
+  'a semiring_1_no_zero_divisors -> 'a semiring_1;
+val semiring_no_zero_divisors_semiring_1_no_zero_divisors =
+  #semiring_no_zero_divisors_semiring_1_no_zero_divisors :
+  'a semiring_1_no_zero_divisors -> 'a semiring_no_zero_divisors;
+
+type 'a semiring_no_zero_divisors_cancel =
+  {semiring_no_zero_divisors_semiring_no_zero_divisors_cancel :
+     'a semiring_no_zero_divisors};
+val semiring_no_zero_divisors_semiring_no_zero_divisors_cancel =
+  #semiring_no_zero_divisors_semiring_no_zero_divisors_cancel :
+  'a semiring_no_zero_divisors_cancel -> 'a semiring_no_zero_divisors;
+
 type 'a group_add =
   {cancel_semigroup_add_group_add : 'a cancel_semigroup_add,
     minus_group_add : 'a minus, monoid_add_group_add : 'a monoid_add,
@@ -737,13 +755,13 @@ val semiring_0_cancel_ring = #semiring_0_cancel_ring :
 
 type 'a ring_no_zero_divisors =
   {ring_ring_no_zero_divisors : 'a ring,
-    semiring_no_zero_divisors_ring_no_zero_divisors :
-      'a semiring_no_zero_divisors};
+    semiring_no_zero_divisors_cancel_ring_no_zero_divisors :
+      'a semiring_no_zero_divisors_cancel};
 val ring_ring_no_zero_divisors = #ring_ring_no_zero_divisors :
   'a ring_no_zero_divisors -> 'a ring;
-val semiring_no_zero_divisors_ring_no_zero_divisors =
-  #semiring_no_zero_divisors_ring_no_zero_divisors :
-  'a ring_no_zero_divisors -> 'a semiring_no_zero_divisors;
+val semiring_no_zero_divisors_cancel_ring_no_zero_divisors =
+  #semiring_no_zero_divisors_cancel_ring_no_zero_divisors :
+  'a ring_no_zero_divisors -> 'a semiring_no_zero_divisors_cancel;
 
 type 'a neg_numeral =
   {group_add_neg_numeral : 'a group_add, numeral_neg_numeral : 'a numeral};
@@ -760,20 +778,18 @@ val semiring_1_cancel_ring_1 = #semiring_1_cancel_ring_1 :
   'a ring_1 -> 'a semiring_1_cancel;
 
 type 'a ring_1_no_zero_divisors =
-  {ring_1_ring_1_no_zero_divisors : 'a ring_1,
+  {semiring_1_no_zero_divisors_ring_1_no_zero_divisors :
+     'a semiring_1_no_zero_divisors,
+    ring_1_ring_1_no_zero_divisors : 'a ring_1,
     ring_no_zero_divisors_ring_1_no_zero_divisors : 'a ring_no_zero_divisors};
+val semiring_1_no_zero_divisors_ring_1_no_zero_divisors =
+  #semiring_1_no_zero_divisors_ring_1_no_zero_divisors :
+  'a ring_1_no_zero_divisors -> 'a semiring_1_no_zero_divisors;
 val ring_1_ring_1_no_zero_divisors = #ring_1_ring_1_no_zero_divisors :
   'a ring_1_no_zero_divisors -> 'a ring_1;
 val ring_no_zero_divisors_ring_1_no_zero_divisors =
   #ring_no_zero_divisors_ring_1_no_zero_divisors :
   'a ring_1_no_zero_divisors -> 'a ring_no_zero_divisors;
-
-type 'a comm_semiring_1_diff_distrib =
-  {comm_semiring_1_cancel_comm_semiring_1_diff_distrib :
-     'a comm_semiring_1_cancel};
-val comm_semiring_1_cancel_comm_semiring_1_diff_distrib =
-  #comm_semiring_1_cancel_comm_semiring_1_diff_distrib :
-  'a comm_semiring_1_diff_distrib -> 'a comm_semiring_1_cancel;
 
 type 'a comm_ring =
   {comm_semiring_0_cancel_comm_ring : 'a comm_semiring_0_cancel,
@@ -784,22 +800,21 @@ val ring_comm_ring = #ring_comm_ring : 'a comm_ring -> 'a ring;
 
 type 'a comm_ring_1 =
   {comm_ring_comm_ring_1 : 'a comm_ring,
-    comm_semiring_1_diff_distrib_comm_ring_1 : 'a comm_semiring_1_diff_distrib,
+    comm_semiring_1_cancel_comm_ring_1 : 'a comm_semiring_1_cancel,
     ring_1_comm_ring_1 : 'a ring_1};
 val comm_ring_comm_ring_1 = #comm_ring_comm_ring_1 :
   'a comm_ring_1 -> 'a comm_ring;
-val comm_semiring_1_diff_distrib_comm_ring_1 =
-  #comm_semiring_1_diff_distrib_comm_ring_1 :
-  'a comm_ring_1 -> 'a comm_semiring_1_diff_distrib;
+val comm_semiring_1_cancel_comm_ring_1 = #comm_semiring_1_cancel_comm_ring_1 :
+  'a comm_ring_1 -> 'a comm_semiring_1_cancel;
 val ring_1_comm_ring_1 = #ring_1_comm_ring_1 : 'a comm_ring_1 -> 'a ring_1;
 
 type 'a semidom =
-  {comm_semiring_1_diff_distrib_semidom : 'a comm_semiring_1_diff_distrib,
-    semiring_no_zero_divisors_semidom : 'a semiring_no_zero_divisors};
-val comm_semiring_1_diff_distrib_semidom = #comm_semiring_1_diff_distrib_semidom
-  : 'a semidom -> 'a comm_semiring_1_diff_distrib;
-val semiring_no_zero_divisors_semidom = #semiring_no_zero_divisors_semidom :
-  'a semidom -> 'a semiring_no_zero_divisors;
+  {semiring_1_no_zero_divisors_semidom : 'a semiring_1_no_zero_divisors,
+    comm_semiring_1_cancel_semidom : 'a comm_semiring_1_cancel};
+val semiring_1_no_zero_divisors_semidom = #semiring_1_no_zero_divisors_semidom :
+  'a semidom -> 'a semiring_1_no_zero_divisors;
+val comm_semiring_1_cancel_semidom = #comm_semiring_1_cancel_semidom :
+  'a semidom -> 'a comm_semiring_1_cancel;
 
 type 'a idom =
   {comm_ring_1_idom : 'a comm_ring_1,
@@ -948,6 +963,17 @@ val semiring_no_zero_divisors_int =
   {semiring_0_semiring_no_zero_divisors = semiring_0_int} :
   int semiring_no_zero_divisors;
 
+val semiring_1_no_zero_divisors_int =
+  {semiring_1_semiring_1_no_zero_divisors = semiring_1_int,
+    semiring_no_zero_divisors_semiring_1_no_zero_divisors =
+      semiring_no_zero_divisors_int}
+  : int semiring_1_no_zero_divisors;
+
+val semiring_no_zero_divisors_cancel_int =
+  {semiring_no_zero_divisors_semiring_no_zero_divisors_cancel =
+     semiring_no_zero_divisors_int}
+  : int semiring_no_zero_divisors_cancel;
+
 val uminus_int = {uminus = uminus_inta} : int uminus;
 
 val group_add_int =
@@ -968,8 +994,8 @@ val ring_int =
 
 val ring_no_zero_divisors_int =
   {ring_ring_no_zero_divisors = ring_int,
-    semiring_no_zero_divisors_ring_no_zero_divisors =
-      semiring_no_zero_divisors_int}
+    semiring_no_zero_divisors_cancel_ring_no_zero_divisors =
+      semiring_no_zero_divisors_cancel_int}
   : int ring_no_zero_divisors;
 
 val neg_numeral_int =
@@ -982,14 +1008,11 @@ val ring_1_int =
   : int ring_1;
 
 val ring_1_no_zero_divisors_int =
-  {ring_1_ring_1_no_zero_divisors = ring_1_int,
+  {semiring_1_no_zero_divisors_ring_1_no_zero_divisors =
+     semiring_1_no_zero_divisors_int,
+    ring_1_ring_1_no_zero_divisors = ring_1_int,
     ring_no_zero_divisors_ring_1_no_zero_divisors = ring_no_zero_divisors_int}
   : int ring_1_no_zero_divisors;
-
-val comm_semiring_1_diff_distrib_int =
-  {comm_semiring_1_cancel_comm_semiring_1_diff_distrib =
-     comm_semiring_1_cancel_int}
-  : int comm_semiring_1_diff_distrib;
 
 val comm_ring_int =
   {comm_semiring_0_cancel_comm_ring = comm_semiring_0_cancel_int,
@@ -998,13 +1021,13 @@ val comm_ring_int =
 
 val comm_ring_1_int =
   {comm_ring_comm_ring_1 = comm_ring_int,
-    comm_semiring_1_diff_distrib_comm_ring_1 = comm_semiring_1_diff_distrib_int,
+    comm_semiring_1_cancel_comm_ring_1 = comm_semiring_1_cancel_int,
     ring_1_comm_ring_1 = ring_1_int}
   : int comm_ring_1;
 
 val semidom_int =
-  {comm_semiring_1_diff_distrib_semidom = comm_semiring_1_diff_distrib_int,
-    semiring_no_zero_divisors_semidom = semiring_no_zero_divisors_int}
+  {semiring_1_no_zero_divisors_semidom = semiring_1_no_zero_divisors_int,
+    comm_semiring_1_cancel_semidom = comm_semiring_1_cancel_int}
   : int semidom;
 
 val idom_int =
@@ -1686,24 +1709,22 @@ datatype ('a, 'b) pre_network_ext =
 datatype ('a, 'b, 'c) simple_state_nos_impl_ext =
   Simple_state_nos_impl_ext of 'a * 'b * 'c;
 
-fun len A_ a =
-  (fn () => let
-              val i = (fn () => Array.length a) ();
-            in
-              nat_of_integer i
-            end);
+fun len A_ a = (fn () => let
+                           val i = (fn () => Array.length a) ();
+                         in
+                           nat_of_integer i
+                         end);
 
 fun new A_ = (fn a => fn b => (fn () => Array.array (a, b))) o integer_of_nat;
 
 fun nth A_ a n = (fn () => Array.sub (a, integer_of_nat n));
 
 fun upd A_ i x a =
-  (fn () =>
-    let
-      val _ = (fn () => Array.update (a, integer_of_nat i, x)) ();
-    in
-      a
-    end);
+  (fn () => let
+              val _ = (fn () => Array.update (a, integer_of_nat i, x)) ();
+            in
+              a
+            end);
 
 fun fold f (x :: xs) s = fold f xs (f x s)
   | fold f [] s = s;
@@ -1853,8 +1874,6 @@ fun sgn_integer k =
     else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
            else (1 : IntInf.int)));
 
-fun abs_integer k = (if IntInf.< (k, (0 : IntInf.int)) then IntInf.~ k else k);
-
 fun apsnd f (x, y) = (x, f y);
 
 fun divmod_integer k l =
@@ -1871,7 +1890,7 @@ fun divmod_integer k l =
                            (if ((s : IntInf.int) = (0 : IntInf.int))
                              then (IntInf.~ r, (0 : IntInf.int))
                              else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                    IntInf.- (abs_integer l, s)))
+                                    IntInf.- (IntInf.abs l, s)))
                          end)));
 
 fun mod_integer k l = snd (divmod_integer k l);
@@ -1920,12 +1939,11 @@ fun idx_iteratei_array_length_array_get l c f sigma =
 fun ahm_iteratei_aux A_ a c f sigma =
   idx_iteratei_array_length_array_get a c (fn x => foldli x c f) sigma;
 
-fun ahm_rehash_auxa A_ n kv a =
-  let
-    val h = bounded_hashcode_nat A_ n (fst kv);
-  in
-    array_set a h (kv :: array_get a h)
-  end;
+fun ahm_rehash_auxa A_ n kv a = let
+                                  val h = bounded_hashcode_nat A_ n (fst kv);
+                                in
+                                  array_set a h (kv :: array_get a h)
+                                end;
 
 fun ahm_rehash_aux A_ a sz =
   ahm_iteratei_aux A_ a (fn _ => true) (ahm_rehash_auxa A_ sz)
@@ -2147,12 +2165,11 @@ fun idx_iteratei get sz l c f sigma =
 fun ahm_iteratei_auxa a c f sigma =
   idx_iteratei array_get array_length a c (fn x => foldli x c f) sigma;
 
-fun ahm_rehash_auxc bhc n kv a =
-  let
-    val h = bhc n (fst kv);
-  in
-    array_set a h (kv :: array_get a h)
-  end;
+fun ahm_rehash_auxc bhc n kv a = let
+                                   val h = bhc n (fst kv);
+                                 in
+                                   array_set a h (kv :: array_get a h)
+                                 end;
 
 fun ahm_rehash_auxb bhc a sz =
   ahm_iteratei_auxa a (fn _ => true) (ahm_rehash_auxc bhc sz) (new_array [] sz);
@@ -2206,13 +2223,12 @@ fun ahm_emptyb def_size = new_hashmap_witha def_size;
 
 fun gi_V0 (Gen_g_impl_ext (gi_V, gi_E, gi_V0, more)) = gi_V0;
 
-fun ras_top s =
-  let
-    val a = s;
-    val (aa, n) = a;
-  in
-    array_get aa (minus_nat n one_nata)
-  end;
+fun ras_top s = let
+                  val a = s;
+                  val (aa, n) = a;
+                in
+                  array_get aa (minus_nat n one_nata)
+                end;
 
 fun array_shrink a = FArray.IsabelleMapping.array_shrink a o integer_of_nat;
 
@@ -2229,13 +2245,12 @@ fun ras_shrink s =
     (ab, n)
   end;
 
-fun ras_pop s =
-  let
-    val a = s;
-    val (aa, n) = a;
-  in
-    ras_shrink (aa, minus_nat n one_nata)
-  end;
+fun ras_pop s = let
+                  val a = s;
+                  val (aa, n) = a;
+                in
+                  ras_shrink (aa, minus_nat n one_nata)
+                end;
 
 fun gi_E (Gen_g_impl_ext (gi_V, gi_E, gi_V0, more)) = gi_E;
 
@@ -2448,12 +2463,11 @@ fun checkNet4 el s t =
                else NONE)));
 
 fun prepareNet el s t =
-  bind (checkNet4 el s t)
-    (fn (c, adjmap) => let
-                         val n = ln_N el;
-                       in
-                         SOME (c, (adjmap, n))
-                       end);
+  bind (checkNet4 el s t) (fn (c, adjmap) => let
+       val n = ln_N el;
+     in
+       SOME (c, (adjmap, n))
+     end);
 
 fun array_grow A_ a s x =
   (fn () =>
@@ -2496,17 +2510,18 @@ fun iam_update A_ k v a =
     k (SOME v) a;
 
 fun init_state_impl srci =
-  (fn () =>
-    let
-      val x = iam_new heap_nat ();
-      val xa = iam_update heap_nat srci srci x ();
-    in
-      (false, (xa, ([srci], ([], zero_nata))))
-    end);
+  (fn () => let
+              val x = iam_new heap_nat ();
+              val xa = iam_update heap_nat srci srci x ();
+            in
+              (false, (xa, ([srci], ([], zero_nata))))
+            end);
+
+fun op_list_prepend x = (fn a => x :: a);
 
 fun iam_lookup A_ k a = nth_oo (heap_option A_) NONE a k;
 
-fun bfs_impl_2 si a2 x =
+fun bfs_impl_1 si a2 x =
   (if let
         val (a1a, _) = x;
       in
@@ -2519,58 +2534,43 @@ fun bfs_impl_2 si a2 x =
                  val (a1a, a2a) = x;
                in
                  (fn f_ => fn () => f_ ((iam_lookup heap_nat a1a a2) ()) ())
-                   (fn xa =>
-                     let
-                       val x_i = the xa;
-                     in
-                       (fn () => (x_i, (x_i, a1a) :: a2a))
-                     end)
+                   (fn xa => let
+                               val x_f = the xa;
+                             in
+                               (fn () => (x_f, op_list_prepend (x_f, a1a) a2a))
+                             end)
                end
                  ();
            in
-             bfs_impl_2 si a2 xa ()
+             bfs_impl_1 si a2 xa ()
            end)
     else (fn () => x));
+
+fun is_None a = (case a of NONE => true | SOME _ => false);
+
+fun contains_key_iam_lookup A_ k m = (fn () => let
+         val r = iam_lookup A_ k m ();
+       in
+         not (is_None r)
+       end);
 
 fun equal_bool p true = p
   | equal_bool p false = not p
   | equal_bool true p = p
   | equal_bool false p = not p;
 
-fun is_None a = (case a of NONE => true | SOME _ => false);
-
-fun bfs_impl_0 t u l =
+fun imp_nfoldli (x :: ls) c f s =
   (fn () =>
     let
-      val _ = stat.inner_c_incr ();
+      val b = c s ();
     in
-      (case l of ([], s) => (fn () => s)
-        | (x :: ls, s) =>
-          (if let
-                val (a1d, (_, _)) = s;
-              in
-                not a1d
-              end
-            then (fn f_ => fn () => f_
-                   (let
-                      val (a1d, (a1e, a2e)) = s;
-                    in
-                      (fn f_ => fn () => f_ ((iam_lookup heap_nat x a1e) ()) ())
-                        (fn xa =>
-                          (if not (is_None xa) then (fn () => (a1d, (a1e, a2e)))
-                            else (fn f_ => fn () => f_
-                                   ((iam_update heap_nat x u a1e) ()) ())
-                                   (fn x_l =>
-                                     (fn () =>
-                                       (equal_nata x t, (x_l, x :: a2e))))))
-                    end
-                   ()) ())
-                   (fn sa => bfs_impl_0 t u (ls, sa))
-            else (fn () => s)))
+      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
+        else (fn () => s))
         ()
-    end);
+    end)
+  | imp_nfoldli [] c f s = (fn () => s);
 
-fun bfs_impl_1 succ_impl ci ti x =
+fun bfs_impl_0 succ_impl ci ti x =
   (if let
         val (a1, (_, (a1b, (_, _)))) = x;
       in
@@ -2581,26 +2581,40 @@ fun bfs_impl_1 succ_impl ci ti x =
              val xa =
                let
                  val (_, (a1a, (a1b, (a1c, a2c)))) = x;
-                 val x_e = hd a1b;
-                 val x_f = glist_delete equal_nata x_e a1b;
+                 val x_b = hd a1b;
+                 val x_c = glist_delete equal_nata x_b a1b;
                in
-                 (fn f_ => fn () => f_ ((succ_impl ci x_e) ()) ())
-                   (fn x_h =>
+                 (fn f_ => fn () => f_ ((succ_impl ci x_b) ()) ())
+                   (fn x_e =>
                      (fn f_ => fn () => f_
-                       ((bfs_impl_0 ti x_e (x_h, (false, (a1a, a1c)))) ()) ())
+                       ((imp_nfoldli x_e
+                          (fn (a1d, (_, _)) => (fn () => (not a1d)))
+                          (fn xg => fn (a1d, (a1e, a2e)) =>
+                            (fn f_ => fn () => f_ (stat.inner_c_incr ()) ())
+                              (fn _ =>
+                                (fn f_ => fn () => f_
+                                  ((contains_key_iam_lookup heap_nat xg a1e) ())
+                                  ())
+                                  (fn x_h =>
+                                    (if x_h then (fn () => (a1d, (a1e, a2e)))
+                                      else (fn f_ => fn () => f_
+     ((iam_update heap_nat xg x_b a1e) ()) ())
+     (fn x_i => (fn () => (equal_nata xg ti, (x_i, xg :: a2e))))))))
+                          (false, (a1a, a1c)))
+                       ()) ())
                        (fn (a1d, (a1e, a2e)) =>
                          (fn () =>
                            (if a1d
                              then (a1d, (a1e,
-  (x_f, (a2e, plus_nat a2c one_nata))))
-                             else (if is_Nil x_f
+  (x_c, (a2e, plus_nat a2c one_nata))))
+                             else (if is_Nil x_c
                                     then (a1d,
    (a1e, (a2e, ([], plus_nat a2c one_nata))))
-                                    else (a1d, (a1e, (x_f, (a2e, a2c)))))))))
+                                    else (a1d, (a1e, (x_c, (a2e, a2c)))))))))
                end
                  ();
            in
-             bfs_impl_1 succ_impl ci ti xa ()
+             bfs_impl_0 succ_impl ci ti xa ()
            end)
     else (fn () => x));
 
@@ -2608,16 +2622,16 @@ fun bfs_impl succ_impl ci si ti =
   (if equal_nata si ti then (fn () => (SOME []))
     else (fn () =>
            let
-             val x_d = init_state_impl si ();
-             val x_e = bfs_impl_1 succ_impl ci ti x_d ();
+             val x_a = init_state_impl si ();
+             val x_b = bfs_impl_0 succ_impl ci ti x_a ();
            in
-             (case (case x_e of (true, (a1a, (_, (_, a2c)))) => SOME (a2c, a1a)
+             (case (case x_b of (true, (a1a, (_, (_, a2c)))) => SOME (a2c, a1a)
                      | (false, (_, (_, (_, _)))) => NONE)
                of NONE => (fn () => NONE)
                | SOME (_, a2) =>
-                 (fn f_ => fn () => f_ ((bfs_impl_2 si a2 (ti, [])) ()) ())
-                   (fn x_h => (fn () => (SOME let
-        val (_, b) = x_h;
+                 (fn f_ => fn () => f_ ((bfs_impl_1 si a2 (ti, [])) ()) ())
+                   (fn x_e => (fn () => (SOME let
+        val (_, b) = x_e;
       in
         b
       end))))
@@ -2628,24 +2642,26 @@ fun mtx_get A_ n mtx e = nth A_ mtx (plus_nat (times_nat (fst e) n) (snd e));
 
 fun succ_imp_0 n cfi ui x =
   (case x of ([], a2) => (fn () => a2)
-    | (x_e :: xs, a2) =>
+    | (x_b :: xs, a2) =>
       (fn () =>
         let
-          val xa = mtx_get heap_int n cfi (ui, x_e) ();
+          val xa = mtx_get heap_int n cfi (ui, x_b) ();
         in
           succ_imp_0 n cfi ui
-            (xs, (if less_int zero_inta xa then x_e :: a2 else a2)) ()
+            (xs, (if less_int zero_inta xa then op_list_prepend x_b a2 else a2))
+            ()
         end));
 
 fun ps_get_imp A_ psi u = nth A_ psi u;
 
+val op_list_empty : 'a list = [];
+
 fun succ_imp n psi cfi ui =
-  (fn () =>
-    let
-      val x_c = ps_get_imp (heap_list heap_nat) psi ui ();
-    in
-      succ_imp_0 n cfi ui (x_c, []) ()
-    end);
+  (fn () => let
+              val x = ps_get_imp (heap_list heap_nat) psi ui ();
+            in
+              succ_imp_0 n cfi ui (x, op_list_empty) ()
+            end);
 
 fun bfsi n s t psi cfi = bfs_impl (fn (a, b) => succ_imp n a b) (psi, cfi) s t;
 
@@ -2655,66 +2671,57 @@ fun min A_ a b = (if less_eq A_ a b then a else b);
 
 fun get_am am v = am v;
 
-fun div_integer k l = fst (divmod_integer k l);
+fun divide_integer k l = fst (divmod_integer k l);
 
-fun div_nat m n = Nat (div_integer (integer_of_nat m) (integer_of_nat n));
+fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
 fun mtx_new A_ n c =
-  make A_ (times_nat n n) (fn i => c (div_nat i n, mod_nat i n));
+  make A_ (times_nat n n) (fn i => c (divide_nat i n, mod_nat i n));
 
 fun edka_imp_tabulate c n am =
-  (fn () =>
-    let
-      val x = mtx_new heap_int n c ();
-      val x_a = make (heap_list heap_nat) n am ();
-    in
-      (x, x_a)
-    end);
+  (fn () => let
+              val x = mtx_new heap_int n c ();
+              val x_a = make (heap_list heap_nat) n am ();
+            in
+              (x, x_a)
+            end);
 
 fun mtx_set A_ n mtx e v =
   upd A_ (plus_nat (times_nat (fst e) n) (snd e)) v mtx;
 
-fun augment_imp_0 n capi x =
+fun augment_imp_0 n bi x =
   (case x of ([], a2) => (fn () => a2)
-    | (x_d :: xs, a2) =>
+    | (x_a :: xs, a2) =>
       (fn () =>
         let
-          val xa = mtx_get heap_int n a2 x_d ();
-          val xb = mtx_set heap_int n a2 x_d (minus_inta xa capi) ();
-          val x_e =
+          val xa = mtx_get heap_int n a2 x_a ();
+          val xb = mtx_set heap_int n a2 x_a (minus_inta xa bi) ();
+          val x_b =
             let
-              val x_g = swap x_d;
+              val x_d = swap x_a;
             in
-              (fn f_ => fn () => f_ ((mtx_get heap_int n xb x_g) ()) ())
-                (fn x_i => mtx_set heap_int n xb x_g (plus_inta x_i capi))
+              (fn f_ => fn () => f_ ((mtx_get heap_int n xb x_d) ()) ())
+                (fn x_f => mtx_set heap_int n xb x_d (plus_inta x_f bi))
             end
               ();
         in
-          augment_imp_0 n capi (xs, x_e) ()
+          augment_imp_0 n bi (xs, x_b) ()
         end));
 
-fun augment_imp n cfi pi capi = augment_imp_0 n capi (pi, cfi);
-
-fun resCap_imp_0 n cfi x =
-  (case x of ([], s) => (fn () => s)
-    | (xa :: ls, s) =>
-      (if true
-        then (fn () =>
-               let
-                 val xb = mtx_get heap_int n cfi xa ();
-               in
-                 resCap_imp_0 n cfi (ls, min ord_int xb s) ()
-               end)
-        else (fn () => s)));
+fun augment_imp n = (fn ai => fn bia => fn bi => augment_imp_0 n bi (bia, ai));
 
 fun resCap_imp n cfi pi =
   (case pi of [] => (fn () => zero_inta)
-    | x_b :: xs =>
+    | x :: xs =>
       (fn () =>
         let
-          val x_c = mtx_get heap_int n cfi x_b ();
+          val xa = mtx_get heap_int n cfi x ();
         in
-          resCap_imp_0 n cfi (xs, x_c) ()
+          imp_nfoldli xs (fn _ => (fn () => true))
+            (fn xb => fn sigma =>
+              (fn f_ => fn () => f_ ((mtx_get heap_int n cfi xb) ()) ())
+                (fn x_c => (fn () => (min ord_int x_c sigma))))
+            xa ()
         end));
 
 fun edka_imp_run_0 s t n f brk =
@@ -2734,12 +2741,12 @@ fun edka_imp_run_0 s t n f brk =
                   (fn f_ => fn () => f_ ((bfsi n s t f a1) ()) ())
                     (fn a =>
                       (case a of NONE => (fn () => (a1, true))
-                        | SOME x_d =>
-                          (fn f_ => fn () => f_ ((resCap_imp n a1 x_d) ()) ())
-                            (fn x_e =>
-                              (fn f_ => fn () => f_ ((augment_imp n a1 x_d x_e)
+                        | SOME x_b =>
+                          (fn f_ => fn () => f_ ((resCap_imp n a1 x_b) ()) ())
+                            (fn x_c =>
+                              (fn f_ => fn () => f_ ((augment_imp n a1 x_b x_c)
                                 ()) ())
-                                (fn x_f => (fn () => (x_f, false))))))
+                                (fn x_d => (fn () => (x_d, false))))))
                 end
                ()) ())
                (edka_imp_run_0 s t n f)
@@ -2748,56 +2755,44 @@ fun edka_imp_run_0 s t n f brk =
     end);
 
 fun edka_imp_run s t n cfi psi =
-  (fn () =>
-    let
-      val a = edka_imp_run_0 s t n psi (cfi, false) ();
-    in
-      let
-        val (a1, _) = a;
-      in
-        (fn () => a1)
-      end
-        ()
-    end);
+  (fn () => let
+              val a = edka_imp_run_0 s t n psi (cfi, false) ();
+            in
+              let
+                val (a1, _) = a;
+              in
+                (fn () => a1)
+              end
+                ()
+            end);
 
-fun edka_imp c s t n am =
-  (fn () =>
-    let
-      val a = edka_imp_tabulate c n am ();
-    in
-      let
-        val (aa, b) = a;
-      in
-        edka_imp_run s t n aa b
-      end
-        ()
-    end);
+fun edka_imp c s t n am = (fn () => let
+                                      val a = edka_imp_tabulate c n am ();
+                                    in
+                                      let
+val (aa, b) = a;
+                                      in
+edka_imp_run s t n aa b
+                                      end
+()
+                                    end);
 
 fun edmonds_karp el s t =
   (case prepareNet el s t of NONE => (fn () => NONE)
-    | SOME (c, (am, n)) =>
-      (fn () =>
-        let
-          val f = edka_imp c s t n am ();
-        in
-          SOME (c, (am, (n, f)))
-        end));
-
-fun compute_flow_val_imp_0 c s n cfi x =
-  (case x of ([], sa) => (fn () => sa)
-    | (xa :: ls, sa) =>
-      (if true
-        then (fn () =>
-               let
-                 val xaa = mtx_get heap_int n cfi (s, xa) ();
-               in
-                 compute_flow_val_imp_0 c s n cfi
-                   (ls, plus_inta sa (minus_inta (c (s, xa)) xaa)) ()
-               end)
-        else (fn () => sa)));
+    | SOME (c, (am, n)) => (fn () => let
+                                       val f = edka_imp c s t n am ();
+                                     in
+                                       SOME (c, (am, (n, f)))
+                                     end));
 
 fun compute_flow_val_imp c s n am cfi =
-  compute_flow_val_imp_0 c s n cfi (get_am am s, zero_inta);
+  imp_nfoldli (get_am am s) (fn _ => (fn () => true))
+    (fn xc => fn sigma => fn () => let
+                                     val x = mtx_get heap_int n cfi (s, xc) ();
+                                   in
+                                     plus_inta sigma (minus_inta (c (s, xc)) x)
+                                   end)
+    zero_inta;
 
 fun edmonds_karp_val el s t =
   (fn () =>

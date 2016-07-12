@@ -16,7 +16,7 @@ context Network
 begin
 
 text \<open>First, we specify the refined procedure for finding augmenting paths\<close>
-definition "find_shortest_augmenting_spec f \<equiv> ASSERT (NFlow c s t f) \<then> 
+definition "find_shortest_augmenting_spec f \<equiv> ASSERT (NFlow c s t f) \<guillemotright> 
   SELECTp (\<lambda>p. Graph.isShortestPath (residualGraph c f) s p t)"
 
 text \<open>Note, if there is an augmenting path, there is always a shortest one\<close>
@@ -151,7 +151,7 @@ lemma isShortestPath_flip_edges:
   assumes P': "Graph.isPath c' s p' t" "prod.swap`edges \<inter> set p' \<noteq> {}"
   shows "length p + 2 \<le> length p'"
 proof -
-  interpret g': Graph c' .
+  interpret g'!: Graph c' .
 
   (* TODO: The proof still contains some redundancy: A first flipped edge
     is searched in both, the induction, and the initialization *)
@@ -319,9 +319,9 @@ lemma measure_decr:
     and "edges - Graph.E c' \<noteq> {} 
          \<Longrightarrow> ek_analysis_defs.ekMeasure c' s t < ekMeasure"
 proof -
-  interpret g': ek_analysis_defs c' s t .
+  interpret g'!: ek_analysis_defs c' s t .
 
-  interpret g': ek_analysis c' s t
+  interpret g'!: ek_analysis c' s t
     apply intro_locales
     apply (rule g'.Finite_Graph_EI)
     using finite_subset[OF Ebounds(2)] finite_subset[OF SP_EDGES]
@@ -547,8 +547,8 @@ theorem shortest_path_decr_ek_measure:
   defines "cf' \<equiv> residualGraph c f'"
   shows "ek_analysis_defs.ekMeasure cf' s t < ek_analysis_defs.ekMeasure cf s t"
 proof -
-  interpret cf: ek_analysis cf by unfold_locales
-  interpret cf': ek_analysis_defs cf' .
+  interpret cf!: ek_analysis cf by unfold_locales
+  interpret cf'!: ek_analysis_defs cf' .
 
   from SP have AUG: "isAugmentingPath p" 
     unfolding isAugmentingPath_def cf.isShortestPath_alt by simp
@@ -643,17 +643,15 @@ theorem edka_refine[refine]: "edka \<le> \<Down>Id edka_partial"
     WHILEIT_refine_WHILEI[where V=edka_wf_rel])
   apply (refine_dref_type)
   apply (simp; fail)
-  subgoal
-    txt \<open>Unfortunately, the verification condition for introducing 
-      the variant requires a bit of manual massaging to be solved:\<close>
-    apply (simp)
-    apply (erule bind_sim_select_rule)
-    apply (auto split: option.split 
-      simp: assert_bind_spec_conv Let_def
-      simp: find_shortest_augmenting_spec_def
-      simp: edka_wf_rel_def NFlow.shortest_path_decr_ek_measure
-    ; fail) []
-  done
+  txt \<open>Unfortunately, the verification condition for introducing 
+    the variant requires a bit of manual massaging to be solved:\<close>
+  apply (simp)
+  apply (erule bind_sim_select_rule)
+  apply (auto split: option.split 
+    simp: assert_bind_spec_conv 
+    simp: find_shortest_augmenting_spec_def
+    simp: edka_wf_rel_def NFlow.shortest_path_decr_ek_measure
+  ; fail)
 
   txt \<open>The other VCs are straightforward\<close>
   apply (vc_solve)
@@ -673,7 +671,7 @@ proof -
     unfolding NFlow_def Flow_def using Network_axioms 
       by (auto simp: s_node t_node cap_non_negative)
 
-  interpret ek: ek_analysis cf  
+  interpret ek!: ek_analysis cf  
     by unfold_locales auto
 
   have cardV_positive: "card V > 0" and cardE_positive: "card E > 0"

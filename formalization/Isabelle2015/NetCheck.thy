@@ -3,7 +3,7 @@ imports
   Fofu_Impl_Base
    Network 
   "Graph_Impl"
-  "IRF/DFS_Framework/Examples/Reachable_Nodes"
+  "cava/DFS_Framework/Examples/Reachable_Nodes"
 begin
 
   declare [[coercion_delete int]]
@@ -531,11 +531,11 @@ begin
     qed
     
   record 'capacity::linordered_idom pre_network' =
-    pn_c' :: "(nat*nat,'capacity) ArrayHashMap.ahm"
+    pn_c' :: "(nat*nat,'capacity) ahm"
     pn_V' :: "nat ahs"
-    pn_succ' :: "(nat,nat list) ArrayHashMap.ahm"
-    pn_pred' :: "(nat,nat list) ArrayHashMap.ahm"
-    pn_adjmap' :: "(nat,nat list) ArrayHashMap.ahm"
+    pn_succ' :: "(nat,nat list) ahm"
+    pn_pred' :: "(nat,nat list) ahm"
+    pn_adjmap' :: "(nat,nat list) ahm"
     pn_s_node' :: bool
     pn_t_node' :: bool
 
@@ -1093,7 +1093,7 @@ begin
     apply (auto simp: rev_well_formed_pn_def Graph.E_def pnet_\<alpha>_def o_def ahm_correct)
     done   
   
-  schematic_goal reachable_impl:
+  schematic_lemma reachable_impl:
     assumes [simp]: "finite ((g_E G)\<^sup>* `` g_V0 G)" "graph G"
     assumes [autoref_rules]: "(Gi,G)\<in>\<langle>unit_rel,nat_rel\<rangle>g_impl_rel_ext"
     shows "RETURN (?c::?'c) \<le> \<Down>?R (RETURN (op_reachable G))"  
@@ -1108,7 +1108,7 @@ begin
   context begin
     interpretation autoref_syn .
 
-    schematic_goal sets_eq_impl:
+    schematic_lemma sets_eq_impl:
       fixes a b :: "nat set"
       assumes [autoref_rules]: "(ai,a) \<in> \<langle>nat_rel\<rangle>ahs.rel"
       assumes [autoref_rules]: "(bi,b) \<in> \<langle>nat_rel\<rangle>dflt_ahs_rel"
@@ -1252,7 +1252,7 @@ begin
   end  
 
 
-  schematic_goal checkNet4: "RETURN ?c \<le> checkNet3 el s t"
+  schematic_lemma checkNet4: "RETURN ?c \<le> checkNet3 el s t"
     unfolding checkNet3_def
     by (refine_transfer)
   concrete_definition checkNet4 for el s t uses checkNet4

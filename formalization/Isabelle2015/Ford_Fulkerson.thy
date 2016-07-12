@@ -192,8 +192,8 @@ proof clarify
   {
     fix f'
     assume "Flow c s t f'"
-    then interpret fc': NFlow c s t f' by intro_locales
-    interpret fc': NFlowCut c s t f' k by intro_locales
+    then interpret fc'!: NFlow c s t f' by intro_locales
+    interpret fc'!: NFlowCut c s t f' k by intro_locales
 
     have "fc'.val \<le> cap" using fc'.weak_duality .
     also note \<open>val = cap\<close>[symmetric]

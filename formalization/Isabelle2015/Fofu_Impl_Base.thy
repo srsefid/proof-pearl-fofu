@@ -1,7 +1,8 @@
 theory Fofu_Impl_Base
 imports 
-  "IRF/Refine_Imperative_HOL/IICF/IICF"
-  "IRF/Refine_Imperative_HOL/Sepref_ICF_Bindings"
+  CAVA_Base 
+  "cava/Libs/Refine_Imperative_HOL/Sepref"
+  "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
   "~~/src/HOL/Library/Rewrite"
   Refine_Monadic_Syntax_Sugar
 begin
