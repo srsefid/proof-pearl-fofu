@@ -1,0 +1,18 @@
+(AQ1)
+Email of first author is: lammich@in.tum.de, email of second author is
+sefidgar@in.tum.de. Put email-icons after both author's names!
+Both authors are also corresponding authors. If only one corresponding
+author is allowed, pick Lammich.
+
+pg12: Inconsistently inserted spaces between number and unit (2.8 GHz,
+but 16GiB). Change to "16 GiB"!
+
+References:
+  3. "Isabelle" is a name: has to start with capital letter!
+  8. "Even" is a name: Starts with capital letter!
+  21. "Imperative HOL" is the name of a system: Both words start with
+capital letter!
+      Formalproof -> Formal proof (re-insert space!)
+  23. Remove the "1" at end of title
+
+

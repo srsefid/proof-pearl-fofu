@@ -297,7 +297,7 @@ that the augmented flow satisfies the capacity constraint. Cormen et al.~give th
 For the capacity constraint, first observe that if $(u, v) \in E$, then $c_f(v, u) = f(u, v)$. Therefore, we have $f'(v,u) \leq c_f(v, u) = f(u, v)$, and hence
 	\begin{align*}
 	(f \uparrow f') (u, v) &= f(u, v) + f'(u, v) - f'(v, u)  && \text{(definition of $\augment$)} \\
-	& \geq f(u, v) + f'(u, v) - f(v, u) && \text{(because $f'(v,u) \leq f(u, v)$)} \\
+	& \geq f(u, v) + f'(u, v) - f(u, v) && \text{(because $f'(v,u) \leq f(u, v)$)} \\
 	& = f'(u, v) \\
 	& \geq 0.
 	\end{align*}
