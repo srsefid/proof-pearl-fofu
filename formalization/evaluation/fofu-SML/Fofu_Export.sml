@@ -2638,17 +2638,17 @@ fun bfs_impl succ_impl ci si ti =
                ()
            end));
 
-fun mtx_get A_ n mtx e = nth A_ mtx (plus_nat (times_nat (fst e) n) (snd e));
+fun mtx_get A_ m mtx e = nth A_ mtx (plus_nat (times_nat (fst e) m) (snd e));
 
 fun succ_imp_0 n cfi ui x =
   (case x of ([], a2) => (fn () => a2)
-    | (x_b :: xs, a2) =>
+    | (x_b :: l, a2) =>
       (fn () =>
         let
           val xa = mtx_get heap_int n cfi (ui, x_b) ();
         in
           succ_imp_0 n cfi ui
-            (xs, (if less_int zero_inta xa then op_list_prepend x_b a2 else a2))
+            (l, (if less_int zero_inta xa then op_list_prepend x_b a2 else a2))
             ()
         end));
 
@@ -2675,23 +2675,25 @@ fun divide_integer k l = fst (divmod_integer k l);
 
 fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
-fun mtx_new A_ n c =
-  make A_ (times_nat n n) (fn i => c (divide_nat i n, mod_nat i n));
+fun mtx_new A_ n m c =
+  make A_ (times_nat n m) (fn i => c (divide_nat i m, mod_nat i m));
+
+fun init_cf_impl c n = mtx_new heap_int n n c;
 
 fun edka_imp_tabulate c n am =
   (fn () => let
-              val x = mtx_new heap_int n c ();
+              val x = init_cf_impl c n ();
               val x_a = make (heap_list heap_nat) n am ();
             in
               (x, x_a)
             end);
 
-fun mtx_set A_ n mtx e v =
-  upd A_ (plus_nat (times_nat (fst e) n) (snd e)) v mtx;
+fun mtx_set A_ m mtx e v =
+  upd A_ (plus_nat (times_nat (fst e) m) (snd e)) v mtx;
 
 fun augment_imp_0 n bi x =
   (case x of ([], a2) => (fn () => a2)
-    | (x_a :: xs, a2) =>
+    | (x_a :: l, a2) =>
       (fn () =>
         let
           val xa = mtx_get heap_int n a2 x_a ();
@@ -2705,19 +2707,19 @@ fun augment_imp_0 n bi x =
             end
               ();
         in
-          augment_imp_0 n bi (xs, x_b) ()
+          augment_imp_0 n bi (l, x_b) ()
         end));
 
 fun augment_imp n = (fn ai => fn bia => fn bi => augment_imp_0 n bi (bia, ai));
 
 fun resCap_imp n cfi pi =
   (case pi of [] => (fn () => zero_inta)
-    | x :: xs =>
+    | x :: l =>
       (fn () =>
         let
           val xa = mtx_get heap_int n cfi x ();
         in
-          imp_nfoldli xs (fn _ => (fn () => true))
+          imp_nfoldli l (fn _ => (fn () => true))
             (fn xb => fn sigma =>
               (fn f_ => fn () => f_ ((mtx_get heap_int n cfi xb) ()) ())
                 (fn x_c => (fn () => (min ord_int x_c sigma))))

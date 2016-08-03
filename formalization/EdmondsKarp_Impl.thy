@@ -3,7 +3,7 @@ theory EdmondsKarp_Impl
 imports 
   EdmondsKarp_Algo
   "Augmenting_Path_BFS"
-  "IRF/Refine_Imperative_HOL/IICF/Impl/IICF_Array_Sqmatrix"
+  "IRF/Refine_Imperative_HOL/IICF/IICF"
 begin
 
   text \<open>We now implement the Edmonds-Karp algorithm.
@@ -714,6 +714,9 @@ begin
 
     lemma mtx_nonzeroN: "mtx_nonzero c \<subseteq> {0..<N}\<times>{0..<N}" using E_ss by simp
 
+    lemma [simp]: "v\<in>V \<Longrightarrow> v<N" using V_ss by auto
+
+
     text \<open>Declare some variables to Sepref. \<close>
     lemmas [id_rules] = 
       itypeI[Pure.of N "TYPE(nat)"]  
@@ -726,7 +729,10 @@ begin
       IdI[of N]
       IdI[of s]
       IdI[of t]
-      IdI[of c]
+      (*IdI[of c]*)
+
+    lemma [sepref_fr_rules]: "(uncurry0 (return c),uncurry0 (return c))\<in>unit_assn\<^sup>k \<rightarrow>\<^sub>a pure (nat_rel\<times>\<^sub>rnat_rel \<rightarrow> int_rel)"
+      apply sepref_to_hoare by sep_auto
 
 
     subsubsection \<open>Implementation of Adjacency Map by Array\<close>  
@@ -788,26 +794,38 @@ begin
       "PR_CONST cf_set" :: "capacity_impl i_mtx \<Rightarrow> edge \<Rightarrow> capacity_impl 
         \<Rightarrow> capacity_impl i_mtx nres"
 
-    lemma asmtx_cnv: "asmtx_assn N id_assn = is_asmtx N" 
-      by (simp add: asmtx_assn_def)
-          
+    text \<open>We have to link the matrix implementation, which encodes the bound, 
+      to the abstract assertion of the bound\<close>
 
-    lemma [sepref_fr_rules]: "(uncurry (mtx_get N), uncurry (PR_CONST cf_get)) 
-      \<in> (asmtx_assn N id_assn)\<^sup>k *\<^sub>a (prod_assn (pure Id) (pure Id))\<^sup>k \<rightarrow>\<^sub>a pure Id"
-      unfolding asmtx_cnv
-      apply sepref_to_hoare
-      using V_ss
-      by (sep_auto simp: cf_get_def refine_pw_simps pure_def)
+    sepref_definition cf_get_impl is "uncurry (PR_CONST cf_get)" :: "(asmtx_assn N id_assn)\<^sup>k *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a id_assn"
+      unfolding PR_CONST_def cf_get_def[abs_def]
+      by sepref
+    lemmas [sepref_fr_rules] = cf_get_impl.refine
+    lemmas [sepref_opt_simps] = cf_get_impl_def
 
-    lemma [sepref_fr_rules]: 
-      "(uncurry2 (mtx_set N), uncurry2 (PR_CONST cf_set)) 
-      \<in> (asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn (pure Id) (pure Id))\<^sup>k *\<^sub>a (pure Id)\<^sup>k 
-        \<rightarrow>\<^sub>a (asmtx_assn N id_assn)"
-      unfolding asmtx_cnv
-      apply sepref_to_hoare
-      using V_ss
-      by (sep_auto simp: cf_set_def refine_pw_simps pure_def hn_ctxt_def)
+    sepref_definition cf_set_impl is "uncurry2 (PR_CONST cf_set)" :: "(asmtx_assn N id_assn)\<^sup>d *\<^sub>a (prod_assn id_assn id_assn)\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn"
+      unfolding PR_CONST_def cf_set_def[abs_def]
+      by sepref
+    lemmas [sepref_fr_rules] = cf_set_impl.refine
+    lemmas [sepref_opt_simps] = cf_set_impl_def
 
+
+    sepref_thm init_cf_impl is "uncurry0 (PR_CONST init_cf)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn"
+      unfolding PR_CONST_def init_cf_def 
+      using E_ss
+      apply (rewrite op_mtx_new_def[of c, symmetric])
+      apply (rewrite amtx_fold_custom_new[of N N])
+      by sepref
+
+    concrete_definition (in -) init_cf_impl uses Edka_Impl.init_cf_impl.refine_raw is "(uncurry0 ?f,_)\<in>_" 
+    prepare_code_thms (in -) init_cf_impl_def
+    lemmas [sepref_fr_rules] = init_cf_impl.refine[OF this_loc]  
+
+    (* TODO: Use sepref to synthesize the get-operations! *)
+    lemma amtx_cnv: "amtx_assn N M id_assn = IICF_Array_Matrix.is_amtx N M" 
+      by (simp add: amtx_assn_def)
+
+    (*
 
     lemma init_cf_imp_refine[sepref_fr_rules]: 
       "(uncurry0 (mtx_new N c), uncurry0 (PR_CONST init_cf)) 
@@ -816,6 +834,7 @@ begin
       apply sepref_to_hoare
       using E_ss
       by (sep_auto simp: init_cf_def)
+    *)  
 
     lemma [def_pat_rules]: "Network.init_cf$c \<equiv> UNPROTECT init_cf" by simp
     sepref_register "PR_CONST init_cf" :: "capacity_impl i_mtx nres"
@@ -826,7 +845,7 @@ begin
     lemma is_rflow_precise[safe_constraint_rules]: "precise (is_rflow N)"
       apply rule
       unfolding is_rflow_def
-      apply (clarsimp simp: asmtx_assn_def)
+      apply (clarsimp simp: amtx_assn_def)
       apply prec_extract_eqs
       apply simp
       done
@@ -835,9 +854,9 @@ begin
 
     lemma [sepref_fr_rules]: 
       "(\<lambda>cfi. return cfi, PR_CONST compute_rflow) \<in> (asmtx_assn N id_assn)\<^sup>d \<rightarrow>\<^sub>a is_rflow N"
-      unfolding asmtx_cnv
+      unfolding amtx_cnv
       apply sepref_to_hoare
-      apply (sep_auto simp: asmtx_cnv compute_rflow_def is_rflow_def refine_pw_simps hn_ctxt_def)
+      apply (sep_auto simp: amtx_cnv compute_rflow_def is_rflow_def refine_pw_simps hn_ctxt_def)
       done
 
     lemma [def_pat_rules]: 
@@ -860,7 +879,7 @@ begin
       unfolding rg_succ2_def APP_def monadic_filter_rev_def monadic_filter_rev_aux_def
       (* TODO: Make setting up combinators for sepref simpler, then we do not need to unfold! *)
       using [[id_debug, goals_limit = 1]]
-      by sepref_keep
+      by sepref
     concrete_definition (in -) succ_imp uses Edka_Impl.rg_succ2_impl
     prepare_code_thms (in -) succ_imp_def
 
@@ -893,7 +912,7 @@ begin
         (resCap_cf_impl cf p)"
       unfolding resCap_cf_impl_def APP_def
       using [[id_debug, goals_limit = 1]]
-      by sepref_keep
+      by sepref
     concrete_definition (in -) resCap_imp uses Edka_Impl.resCap_imp_impl
     prepare_code_thms (in -) resCap_imp_def
 
@@ -919,7 +938,7 @@ begin
     sepref_register "PR_CONST resCap_cf_impl" 
       :: "capacity_impl i_mtx \<Rightarrow> path \<Rightarrow> capacity_impl nres"
     
-    sepref_thm augment_imp is "SYNTH (uncurry2 (PR_CONST augment_cf_impl)) ((asmtx_assn N id_assn)\<^sup>d *\<^sub>a (is_path)\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn)"
+    sepref_thm augment_imp is "uncurry2 (PR_CONST augment_cf_impl)" :: "((asmtx_assn N id_assn)\<^sup>d *\<^sub>a (is_path)\<^sup>k *\<^sub>a (pure Id)\<^sup>k \<rightarrow>\<^sub>a asmtx_assn N id_assn)"
       unfolding augment_cf_impl_def[abs_def] augment_edge_impl_def PR_CONST_def
       using [[id_debug, goals_limit = 1]]
       by sepref 
@@ -939,7 +958,7 @@ begin
     sublocale bfs: Impl_Succ 
       "snd" 
       "TYPE(i_ps \<times> capacity_impl i_mtx)" 
-      "\<lambda>(am,cf). rg_succ2 am cf" 
+      "PR_CONST (\<lambda>(am,cf). rg_succ2 am cf)" 
       "prod_assn is_am (asmtx_assn N id_assn)" 
       "\<lambda>(am,cf). succ_imp N am cf"
       unfolding APP_def
@@ -954,9 +973,8 @@ begin
     lemma [sepref_fr_rules]: 
       "(uncurry (bfsi' N s t),uncurry (PR_CONST bfs2_op)) 
         \<in> is_am\<^sup>k *\<^sub>a (asmtx_assn N id_assn)\<^sup>k \<rightarrow>\<^sub>a option_assn is_path"
-      unfolding bfsi'_def[abs_def]
-      using bfs.bfs_impl_fr_rule
-      apply (simp add: uncurry_def bfs.op_bfs_def[abs_def] bfs2_op_def)
+      unfolding bfsi'_def[abs_def] bfs2_op_def[abs_def] 
+      using bfs.bfs_impl_fr_rule unfolding bfs.op_bfs_def[abs_def]
       apply (clarsimp simp: hfref_def all_to_meta)
       apply (rule hn_refine_cons[rotated])
       apply rprems
@@ -1016,7 +1034,7 @@ begin
         (edka5_run cf am)"
       unfolding edka5_run_def
       using [[id_debug, goals_limit = 1]]
-      by sepref_keep
+      by sepref
 
     concrete_definition (in -) edka_imp_run uses Edka_Impl.edka_imp_run_impl
     prepare_code_thms (in -) edka_imp_run_def
@@ -1049,7 +1067,7 @@ begin
       shows "hn_refine (emp) (?c::?'c Heap) ?\<Gamma> ?R (edka5 am)"
       unfolding edka5_def
       using [[id_debug, goals_limit = 1]]
-      by sepref_keep
+      by sepref
 
     concrete_definition (in -) edka_imp uses Edka_Impl.edka_imp_impl
     prepare_code_thms (in -) edka_imp_def
