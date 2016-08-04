@@ -16,8 +16,8 @@ context Network
 begin
 
 text \<open>First, we specify the refined procedure for finding augmenting paths\<close>
-definition "find_shortest_augmenting_spec f \<equiv> ASSERT (NFlow c s t f) \<then> 
-  SELECTp (\<lambda>p. Graph.isShortestPath (residualGraph c f) s p t)"
+definition "find_shortest_augmenting_spec f \<equiv> assert (NFlow c s t f) \<then> 
+  (selectp p. Graph.isShortestPath (residualGraph c f) s p t)"
 
 text \<open>Note, if there is an augmenting path, there is always a shortest one\<close>
 lemma (in NFlow) augmenting_path_imp_shortest: 

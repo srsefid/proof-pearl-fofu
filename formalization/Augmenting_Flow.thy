@@ -227,7 +227,6 @@ proof -
     edges to sums over all vertices. This allows us to write the summations
     from Cormen et al.~a bit more concise, leaving some of the tedious 
     calculation work to the computer.\<close>
-  (*<*)
   note setsum_simp_setup[simp] = 
     sum_outgoing_alt[OF capacity_const] s_node
     sum_incoming_alt[OF capacity_const]
@@ -236,17 +235,15 @@ proof -
     sum_outgoing_alt[OF f''.capacity_const]
     sum_incoming_alt[OF f''.capacity_const]
     setsum_subtractf setsum.distrib
-  (*>*)  
   
   txt \<open>Note that, if neither an edge nor its reverse is in the graph,
     there is also no edge in the residual graph, and thus the flow value
     is zero.\<close>  
-  {
-    fix u v
-    assume "(u,v)\<notin>E" "(v,u)\<notin>E"
-    with cfE_ss_invE have "(u,v)\<notin>cf.E" by auto
-    hence "f'(u,v) = 0" by auto
-  } note aux1 = this  
+  have aux1: "f'(u,v) = 0" if "(u,v)\<notin>E" "(v,u)\<notin>E" for u v
+  proof -
+    from that cfE_ss_invE have "(u,v)\<notin>cf.E" by auto
+    thus "f'(u,v) = 0" by auto
+  qed  
 
   txt \<open>Now, the proposition follows by straightforward rewriting of 
     the summations:\<close>
@@ -257,15 +254,25 @@ proof -
     by (rule setsum.cong) (auto simp: augment_def no_parallel_edge aux1)
   also have "\<dots> = val + Flow.val cf s f'"  
     unfolding val_def f'.val_def by simp
-  finally show ?thesis .  
-  (*<*)
+  finally show "f''.val = val + f'.val" .  
+qed    
 
-  txt \<open>Note, there is also an automatic proof. When creating the above 
-      explicit proof, this automatic one has been used to extract meaningful
-      subgoals, abusing Isabelle as a term rewriter.\<close>
-  have ?thesis
+txt \<open>Note, there is also an automatic proof. When creating the above 
+    explicit proof, this automatic one has been used to extract meaningful
+    subgoals, abusing Isabelle as a term rewriter.\<close>
+lemma "Flow.val c s (f\<up>f') = val + Flow.val cf s f'"
+proof -
+  interpret f'': Flow c s t "f\<up>f'" using augment_flow_presv[OF assms] . 
+
+  have aux1: "f'(u,v) = 0" if A: "(u,v)\<notin>E" "(v,u)\<notin>E" for u v
+  proof -
+    from A cfE_ss_invE have "(u,v)\<notin>cf.E" by auto
+    thus "f'(u,v) = 0" by auto
+  qed  
+
+  show ?thesis
     unfolding val_def f'.val_def f''.val_def
-    apply (simp del: setsum_simp_setup
+    apply (simp del:
       add: 
       sum_outgoing_alt[OF capacity_const] s_node
       sum_incoming_alt[OF capacity_const]
@@ -278,9 +285,8 @@ proof -
     apply (rule setsum.cong)
     apply (auto simp: augment_def no_parallel_edge aux1)
     done
-  (*>*)
+qed
 
-qed    
 
 end -- \<open>Augmenting flow\<close>
 end -- \<open>Network flow\<close>

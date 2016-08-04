@@ -1,9 +1,7 @@
 session Edka_Base = "CAVA_Base" +
   theories
-    "cava/DFS_Framework/Examples/Reachable_Nodes"
-    "cava/Libs/Refine_Imperative_HOL/Sepref"
-    "cava/Libs/Refine_Imperative_HOL/Heaps/Array_List"
-    "~~/src/HOL/Library/Rewrite"
+    "IRF/DFS_Framework/Examples/Reachable_Nodes"
+    "IRF/Refine_Imperative_HOL/IICF/IICF"
 
 session Edka_BFS = "Edka_Base" +   
   theories Augmenting_Path_BFS
@@ -24,7 +22,6 @@ session Edka_Document = "Edka_Base" +
     Fofu_Abs_Base
     Fofu_Impl_Base
     Refine_Add_Fofu
-    Capacity_Matrix_Impl
   theories  
     Network
     ResidualGraph
