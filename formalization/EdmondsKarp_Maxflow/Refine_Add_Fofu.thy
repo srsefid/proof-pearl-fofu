@@ -1,6 +1,6 @@
 theory Refine_Add_Fofu
 imports Fofu_Impl_Base Refine_Monadic_Syntax_Sugar
-  "IRF/DFS_Framework/Misc/DFS_Framework_Refine_Aux"
+  "../DFS_Framework/Misc/DFS_Framework_Refine_Aux"
 begin
 
   notation Heap_Monad.return ("return")

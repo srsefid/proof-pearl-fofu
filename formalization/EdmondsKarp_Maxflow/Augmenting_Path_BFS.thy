@@ -6,7 +6,7 @@ begin
   text \<open>
     In this theory, we present a verified breadth-first search
     with an efficient imperative implementation.
-    It is parametric over the successor function.
+    It is parametric in the successor function.
     \<close>
 
   subsection \<open>Algorithm\<close>
@@ -49,7 +49,8 @@ begin
     assumes PRED_closed: "\<lbrakk> PRED v = Some u \<rbrakk> \<Longrightarrow> u\<in>dom PRED"
   begin
     lemma FIN_E[simp, intro!]: "finite E" using E_ss_VxV by simp
-    lemma FIN_succ[simp, intro!]: "finite (E``{u})" by (auto intro: finite_Image)
+    lemma FIN_succ[simp, intro!]: "finite (E``{u})" 
+      by (auto intro: finite_Image)
   end  
     
   locale nf_invar' = valid_PRED c src dst PRED for c src dst 
@@ -79,17 +80,25 @@ begin
       (\<not>f \<longrightarrow> nf_invar c src dst PRED C N d)
 
       "
-    abbreviation "assn1 src dst \<equiv> \<lambda>(f,PRED,C,N,d). \<not>f \<and> nf_invar' c src dst PRED C N d"
+    abbreviation "assn1 src dst \<equiv> \<lambda>(f,PRED,C,N,d). 
+      \<not>f \<and> nf_invar' c src dst PRED C N d"
 
-  definition "add_succ_spec dst succ v PRED N \<equiv> ASSERT (N \<subseteq> dom PRED) \<then> SPEC (\<lambda>(f,PRED',N').
-    case f of
-      False \<Rightarrow> dst \<notin> succ - dom PRED \<and> PRED' = map_mmupd PRED (succ - dom PRED) v \<and> N' = N \<union> (succ - dom PRED)
-    | True \<Rightarrow> dst \<in> succ - dom PRED \<and> PRED \<subseteq>\<^sub>m PRED' \<and> PRED' \<subseteq>\<^sub>m map_mmupd PRED (succ - dom PRED) v \<and> dst\<in>dom PRED'
+  definition "add_succ_spec dst succ v PRED N \<equiv> ASSERT (N \<subseteq> dom PRED) \<then> 
+    SPEC (\<lambda>(f,PRED',N').
+      case f of
+        False \<Rightarrow> dst \<notin> succ - dom PRED 
+          \<and> PRED' = map_mmupd PRED (succ - dom PRED) v 
+          \<and> N' = N \<union> (succ - dom PRED)
+      | True \<Rightarrow> dst \<in> succ - dom PRED 
+        \<and> PRED \<subseteq>\<^sub>m PRED' 
+        \<and> PRED' \<subseteq>\<^sub>m map_mmupd PRED (succ - dom PRED) v 
+        \<and> dst\<in>dom PRED'
   )"
 
   definition pre_bfs :: "node \<Rightarrow> node \<Rightarrow> (nat \<times> (node\<rightharpoonup>node)) option nres"
     where "pre_bfs src dst \<equiv> do {
-    (f,PRED,_,_,d) \<leftarrow> WHILEIT (outer_loop_invar src dst) (\<lambda>(f,PRED,C,N,d). f=False \<and> C\<noteq>{})
+    (f,PRED,_,_,d) \<leftarrow> WHILEIT (outer_loop_invar src dst) 
+      (\<lambda>(f,PRED,C,N,d). f=False \<and> C\<noteq>{})
       (\<lambda>(f,PRED,C,N,d). do {
         v \<leftarrow> SPEC (\<lambda>v. v\<in>C); let C = C-{v};
         ASSERT (v\<in>V);
@@ -112,7 +121,7 @@ begin
     if f then RETURN (Some (d, PRED)) else RETURN None
     }"
 
-  subsection "Verification Tasks"
+  subsection "Correctness Proof"
 
   lemma (in nf_invar') ndist_C[simp]: "\<lbrakk>v\<in>C\<rbrakk> \<Longrightarrow> ndist v = d"  
     using C_ss by (auto simp: Vd_def)
@@ -129,7 +138,11 @@ begin
   lemma (in nf_invar) invar_succ_step:
     assumes "v\<in>C"
     assumes "dst \<notin> E``{v} - dom PRED"
-    shows "nf_invar' c src dst (map_mmupd PRED (E``{v} - dom PRED) v) (C-{v}) (N \<union> (E``{v} - dom PRED)) d"
+    shows "nf_invar' c src dst 
+      (map_mmupd PRED (E``{v} - dom PRED) v) 
+      (C-{v}) 
+      (N \<union> (E``{v} - dom PRED)) 
+      d"
   proof -
     from C_ss_VIS[OF \<open>v\<in>C\<close>] dst_ne_VIS have "v\<noteq>dst" by auto
 
@@ -163,7 +176,8 @@ begin
       done
   qed  
 
-  lemma invar_init: "\<lbrakk>src\<noteq>dst; src\<in>V; finite V\<rbrakk> \<Longrightarrow> nf_invar c src dst [src \<mapsto> src] {src} {} 0"            
+  lemma invar_init: "\<lbrakk>src\<noteq>dst; src\<in>V; finite V\<rbrakk> 
+    \<Longrightarrow> nf_invar c src dst [src \<mapsto> src] {src} {} 0"            
     apply unfold_locales
     apply (auto)
     apply (auto simp: pre_bfs_invar.Vd_def split: split_if_asm)
@@ -183,7 +197,8 @@ begin
   lemma (in nf_invar) invar_N_ss_Vis: "u\<in>N \<Longrightarrow> \<exists>v. PRED u = Some v"
     using VIS_eq by auto  
     
-  lemma (in pre_bfs_invar) Vdsucinter_conv[simp]: "Vd (Suc d) \<inter> E `` Vd d = Vd (Suc d)"
+  lemma (in pre_bfs_invar) Vdsucinter_conv[simp]: 
+    "Vd (Suc d) \<inter> E `` Vd d = Vd (Suc d)"
     apply (auto)
     by (metis Image_iff in_Vd_conv min_dist_suc)  
 
@@ -205,7 +220,10 @@ begin
 
   definition "bfs_spec src dst r \<equiv> (
     case r of None \<Rightarrow> \<not> connected src dst
-            | Some (d,PRED) \<Rightarrow> connected src dst \<and> min_dist src dst = d \<and> valid_PRED c src PRED \<and> dst\<in>dom PRED)"
+            | Some (d,PRED) \<Rightarrow> connected src dst 
+                \<and> min_dist src dst = d 
+                \<and> valid_PRED c src PRED 
+                \<and> dst\<in>dom PRED)"
 
   lemma (in f_invar) invar_found:
     shows "bfs_spec src dst (Some (d,PRED))"
@@ -254,7 +272,8 @@ begin
 
   lemma (in nf_invar) invar_exit':
     assumes "u\<in>C" "(u,dst) \<in> E" "dst \<in> dom PRED'"
-    assumes SS1: "PRED \<subseteq>\<^sub>m PRED'" and SS2: "PRED' \<subseteq>\<^sub>m map_mmupd PRED (E``{u} - dom PRED) u"
+    assumes SS1: "PRED \<subseteq>\<^sub>m PRED'" 
+      and SS2: "PRED' \<subseteq>\<^sub>m map_mmupd PRED (E``{u} - dom PRED) u"
     shows "f_invar c src dst PRED' (Suc d)"
     apply unfold_locales
     apply simp_all
@@ -290,7 +309,10 @@ begin
   definition "max_dist src \<equiv> Max (min_dist src`V)"
 
   definition "outer_loop_rel src \<equiv> 
-    inv_image (less_than_bool <*lex*> greater_bounded (max_dist src + 1) <*lex*> finite_psubset) 
+    inv_image (
+        less_than_bool 
+        <*lex*> greater_bounded (max_dist src + 1) 
+        <*lex*> finite_psubset) 
       (\<lambda>(f,PRED,C,N,d). (\<not>f,d,C))"
   lemma outer_loop_rel_wf: 
     assumes "finite V"
@@ -305,7 +327,8 @@ begin
   proof -
     from assms obtain u where "u\<in>C" by auto
     with C_ss have "u\<in>Vd d" by auto
-    hence "min_dist src u = d" "u\<in>V" by (auto simp: in_Vd_conv connected_inV_iff)
+    hence "min_dist src u = d" "u\<in>V" 
+      by (auto simp: in_Vd_conv connected_inV_iff)
     thus "d\<le>max_dist src" 
       unfolding max_dist_def by auto
   qed    
@@ -387,8 +410,10 @@ begin
           v\<in>dom PRED 
         \<and> isPath v p dst
         \<and> distinct (pathVertices v p)
-        \<and> (\<forall>v'\<in>set (pathVertices v p). pre_bfs_invar.ndist c src v \<le> pre_bfs_invar.ndist c src v')
-        \<and> pre_bfs_invar.ndist c src v + length p = pre_bfs_invar.ndist c src dst)
+        \<and> (\<forall>v'\<in>set (pathVertices v p). 
+            pre_bfs_invar.ndist c src v \<le> pre_bfs_invar.ndist c src v')
+        \<and> pre_bfs_invar.ndist c src v + length p 
+          = pre_bfs_invar.ndist c src dst)
         (\<lambda>(v,p). v\<noteq>src) (\<lambda>(v,p). do {
         ASSERT (v\<in>dom PRED);
         let u=the (PRED v);
@@ -404,7 +429,8 @@ begin
   context valid_PRED begin
     lemma extract_rpath_correct:
       assumes "dst\<in>dom PRED"
-      shows "extract_rpath src dst PRED \<le> SPEC (\<lambda>p. isSimplePath src p dst \<and> length p = ndist dst)"
+      shows "extract_rpath src dst PRED 
+        \<le> SPEC (\<lambda>p. isSimplePath src p dst \<and> length p = ndist dst)"
       using assms unfolding extract_rpath_def isSimplePath_def
       apply (refine_vcg wf_measure[where f="\<lambda>(d,_). ndist d"])
       apply (vc_solve simp: PRED_closed[THEN domD] PRED_E PRED_dist)
@@ -430,14 +456,18 @@ begin
 
     lemma bfs_correct:
       assumes "src\<in>V" "finite V" 
-      shows "bfs src dst \<le> SPEC (\<lambda>None \<Rightarrow> \<not>connected src dst | Some p \<Rightarrow> isShortestPath src p dst)"
+      shows "bfs src dst 
+        \<le> SPEC (\<lambda>
+          None \<Rightarrow> \<not>connected src dst 
+        | Some p \<Rightarrow> isShortestPath src p dst)"
       unfolding bfs_def
       apply (refine_vcg
         pre_bfs_correct[THEN order_trans]
         valid_PRED.extract_rpath_correct[THEN order_trans]
         )
       using assms
-      apply (vc_solve simp: bfs_spec_def isShortestPath_min_dist_def isSimplePath_def)
+      apply (vc_solve 
+        simp: bfs_spec_def isShortestPath_min_dist_def isSimplePath_def)
       done      
   end
 
@@ -446,15 +476,17 @@ begin
     interpretation Refine_Monadic_Syntax .
     theorem
       assumes "src\<in>V" 
-      shows "bfs src dst \<le> (spec p. 
-        case p of None \<Rightarrow> \<not>connected src dst | Some p \<Rightarrow> isShortestPath src p dst)"
+      shows "bfs src dst \<le> (spec p. case p of 
+          None \<Rightarrow> \<not>connected src dst 
+        | Some p \<Rightarrow> isShortestPath src p dst)"
       unfolding bfs_def
       apply (refine_vcg
         pre_bfs_correct[THEN order_trans]
         valid_PRED.extract_rpath_correct[THEN order_trans]
         )
       using assms
-      apply (vc_solve simp: bfs_spec_def isShortestPath_min_dist_def isSimplePath_def)
+      apply (vc_solve 
+        simp: bfs_spec_def isShortestPath_min_dist_def isSimplePath_def)
       done      
 
   end  
@@ -485,14 +517,20 @@ begin
   lemma inner_loop_refine[refine]: 
     (*assumes NSS: "N \<subseteq> dom PRED"*)
     assumes [simp]: "finite succ"
-    assumes [simplified, simp]: "(succi,succ)\<in>Id" "(ui,u)\<in>Id" "(PREDi,PRED)\<in>Id" "(Ni,N)\<in>Id"
-    shows "inner_loop dst succi ui PREDi Ni \<le> \<Down>Id (add_succ_spec dst succ u PRED N)"
+    assumes [simplified, simp]: 
+      "(succi,succ)\<in>Id" "(ui,u)\<in>Id" "(PREDi,PRED)\<in>Id" "(Ni,N)\<in>Id"
+    shows "inner_loop dst succi ui PREDi Ni 
+      \<le> \<Down>Id (add_succ_spec dst succ u PRED N)"
     unfolding inner_loop_def add_succ_spec_def
     apply refine_vcg
     apply (auto simp: it_step_insert_iff; fail) +
-    apply (auto simp: it_step_insert_iff fun_neq_ext_iff map_mmupd_def split: split_if_asm) []
-    apply (auto simp: it_step_insert_iff split: bool.split; fail) +
-    apply (auto simp: it_step_insert_iff intro: map_mmupd_update_less split: bool.split)
+    apply (auto simp: it_step_insert_iff fun_neq_ext_iff map_mmupd_def 
+      split: split_if_asm) []
+    apply (auto simp: it_step_insert_iff split: bool.split; fail)
+    apply (auto simp: it_step_insert_iff split: bool.split; fail)
+    apply (auto simp: it_step_insert_iff split: bool.split; fail)
+    apply (auto simp: it_step_insert_iff intro: map_mmupd_update_less 
+      split: bool.split; fail)
     done
 
 
@@ -522,8 +560,10 @@ begin
   lemma inner_loop2_correct:
     assumes "(succl, succ) \<in> \<langle>Id\<rangle>list_set_rel"
     (*assumes "N \<subseteq> dom PRED"*)
-    assumes [simplified, simp]: "(dsti,dst)\<in>Id" "(ui, u) \<in> Id" "(PREDi, PRED) \<in> Id" "(Ni, N) \<in> Id"
-    shows "inner_loop2 dsti succl ui PREDi Ni \<le> \<Down> Id (add_succ_spec dst succ u PRED N)"
+    assumes [simplified, simp]: 
+      "(dsti,dst)\<in>Id" "(ui, u) \<in> Id" "(PREDi, PRED) \<in> Id" "(Ni, N) \<in> Id"
+    shows "inner_loop2 dsti succl ui PREDi Ni 
+      \<le> \<Down> Id (add_succ_spec dst succ u PRED N)"
     apply simp
     apply (rule conc_trans[OF inner_loop2_refine inner_loop_refine, simplified])
     using assms(1-2)
@@ -567,7 +607,8 @@ begin
         }"
     
       lemma pre_bfs2_refine: 
-        assumes succ_impl: "\<And>ui u. \<lbrakk>(ui,u)\<in>Id; u\<in>V\<rbrakk> \<Longrightarrow> succ ui \<le> SPEC (\<lambda>l. (l,E``{u}) \<in> \<langle>Id\<rangle>list_set_rel)"
+        assumes succ_impl: "\<And>ui u. \<lbrakk>(ui,u)\<in>Id; u\<in>V\<rbrakk> 
+          \<Longrightarrow> succ ui \<le> SPEC (\<lambda>l. (l,E``{u}) \<in> \<langle>Id\<rangle>list_set_rel)"
         shows "pre_bfs2 src dst \<le>\<Down>Id (pre_bfs src dst)"
         unfolding pre_bfs_def pre_bfs2_def init_state_def
         apply (subst nres_monad1)
@@ -593,7 +634,8 @@ begin
     }"
 
     lemma bfs2_refine:
-      assumes succ_impl: "\<And>ui u. \<lbrakk>(ui,u)\<in>Id; u\<in>V\<rbrakk> \<Longrightarrow> succ ui \<le> SPEC (\<lambda>l. (l,E``{u}) \<in> \<langle>Id\<rangle>list_set_rel)"
+      assumes succ_impl: "\<And>ui u. \<lbrakk>(ui,u)\<in>Id; u\<in>V\<rbrakk> 
+        \<Longrightarrow> succ ui \<le> SPEC (\<lambda>l. (l,E``{u}) \<in> \<langle>Id\<rangle>list_set_rel)"
       shows "bfs2 succ src dst \<le> \<Down>Id (bfs src dst)"
       unfolding bfs_def bfs2_def
       apply (refine_vcg pre_bfs2_refine)
@@ -606,11 +648,13 @@ begin
 
   
   lemma bfs2_refine_succ: 
-    assumes [refine]: "\<And>ui u. \<lbrakk>(ui,u)\<in>Id; u\<in>Graph.V c\<rbrakk> \<Longrightarrow> succi ui \<le> \<Down>Id (succ u)"
+    assumes [refine]: "\<And>ui u. \<lbrakk>(ui,u)\<in>Id; u\<in>Graph.V c\<rbrakk> 
+      \<Longrightarrow> succi ui \<le> \<Down>Id (succ u)"
     assumes [simplified, simp]: "(si,s)\<in>Id" "(ti,t)\<in>Id" "(ci,c)\<in>Id"
     shows "Graph.bfs2 ci succi si ti \<le> \<Down>Id (Graph.bfs2 c succ s t)"
     unfolding Graph.bfs2_def Graph.pre_bfs2_def
-    apply (refine_rcg param_nfoldli[param_fo, THEN nres_relD] nres_relI fun_relI)
+    apply (refine_rcg 
+      param_nfoldli[param_fo, THEN nres_relD] nres_relI fun_relI)
     apply refine_dref_type
     apply vc_solve
     done
@@ -618,24 +662,27 @@ begin
 subsection \<open>Imperative Implementation\<close>
 
   context Impl_Succ begin
-    definition op_bfs :: "'ga \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres" where [simp]: "op_bfs c s t \<equiv> Graph.bfs2 (absG c) (succ c) s t"
+    definition op_bfs :: "'ga \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres" 
+      where [simp]: "op_bfs c s t \<equiv> Graph.bfs2 (absG c) (succ c) s t"
   
     lemma pat_op_dfs[pat_rules]: 
       "Graph.bfs2$(absG$c)$(succ$c)$s$t \<equiv> UNPROTECT op_bfs$c$s$t" by simp 
   
-    sepref_register "PR_CONST op_bfs" :: "'ig \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres"  
+    sepref_register "PR_CONST op_bfs" 
+      :: "'ig \<Rightarrow> node \<Rightarrow> node \<Rightarrow> path option nres"  
   
-    type_synonym ibfs_state = "bool \<times> (node,node) i_map \<times> node set \<times> node set \<times> nat"
+    type_synonym ibfs_state 
+      = "bool \<times> (node,node) i_map \<times> node set \<times> node set \<times> nat"
 
     sepref_register Graph.init_state :: "node \<Rightarrow> ibfs_state nres"
     schematic_goal init_state_impl:
       fixes src :: nat
       notes [id_rules] = 
         itypeI[Pure.of src "TYPE(nat)"]
-      shows "hn_refine (hn_val nat_rel src srci) (?c::?'c Heap) ?\<Gamma>' ?R (Graph.init_state src)"
+      shows "hn_refine (hn_val nat_rel src srci) 
+        (?c::?'c Heap) ?\<Gamma>' ?R (Graph.init_state src)"
       using [[id_debug, goals_limit = 1]]
       unfolding Graph.init_state_def
-      (*apply (subst CTYPE_ANNOT_def[symmetric, Pure.of "[src\<mapsto>src]" "TYPE((nat,nat)i_map)"])*)
       apply (rewrite in "[src\<mapsto>src]" iam.fold_custom_empty)
       apply (subst ls.fold_custom_empty)
       apply (subst ls.fold_custom_empty)

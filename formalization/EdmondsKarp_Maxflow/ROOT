@@ -1,14 +1,36 @@
-session Edka_Base = "CAVA_Base" +
+session Edka_Base = "Sepref_IICF" +
+  options [document = false]
   theories
-    "IRF/DFS_Framework/Examples/Reachable_Nodes"
-    "IRF/Refine_Imperative_HOL/IICF/IICF"
+    "../DFS_Framework/DFS_Framework"
+    "../DFS_Framework/Examples/Reachable_Nodes"
 
-session Edka_BFS = "Edka_Base" +   
-  theories Augmenting_Path_BFS
+session EdmondsKarp_Maxflow = Edka_Base +
+  theories [document = false]
+    Graph
+    Fofu_Abs_Base
+    Fofu_Impl_Base
+    Refine_Add_Fofu
 
-session Edka = "Edka_BFS" +
-  theories Edka_Checked_Impl
+  theories
+    Network
+    ResidualGraph
+    Augmenting_Flow
+    Augmenting_Path
+    Ford_Fulkerson
 
+  theories      
+    FordFulkerson_Algo
+    EdmondsKarp_Algo
+
+  theories  
+    Augmenting_Path_BFS
+    EdmondsKarp_Impl
+    NetCheck
+    Edka_Checked_Impl
+   document_files
+     "root.tex" "root.bib"
+
+(*
 session Edka_Document = "Edka_Base" +
   options [ 
     document = "pdf",
@@ -37,6 +59,8 @@ session Edka_Document = "Edka_Base" +
     Edka_Checked_Impl
    document_files
      "root.tex" "root.bib"
+
+*)
 
 (*session Snippets = Edka_BFS +
    options [
