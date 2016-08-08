@@ -77,11 +77,14 @@ private definition "is_rflow \<equiv> Network_Impl.is_rflow"
 text_raw \<open>\DefineSnippet{edmonds_karp_correct}{\<close>       
 theorem
   fixes el defines "c \<equiv> ln_\<alpha> el"
-  shows "<emp> edmonds_karp el s t <\<lambda>
-      None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network c s t)
-    | Some (_,_,N,cf) \<Rightarrow> 
-      \<up>(ln_invar el \<and> Network c s t \<and> Graph.V c \<subseteq> {0..<N})
-    * (\<exists>\<^sub>Af. is_rflow c s t N f cf * \<up>(Network.isMaxFlow c s t f))>\<^sub>t"
+  shows 
+    "<emp> 
+      edmonds_karp el s t 
+    <\<lambda> None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network c s t)
+     | Some (_,_,N,cf) \<Rightarrow> 
+         \<up>(ln_invar el \<and> Network c s t \<and> Graph.V c \<subseteq> {0..<N})
+       * (\<exists>\<^sub>Af. is_rflow c s t N f cf * \<up>(Network.isMaxFlow c s t f))
+    >\<^sub>t"
 text_raw \<open>}%EndSnippet\<close>
   unfolding c_def is_rflow_def
   by (sep_auto heap: edmonds_karp_correct[of el s t] split: option.split)
@@ -277,13 +280,5 @@ theorem edmonds_karp_val_correct:
     intro: network_is_impl
     heap: edmonds_karp_correct Network_Impl.compute_flow_val_imp_correct)      
 
-
-subsection \<open>Exporting Code\<close>
-export_code nat_of_integer integer_of_nat int_of_integer integer_of_int
-  edmonds_karp edka_imp edka_imp_tabulate edka_imp_run prepareNet
-  compute_flow_val_imp edmonds_karp_val
-  in SML_imp 
-  module_name Fofu 
-  file "evaluation/fofu-SML/Fofu_Export.sml"  
 
 end

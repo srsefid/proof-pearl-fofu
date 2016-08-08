@@ -22,6 +22,9 @@ definition "find_augmenting_spec f \<equiv> do {
     selectp p. NFlow.isAugmentingPath c s t f p
   }"
 
+text \<open>Moreover, we specify augmentation of a flow along a path\<close>
+definition (in NFlow) "augment_with_path p \<equiv> augment (augmentingFlow p)"
+
 text \<open>
   We also specify the loop invariant, and annotate it to the loop.
 \<close>
@@ -33,7 +36,7 @@ abbreviation "fofu_invar \<equiv> \<lambda>(f,brk).
 text \<open>Finally, we obtain the Ford-Fulkerson algorithm.
   Note that we annotate some assertions to ease later refinement\<close>
 definition "fofu \<equiv> do {
-  let f = (\<lambda>_. 0);
+  let f\<^sub>0 = (\<lambda>_. 0);
 
   (f,_) \<leftarrow> while\<^bsup>fofu_invar\<^esup>
     (\<lambda>(f,brk). \<not>brk) 
@@ -44,13 +47,12 @@ definition "fofu \<equiv> do {
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
           assert (NFlow.isAugmentingPath c s t f p);
-          let f' = NFlow.augmentingFlow c f p;
-          let f = NFlow.augment c f f';
+          let f = NFlow.augment_with_path c f p;
           assert (NFlow c s t f);
           return (f, False)
         }  
     })
-    (f,False);
+    (f\<^sub>0,False);
   assert (NFlow c s t f);
   return f 
 }"
@@ -86,21 +88,20 @@ lemma (in NFlow) augmenting_path_not_empty:
 text \<open>Finally, we can use the verification condition generator to
   show correctness\<close>
 theorem fofu_partial_correct: "fofu \<le> (spec f. isMaxFlow f)"
-  unfolding fofu_def find_augmenting_spec_def
+  unfolding fofu_def find_augmenting_spec_def 
   apply (refine_vcg)
   apply (vc_solve simp: 
     zero_flow 
     NFlow.augment_pres_nflow 
     NFlow.augmenting_path_not_empty
-    NFlow.noAugPath_iff_maxFlow[symmetric])
+    NFlow.noAugPath_iff_maxFlow[symmetric]
+    NFlow.augment_with_path_def
+  )
   done
 
 subsection \<open>Algorithm without Assertions\<close>
 text \<open>For presentation purposes, we extract a version of the algorithm
   without assertions, and using a bit more concise notation\<close>
-
-(* TODO: May be a good idea for main refinement branch, too! *)
-definition (in NFlow) "augment_with_path p \<equiv> augment (augmentingFlow p)"
 
 context begin
 
@@ -112,7 +113,7 @@ private abbreviation (input) "is_augmenting_path f p
 text \<open> {} \<close>
 text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       
 definition "ford_fulkerson_method \<equiv> do {
-  let f = (\<lambda>(u,v). 0);
+  let f\<^sub>0 = (\<lambda>(u,v). 0);
 
   (f,brk) \<leftarrow> while (\<lambda>(f,brk). \<not>brk) 
     (\<lambda>(f,brk). do {
@@ -121,7 +122,7 @@ definition "ford_fulkerson_method \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> return (augment c f p, False)
     })
-    (f,False);
+    (f\<^sub>0,False);
   return f 
 }"
 text_raw \<open>}%EndSnippet\<close>

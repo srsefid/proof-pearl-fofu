@@ -1,0 +1,8 @@
+*/.*
+*.log
+*/mlmon.out
+*.class
+*/fofu-SML/Fofu
+*/fofu-C++/Fofu
+*/fofu-C++/Fofu2
+*/data/data-gen

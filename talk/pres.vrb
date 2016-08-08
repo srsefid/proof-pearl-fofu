@@ -1,10 +1,11 @@
 \frametitle{Benchmarking}
 \begin{itemize}
    \item Against Java version of Sedgewick et al., on random networks
+   \item Two data sets: Sparse ($D=0.02$) and dense ($D=0.25$) graphs
     \begin{itemize}
-     \item Sparse graphs (density=0.02): Java is (slightly) faster
-     \item Dense graphs (density=0.25): We are (slightly) faster
-     \item Supposed reason: Different 2-dimensional array implementations
+     \item Sparse: Java is (slightly) faster
+     \item Dense: we are (slightly) faster
+     \item Supposed reason: different 2-dimensional array implementations
 
     \end{itemize}
   \end{itemize}

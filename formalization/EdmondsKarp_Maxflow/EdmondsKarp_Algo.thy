@@ -56,8 +56,7 @@ definition "edka_partial \<equiv> do {
           assert (p\<noteq>[]);
           assert (NFlow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
-          let f' = NFlow.augmentingFlow c f p;
-          let f = NFlow.augment c f f';
+          let f = NFlow.augment_with_path c f p;
           assert (NFlow c s t f);
           return (f, False)
         }  
@@ -615,8 +614,7 @@ definition "edka \<equiv> do {
           assert (p\<noteq>[]);
           assert (NFlow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
-          let f' = NFlow.augmentingFlow c f p;
-          let f = NFlow.augment c f f';
+          let f = NFlow.augment_with_path c f p;
           assert (NFlow c s t f);
           return (f, False)
         }  
@@ -649,6 +647,7 @@ theorem edka_refine[refine]: "edka \<le> \<Down>Id edka_partial"
     apply (simp)
     apply (erule bind_sim_select_rule)
     apply (auto split: option.split 
+      simp: NFlow.augment_with_path_def
       simp: assert_bind_spec_conv Let_def
       simp: find_shortest_augmenting_spec_def
       simp: edka_wf_rel_def NFlow.shortest_path_decr_ek_measure
@@ -739,8 +738,7 @@ definition "edka_complexity \<equiv> do {
       case p of 
         None \<Rightarrow> return (f,True,itc)
       | Some p \<Rightarrow> do {
-          let f' = NFlow.augmentingFlow c f p;
-          let f = NFlow.augment c f f';
+          let f = NFlow.augment_with_path c f p;
           return (f, False,itc + 1)
         }  
     })
@@ -759,7 +757,7 @@ proof -
     unfolding edka_complexity_def edka_def
     apply (refine_rcg)
     apply (refine_dref_type)
-    apply (vc_solve simp: edkac_rel_def)
+    apply (vc_solve simp: edkac_rel_def "NFlow.augment_with_path_def")
     using ekMeasure_upper_bound apply auto []
     apply auto []
     apply (drule (1) NFlow.shortest_path_decr_ek_measure; auto)

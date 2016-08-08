@@ -45,6 +45,8 @@ Our formal proof closely follows a standard textbook proof, and is accessible ev
 an expert in Isabelle/HOL--- the interactive theorem prover used for the formalization.
 We then use stepwise refinement to obtain the Edmonds-Karp algorithm, and formally prove a bound on its complexity.
 Further refinement yields a verified implementation, whose execution time compares well to an unverified reference implementation in Java.
+
+This entry is based on our ITP-2016 paper with the same title.
 \end{abstract}
 
 \clearpage
@@ -65,21 +67,22 @@ the Edmonds-Karp algorithm~\cite{EK72}, which was one of the first algorithms to
 solve the maximum flow problem in polynomial time for the general case of
 networks with real valued capacities.
 
-In this paper, we present a formal verification of the Edmonds-Karp algorithm
+In our paper~\cite{LaSe16}, we present a formal verification of the Edmonds-Karp algorithm
 and its polynomial complexity bound. The formalization is conducted entirely in
-the Isabelle/HOL proof assistant~\cite{NPW02}. Stepwise refinement
+the Isabelle/HOL proof assistant~\cite{NPW02}. This entry contains the complete formalization.
+Stepwise refinement
 techniques~\cite{Wirth71,Back78,BaWr98} allow us to elegantly structure our
 verification into an abstract proof of the Ford-Fulkerson method, its
 instantiation to the Edmonds-Karp algorithm, and finally an efficient
 implementation. The abstract parts of our verification closely follow the
-textbook presentation of Cormen et al.~\cite{CLRS09}. Being developed in the
-Isar~\cite{Wenzel99} proof language, our proofs are accessible even to
-non-Isabelle experts.
+textbook presentation of Cormen et al.~\cite{CLRS09}. We have used the
+Isar~\cite{Wenzel99} proof language to develop human-readable proofs that are 
+accessible even to non-Isabelle experts.
 
 While there exists another formalization of the Ford-Fulkerson method in
 Mizar~\cite{Lee05}, we are, to the best of our knowledge, the first that verify a
 polynomial maximum flow algorithm, prove the polynomial complexity bound, or
-provide a verified executable implementation. Moreover, this paper is a case
+provide a verified executable implementation. Moreover, this entry is a case
 study on elegantly formalizing algorithms.
 % generated text of all theories
 \input{session}

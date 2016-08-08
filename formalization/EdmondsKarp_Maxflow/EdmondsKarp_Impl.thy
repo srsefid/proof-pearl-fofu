@@ -161,13 +161,14 @@ begin
       assumes R: "(cf,f)\<in>cfi_rel"
       assumes AUG: "NFlow.isAugmentingPath c s t f p"
       shows "(Graph.augment_cf cf (set p) (resCap_cf cf p), 
-          NFlow.augment c f (NFlow.augmentingFlow c f p)) \<in> cfi_rel"
+          NFlow.augment_with_path c f p) \<in> cfi_rel"
     proof -    
       from R have [simp]: "cf = residualGraph c f" and "NFlow c s t f"
         by (auto simp: cfi_rel_alt br_def)
       then interpret f: NFlow c s t f by simp
       
       show ?thesis 
+        unfolding f.augment_with_path_def
       proof (simp add: cfi_rel_alt; safe intro!: ext)
         fix u v
         show "Graph.augment_cf f.cf (set p) (resCap_cf f.cf p) (u,v) 
@@ -233,8 +234,8 @@ begin
 
       show ?thesis
         unfolding edka2_def edka_def
-        apply (rewrite in "let f' = NFlow.augmentingFlow c _ _ in _" Let_def)
-        apply (rewrite in "let f = flow_of_cf _ in _" Let_def)
+        (*apply (rewrite in "let f' = NFlow.augmentingFlow c _ _ in _" Let_def)
+        apply (rewrite in "let f = flow_of_cf _ in _" Let_def)*)
         apply (refine_rcg)
         apply refine_dref_type
         apply vc_solve
@@ -252,6 +253,7 @@ begin
         apply (auto simp: cfi_rel_def br_def; fail)
         apply (auto simp: cfi_rel_def br_def; fail)
         done
+
     qed    
 
     subsection \<open>Implementation of Bottleneck Computation and Augmentation\<close>  

@@ -1,5 +1,17 @@
 \documentclass[fleqn]{beamer}
 
+%
+% TODO
+%   Slide 2: Erklärung an Besipielgraph, weniger formal
+%   Slide 3: Weniger formal, intuition von res-graph
+%        "-->" überladen. Farbkodierung?
+%         Klar machen dass res-graph eine Funktion von c und f ist!
+%
+%  Slide 7: \vfill vs vspace einheitlich. \vspace springt rum, \vfill: Zu weit unten
+%  Slide 15: Farben für box/circle markers in Diagramm.
+%
+
+
 \mode<presentation>
 {
   \usetheme{default}
@@ -114,7 +126,7 @@
 % \subtitle
 % {Subtitle} % (optional)
 
-\author[Peter Lammich]{Peter Lammich and S.~Reza Sefidgar}
+\author[Peter Lammich]{\underline{Peter Lammich} and S.~Reza Sefidgar}
 % - Use the \inst{?} command only if the authors have different
 %   affiliation.
 
@@ -181,61 +193,70 @@
 \end{frame}
 
 # Maximum Flow Problem
-  * Network: Digraph with edge capacities and source/sink nodes
-  * Flow: From source to sink, not exceeding capacities
-    * Kirchhoff's law: Inflow = Outflow for all nodes but source/sink
+  *<+-> Network: digraph with edge capacities and source/sink nodes
+  *<+-> Flow: from source to sink, not exceeding capacities
+    * Kirchhoff's law: inflow = outflow for all nodes but source/sink
     * No inflow to source, no outflow from sink
-    * Value: Flow transported from source to sink (=Outflow of source)
-  * Problem: Given a network, find a flow with maximal value
+    * Value: flow transported from source to sink (=Outflow of source)
+  *<+-> Problem: given a network, find a flow with maximum value
 
-# Ford-Fulkerson Method
-  * Consider network with flow
+# Min-Cut/Max-Flow Theorem
+  *<+-> Consider network with flow
     * No antiparallel edges: $u\edge{} v \implies v\centernot{\edge{}} u$
-  * Residual graph
-    * For network edge $u\edge{c,f} v$, residual graph has
-      \[ u\edge{c-f} v \text{ and } v\edge{f} u \]
-    * Intuition: Flow that can be moved between nodes
+  *<+-> Residual graph
+    * Intuition: flow that can be moved between nodes
       * By either increasing or decreasing flow on network edge
-  * Ford-Fulkerson
-    * Flow is maximal iff no path from source to sink in residual graph
-    * Corollary of min-cut max-flow theorem
+    * For network edge $u\edge{c,f} v$, residual graph has edges\\[1em]
+      ~~~$u\edge{c-f} v$ and $v\edge{f} u$\\[1em]
+  *<+-> Min-Cut/Max-Flow Theorem
+    * Value of minimal cut = value of maximum flow
+    * Corollary: maximum flow iff no source--sink path in residual graph
 
 #! Ford-Fulkerson Method
   {}
-  {\small{Flow is maximal iff no path from source to sink in residual graph.}}
+  {\small{
+    Path from source to sink in residual graph is called \emph{augmenting path}.\\
+    Flow is maximal iff there is no augmenting path.
+  }}
   \vfill
 
-  * Greedy Algorithm
+  *<+-> Greedy Algorithm to compute maximum flow
     \begin{lstlisting}
-      Set flow to zero
+      set flow to zero
       while exists augmenting path
         augment flow along path
     \end{lstlisting}%
-  * Partial correctness: obvious
-  * Termination: Only for integer/rational capacities
-  * Edmonds/Karp: Choose shortest augmenting path
+  *<+-> Partial correctness: obvious
+  *<+-> Termination: only for integer/rational capacities
+  *<+-> Edmonds/Karp: choose shortest augmenting path
     * $O(VE)$ iterations for real-valued capacities
     * Using BFS to find path: $O(VE^2)$ algorithm
 
 # Our Contributions 
   {Verified in Isabelle/HOL}
 
-  * Min-Cut Max-Flow theorem
-    * Human-Readable Isar proof
+  *<+-> Min-Cut/Max-Flow Theorem
+    * Human-readable proof
     * Closely following Cormen et al.
-  * Ford-Fulkerson and Edmonds Karp algorithms
+  *<+-> Ford-Fulkerson and Edmonds Karp algorithms
     * Human-readable presentation of algorithms
-    * Proved Correctness and Complexity
-  * Efficient Implementation
+    * Proved correctness and complexity
+  *<+-> Efficient Implementation
     * Using stepwise refinement down to Imperative/HOL
     * Isabelle's code generator exports to SML
-    * Benchmark: Comparable to Java (from Sedgewick et al.)
+    * Benchmark: comparable to Java (from Sedgewick et al.)
 
 \newcommand{\augment}{{\mathbin\uparrow}}%
 
-\newcommand{\isasnipb}[1]{{\setbeamercolor{math text}{fg=black}#1}}
+\def\isasnipcolor{black}
+
+\newcommand{\isawithcolor}[2]{{\setbeamercolor{math text}{fg=#1}\textcolor{#1}{#2}}}
+
+
+\newcommand{\isasnipb}[1]{\isawithcolor\isasnipcolor{#1}}
 \newcommand{\isasnip}[1]{{\footnotesize\isasnipb{#1}}}
 \newcommand{\isasnipsmall}[1]{{\scriptsize\isasnipb{#1}}}
+
 
 
 
@@ -269,7 +290,7 @@
 }
 
 # Human-Readable Proofs
-  *<1-> Tried to use Isar in readable way
+  *<1-> Used Isar proof language
   
     \begin{uncoverenv}<2->
     {\footnotesize Proof fragment from Cormen at al.:
@@ -372,7 +393,7 @@
     *<4-> And auxiliary statements
     *<5-> We reduce the displayed proof's complexity
   
-  \vfill
+  \vspace*{1em}
   \begin{onlyenv}<1>
   First part of proof that $|f\up f'| = |f|+|f'|$:\\
   \includegraphics[width=.7\textwidth]{cormen26_6.png}
@@ -400,8 +421,8 @@
 \isanewline...\isanewline
 \isamarkuptrue%
 \isacommand{theorem}\isamarkupfalse%
-\ ford{\isacharunderscore}fulkerson{\isacharcolon}\ \isakeyword{shows}\isanewline
-\ \ {\isachardoublequoteopen}isMaxFlow\ f\ {\isasymlongleftrightarrow}\ {\isasymnot}\ Ex\ isAugmentingPath{\isachardoublequoteclose}\ 
+\ ford{\isacharunderscore}fulkerson{\isacharcolon}\isanewline
+\ \ {\isachardoublequoteopen}isMaxFlow\ f\ {\isasymlongleftrightarrow}\ {\isacharparenleft}{\isasymnexists}p{\isachardot}\ isAugmentingPath\ p{\isacharparenright}{\isachardoublequoteclose}\ 
 }
 # Main Result
  * Finally, we arrive at\\[2em]
@@ -437,6 +458,7 @@
 \ \ %
 \endisadelimproof
 %
+\isawithcolor{gray}{
 \isanewline
 \isatagproof
 \isacommand{unfolding}\isamarkupfalse%
@@ -453,33 +475,32 @@
 %
 \endisatagproof%
 }
-\def\snippetfofuassn{
-\isamarkuptrue%
+}
+\def\snippetfofuassn{\isamarkuptrue%
 \isacommand{definition}\isamarkupfalse%
 \ {\isachardoublequoteopen}fofu\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
-\ \ let\ f\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharunderscore}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ let\ f\isactrlsub {\isadigit{0}}\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharunderscore}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
 \isanewline
-\ \ {\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ while\isactrlbsup fofu{\isacharunderscore}invar\isactrlesup \isanewline
+\ \ {\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ while\isactrlbsup \isawithcolor{blue}{fofu{\isacharunderscore}invar}\isactrlesup \isanewline
 \ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ {\isasymnot}brk{\isacharparenright}\ \isanewline
 \ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}{\isachardot}\ do\ {\isacharbraceleft}\isanewline
 \ \ \ \ \ \ p\ {\isasymleftarrow}\ find{\isacharunderscore}augmenting{\isacharunderscore}spec\ f{\isacharsemicolon}\isanewline
 \ \ \ \ \ \ case\ p\ of\ \isanewline
 \ \ \ \ \ \ \ \ None\ {\isasymRightarrow}\ return\ {\isacharparenleft}f{\isacharcomma}True{\isacharparenright}\isanewline
 \ \ \ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ do\ {\isacharbraceleft}\isanewline
-\ \ \ \ \ \ \ \ \ \ assert\ {\isacharparenleft}p{\isasymnoteq}{\isacharbrackleft}{\isacharbrackright}{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ assert\ {\isacharparenleft}NFlow{\isachardot}isAugmentingPath\ c\ s\ t\ f\ p{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ let\ f{\isacharprime}\ {\isacharequal}\ NFlow{\isachardot}augmentingFlow\ c\ f\ p{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ let\ f\ {\isacharequal}\ NFlow{\isachardot}augment\ c\ f\ f{\isacharprime}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ assert\ {\isacharparenleft}NFlow\ c\ s\ t\ f{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isawithcolor{blue}{ assert\ {\isacharparenleft}p{\isasymnoteq}{\isacharbrackleft}{\isacharbrackright}{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ assert\ {\isacharparenleft}NFlow{\isachardot}isAugmentingPath\ c\ s\ t\ f\ p{\isacharparenright}{\isacharsemicolon}}\isanewline
+\ \ \ \ \ \ \ \ \ \ let\ f\ {\isacharequal}\ NFlow{\isachardot}augment{\isacharunderscore}with{\isacharunderscore}path\ c\ f\ p{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isawithcolor{blue}{ assert\ {\isacharparenleft}NFlow\ c\ s\ t\ f{\isacharparenright}{\isacharsemicolon}}\isanewline
 \ \ \ \ \ \ \ \ \ \ return\ {\isacharparenleft}f{\isacharcomma}\ False{\isacharparenright}\isanewline
 \ \ \ \ \ \ \ \ {\isacharbraceright}\ \ \isanewline
 \ \ \ \ {\isacharbraceright}{\isacharparenright}\isanewline
-\ \ \ \ {\isacharparenleft}f{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ assert\ {\isacharparenleft}NFlow\ c\ s\ t\ f{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ {\isacharparenleft}f\isactrlsub {\isadigit{0}}{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \isawithcolor{blue}{ assert\ {\isacharparenleft}NFlow\ c\ s\ t\ f{\isacharparenright}{\isacharsemicolon}}\isanewline
 \ \ return\ f\ \isanewline
 {\isacharbraceright}{\isachardoublequoteclose}%
-%%END-FILTER
 }
+%%END-FILTER
 
 \def\snippetnprf{
 \isacommand{theorem}\isamarkupfalse%
@@ -523,18 +544,14 @@
 \def\snipshortest{
 \isamarkuptrue%
 \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec\ f\ {\isasymequiv}\ assert\ {\isacharparenleft}NFlow\ c\ s\ t\ f{\isacharparenright}\ {\isasymthen}\ \isanewline
+\ {\isachardoublequoteopen}find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec\ f\ {\isasymequiv}\isanewline
+\ \ assert\ {\isacharparenleft}NFlow\ c\ s\ t\ f{\isacharparenright}\ {\isasymthen}\ \isanewline
 \ \ {\isacharparenleft}selectp\ p{\isachardot}\ Graph{\isachardot}isShortestPath\ {\isacharparenleft}residualGraph\ c\ f{\isacharparenright}\ s\ p\ t{\isacharparenright}{\isachardoublequoteclose}%
 }
 \def\snipsrefine{
 \isamarkuptrue%
 \isacommand{lemma}\isamarkupfalse%
-\ find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}refine{\isacharbrackleft}refine{\isacharbrackright}{\isacharcolon}\ \isanewline
-\ \ {\isachardoublequoteopen}{\isacharparenleft}f{\isacharprime}{\isacharcomma}f{\isacharparenright}{\isasymin}Id\ {\isasymLongrightarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec\ f{\isacharprime}\ {\isasymle}\ {\isasymDown}Id\ {\isacharparenleft}find{\isacharunderscore}augmenting{\isacharunderscore}spec\ f{\isacharparenright}{\isachardoublequoteclose}
-\isanewline
-\isanewline
-Note: This is verbose boilerplate for
-\isanewline
+\ find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}refine{\isacharcolon}\ \isanewline
 \ \ find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec\ {\isasymle}\ find{\isacharunderscore}augmenting{\isacharunderscore}spec
 }
 \def\snipalgoorig{
@@ -549,16 +566,17 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}augmenting{\isacharunderscore}spe
 \def\snipalgorepl{
 \isamarkuptrue%
 \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}edka{\isacharunderscore}partial\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
+\ {\isachardoublequoteopen}\isawithcolor{blue}{edka{\isacharunderscore}partial}\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
 
 ...\isanewline
-p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec\ f{\isacharsemicolon}
+p\ {\isasymleftarrow}\ \isawithcolor{blue}{find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec}\ f{\isacharsemicolon}
 \isanewline...
 }
 \def\snipalgoref{
 \isacommand{lemma}\isamarkupfalse%
 \ edka{\isacharunderscore}partial{\isacharunderscore}refine{\isacharbrackleft}refine{\isacharbrackright}{\isacharcolon}\ {\isachardoublequoteopen}edka{\isacharunderscore}partial\ {\isasymle}\ {\isasymDown}Id\ fofu{\isachardoublequoteclose}\isanewline
 
+\isawithcolor{gray}{
 \isatagproof
 \isacommand{unfolding}\isamarkupfalse%
 \ find{\isacharunderscore}shortest{\isacharunderscore}augmenting{\isacharunderscore}spec{\isacharunderscore}def\ find{\isacharunderscore}augmenting{\isacharunderscore}spec{\isacharunderscore}def\isanewline
@@ -571,6 +589,7 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
 \ \ \isacommand{done}\isamarkupfalse%
 %
 \endisatagproof
+}
 }
 %%END-FILTER
 #[t] Edmonds-Karp Algorithm
@@ -626,9 +645,9 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
 \def\edkatotal{
 \isamarkuptrue%
 \isacommand{definition}\isamarkupfalse%
-\ {\isachardoublequoteopen}edka\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
+\ {\isachardoublequoteopen}\isawithcolor{blue}{edka}\ {\isasymequiv}\ do\ {\isacharbraceleft}\isanewline
 ...\isanewline
-{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ while\isactrlsub T\isactrlbsup fofu{\isacharunderscore}invar\isactrlesup \isanewline
+{\isacharparenleft}f{\isacharcomma}{\isacharunderscore}{\isacharparenright}\ {\isasymleftarrow}\ \isawithcolor{blue}{ while\isactrlsub T}\isactrlbsup fofu{\isacharunderscore}invar\isactrlesup \isanewline
 \isanewline...
 }
 
@@ -678,11 +697,11 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
 \ Network{\isacharunderscore}Impl\ \isakeyword{begin}\isanewline
 \ \ \ \ \isacommand{theorem}\isamarkupfalse%
 \ edka{\isacharunderscore}imp{\isacharunderscore}correct{\isacharcolon}\ \isanewline
-\ \ \ \ \ \ \isakeyword{assumes}\ VN{\isacharcolon}\ {\isachardoublequoteopen}Graph{\isachardot}V\ c\ {\isasymsubseteq}\ {\isacharbraceleft}{\isadigit{0}}{\isachardot}{\isachardot}{\isacharless}N{\isacharbraceright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{assumes}\ ABS{\isacharunderscore}PS{\isacharcolon}\ {\isachardoublequoteopen}is{\isacharunderscore}adj{\isacharunderscore}map\ am{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}Graph{\isachardot}V\ c\ {\isasymsubseteq}\ {\isacharbraceleft}{\isadigit{0}}{\isachardot}{\isachardot}{\isacharless}N{\isacharbraceright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}is{\isacharunderscore}adj{\isacharunderscore}map\ am{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}\isanewline
 \ \ \ \ \ \ \ \ {\isacharless}emp{\isachargreater}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ edka{\isacharunderscore}imp\ c\ s\ t\ N\ am\ \isanewline
+\ \ \ \ \ \ \ \ \ \ \isawithcolor{blue}{edka{\isacharunderscore}imp\ c\ s\ t\ N\ am}\ \isanewline
 \ \ \ \ \ \ \ \ {\isacharless}{\isasymlambda}fi{\isachardot}\ {\isasymexists}\isactrlsub Af{\isachardot}\ is{\isacharunderscore}rflow\ N\ f\ fi\ {\isacharasterisk}\ {\isasymup}{\isacharparenleft}isMaxFlow\ f{\isacharparenright}{\isachargreater}\isactrlsub t{\isachardoublequoteclose}\isanewline
 %
 }
@@ -730,22 +749,28 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
 %
 \endisatagproof
 }
-%%END-FILTER
   
 \def\snipcheckedthm{
 \isacommand{theorem}\isamarkupfalse%
 \isanewline
 \ \ \isakeyword{fixes}\ el\ \isakeyword{defines}\ {\isachardoublequoteopen}c\ {\isasymequiv}\ ln{\isacharunderscore}{\isasymalpha}\ el{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isacharless}emp{\isachargreater}\ edmonds{\isacharunderscore}karp\ el\ s\ t\ {\isacharless}{\isasymlambda}\isanewline
-\ \ \ \ \ \ None\ {\isasymRightarrow}\ {\isasymup}{\isacharparenleft}{\isasymnot}ln{\isacharunderscore}invar\ el\ {\isasymor}\ {\isasymnot}Network\ c\ s\ t{\isacharparenright}\isanewline
-\ \ \ \ {\isacharbar}\ Some\ {\isacharparenleft}N{\isacharcomma}cf{\isacharparenright}\ {\isasymRightarrow}\ \isanewline
-\ \ \ \ \ \ {\isasymup}{\isacharparenleft}ln{\isacharunderscore}invar\ el\ {\isasymand}\ Network\ c\ s\ t\ {\isasymand}\ Graph{\isachardot}V\ c\ {\isasymsubseteq}\ {\isacharbraceleft}{\isadigit{0}}{\isachardot}{\isachardot}{\isacharless}N{\isacharbraceright}{\isacharparenright}\isanewline
-\ \ \ \ {\isacharasterisk}\ {\isacharparenleft}{\isasymexistsA}f{\isachardot}\ is{\isacharunderscore}rflow\ c\ N\ f\ cf\ {\isacharasterisk}\ {\isasymup}{\isacharparenleft}Network{\isachardot}isMaxFlow\ c\ s\ t\ f{\isacharparenright}{\isacharparenright}{\isachargreater}\isactrlsub t{\isachardoublequoteclose}%
+\ \ \isakeyword{shows}\ \isanewline
+\ \ \ \ {\isachardoublequoteopen}{\isacharless}emp{\isachargreater}\ \isanewline
+\ \ \ \ \ \ \isawithcolor{blue}{edmonds{\isacharunderscore}karp\ el\ s\ t}\ \isanewline
+\ \ \ \ {\isacharless}\isanewline
+\ \ \ \ \ \ {\isasymlambda}None\ {\isasymRightarrow}\ {\isasymup}{\isacharparenleft}{\isasymnot}ln{\isacharunderscore}invar\ el\ {\isasymor}\ {\isasymnot}Network\ c\ s\ t{\isacharparenright}\isanewline
+\ \ \ \ \ \ {\isacharbar}\ Some\ {\isacharparenleft}{\isacharunderscore}{\isacharcomma}{\isacharunderscore}{\isacharcomma}N{\isacharcomma}cf{\isacharparenright}\ {\isasymRightarrow}\ \isanewline
+\ \ \ \ \ \ \ \ \ {\isasymup}{\isacharparenleft}ln{\isacharunderscore}invar\ el\ {\isasymand}\ Network\ c\ s\ t\ {\isasymand}\ Graph{\isachardot}V\ c\ {\isasymsubseteq}\ {\isacharbraceleft}{\isadigit{0}}{\isachardot}{\isachardot}{\isacharless}N{\isacharbraceright}{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ {\isacharasterisk}\ {\isacharparenleft}{\isasymexists}\isactrlsub Af{\isachardot}\ is{\isacharunderscore}rflow\ c\ s\ t\ N\ f\ cf\ {\isacharasterisk}\ {\isasymup}{\isacharparenleft}Network{\isachardot}isMaxFlow\ c\ s\ t\ f{\isacharparenright}{\isacharparenright}\isanewline
+\ \ \ \ {\isachargreater}\isactrlsub t{\isachardoublequoteclose}%
 }
-  
-#[t] Assembling Overall Correctness proof
+
+%%END-FILTER
+
+
+#[t] Assembling Overall Correctness Proof
   *<1-> Correctness statement
-    * As Hoare-Triple using Separation Logic
+    * As Hoare Triple using Separation Logic
     \begin{onlyenv}<1>
       \vspace{1em}
       
@@ -758,7 +783,7 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
       \isasnip\snipproof
     \end{onlyenv}
   *<3-> Also integrated with check for valid network
-    * Input is list of edges, source, and sink
+    * Input: list of edges, source node, sink node
     \begin{onlyenv}<3>
       \vspace{1em}
       
@@ -769,9 +794,10 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
 
 #! Benchmarking
   * Against Java version of Sedgewick et al., on random networks
-    * Sparse graphs (density=0.02): Java is (slightly) faster
-    * Dense graphs (density=0.25): We are (slightly) faster
-    * Supposed reason: Different 2-dimensional array implementations
+  * Two data sets: Sparse ($D=0.02$) and dense ($D=0.25$) graphs
+    * Sparse: Java is (slightly) faster
+    * Dense: we are (slightly) faster
+    * Supposed reason: different 2-dimensional array implementations
 
   \center  
   \begin{tikzpicture}[thick,scale=.6, every node/.style={scale=1}] %change the scales if you like to reduce the size
@@ -884,7 +910,7 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
   \end{tikzpicture}
     
 # Conclusion
-  * Proof of Min-Cut/Max-Flow theorem
+  * Proof of Min-Cut/Max-Flow Theorem
     * Human readable proofs following textbook presentation
     * Showing off Isar proof language
   * Verified Edmonds-Karp algorithm
@@ -892,6 +918,10 @@ p\ {\isasymleftarrow}\ find{\isacharunderscore}shortest{\isacharunderscore}augme
     * ... down to imperative implementation
     * Showing off Isabelle Refinement Framework
   * Our implementation is pretty efficient
+    
+  \vfill
+  
+  \uncover<2->{\huge\center Questions?}
     
     
 \end{document}
