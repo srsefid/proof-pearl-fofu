@@ -185,6 +185,13 @@
 
 \newcommand{\edge}[1]{\stackrel{#1}{\longrightarrow}}
 
+
+\definecolor{capacity}{rgb}{0,0,0}
+\definecolor{flow}{rgb}{0,0,.7}
+\definecolor{parval}{rgb}{0,.6,0}
+\definecolor{aparval}{rgb}{.6,0,0}
+
+
 \begin{document}
 % \input{macros}
 
@@ -192,35 +199,165 @@
   \titlepage
 \end{frame}
 
-# Maximum Flow Problem
-  *<+-> Network: digraph with edge capacities and source/sink nodes
-  *<+-> Flow: from source to sink, not exceeding capacities
-    * Kirchhoff's law: inflow = outflow for all nodes but source/sink
-    * No inflow to source, no outflow from sink
-    * Value: flow transported from source to sink (=Outflow of source)
-  *<+-> Problem: given a network, find a flow with maximum value
+{
 
-# Min-Cut/Max-Flow Theorem
-  *<+-> Consider network with flow
-    * No antiparallel edges: $u\edge{} v \implies v\centernot{\edge{}} u$
-  *<+-> Residual graph
-    * Intuition: flow that can be moved between nodes
-      * By either increasing or decreasing flow on network edge
-    * For network edge $u\edge{c,f} v$, residual graph has edges\\[1em]
-      ~~~$u\edge{c-f} v$ and $v\edge{f} u$\\[1em]
-  *<+-> Min-Cut/Max-Flow Theorem
-    * Value of minimal cut = value of maximum flow
-    * Corollary: maximum flow iff no source--sink path in residual graph
+  \def\basicnet{
+    \tikzstyle{nd}=[shape=circle,draw, minimum size = 5mm]
+    \node[nd] (s) {s};
+    \node[nd] (a) [above right of = s] {a};
+    \node[nd] (b) [below right of = s] {b};
+    \node[nd] (c) [right of = a] {c};
+    \node[nd] (d) [right of = b] {d};
+    \node[nd] (t) [below right of = c] {t};
+  }
+  \def\capedges{
+    \tikzstyle{lab}=[text=capacity]
+    \draw[->] (s) to node[lab] {3} (a);
+    \draw[->] (s) to node[lab] {5} (b);
+    \draw[->] (a) to node[lab] {6} (c);
+    \draw[->] (b) to node[lab] {3} (d);
+    \draw[->] (c) to node[lab] {4} (t);
+    \draw[->] (d) to node[lab] {4} (t);
+
+    \draw[->] (a) to node[lab] {3} (d);
+  }
+  \def\flowa{
+    \draw[dflow,line width = 3pt] (s) to node[flow] {3} (a);
+    \draw[dflow,line width = 3pt] (a) to node[flow] {3} (d);
+    \draw[dflow,line width = 3pt] (d) to node[flow] {3} (t);
+  }
+  \def\augpatha{
+    \draw[aug] (s) to (b);
+    \draw[aug] (b) to (d);
+    \draw[aug] (d) to (t);
+  }
+  \def\flowb{
+    \draw[dflow,line width = 3pt] (s) to node[flow] {3} (a);
+    \draw[dflow,line width = 3pt] (a) to node[flow] {3} (d);
+    \draw[dflow,line width = 4pt] (d) to node[flow] {4} (t);
+    \draw[dflow,line width = 1pt] (s) to node[flow] {1} (b);
+    \draw[dflow,line width = 1pt] (b) to node[flow] {1} (d);
+  }
+  \def\augpathb{
+    \draw[aug] (s) to (b);
+    \draw[aug] (b) to (d);
+    \draw[aug] (d) to (a);
+    \draw[aug] (a) to (c);
+    \draw[aug] (c) to (t);
+  }
+  \def\flowc{
+    \draw[dflow,line width = 3pt] (s) to node[flow] {3} (a);
+    \draw[dflow,line width = 1pt] (a) to node[flow] {1} (d);
+    \draw[dflow,line width = 4pt] (d) to node[flow] {4} (t);
+    \draw[dflow,line width = 3pt] (s) to node[flow] {3} (b);
+    \draw[dflow,line width = 3pt] (b) to node[flow] {3} (d);
+
+    \draw[dflow,line width = 2pt] (a) to node[flow] {2} (c);
+    \draw[dflow,line width = 2pt] (c) to node[flow] {2} (t);
+  }
+
+
+# Flow Networks
+  \begin{minipage}{.49\textwidth}
+  \begin{tikzpicture}[node distance = 2cm, auto]
+    \tikzstyle{flow}=[text=flow,swap]
+    \tikzstyle{dflow}=[color=flow, draw opacity=.5]
+    \tikzstyle{aug}=[color=red, draw opacity=.5, line width = 2pt]
+
+    \basicnet
+    \capedges
+    
+    \only<2>{\flowa}
+    \only<3>{\flowa\augpatha}
+    
+    \only<4>{\flowb}
+    \only<5>{\flowb\augpathb}
+    
+    \only<6>{\flowc}
+  \end{tikzpicture}
+  \end{minipage}
+  \begin{minipage}{.49\textwidth}
+    *<1-> Digraph with capacities
+      * Source (s) and sink (t)
+    *<2-> Flow from s to t
+      * Not exceeding capacities
+      * Inflow = outflow (except s,t)
+    *<3-> Finding maximum flow
+      * Incr.\ along augmenting path
+    *<5-> May need to take back flow
+      * To increase overall value
+    *<6-> Flow is maximal now
+  
+  \end{minipage}
+
+\def\resgraph{
+    \draw[resgp, bend left] (s) to node[resgp] {4} (b);
+    \draw[resga, bend left] (b) to node[resga] {1} (s);
+    \draw[resga] (a) to node[resga] {3} (s);
+    \draw[resgp] (a) to node[resgp] {6} (c);
+    \draw[resgp] (c) to node[resgp] {4} (t);
+    \draw[resgp, bend left] (b) to node[resgp] {2} (d);
+    \draw[resga, bend left] (d) to node[resgp] {1} (b);
+    \draw[resga] (t) to node[resga] {4} (d);
+    \draw[resga] (d) to node[resga] {3} (a);
+}
+
+\def\augpathres{
+  \draw[aug, bend left] (s) to (b);
+  \draw[aug, bend left] (b) to (d);
+  \draw[aug] (d) to (a);
+  \draw[aug] (a) to (c);
+  \draw[aug] (c) to (t);
+}
+
+
+# Residual Graph 
+  {of Network and Flow}
+  *<1-> Flow that can be moved between nodes
+    * By \textcolor{parval}{increasing} or \textcolor{aparval}{taking back} flow
+  *<2-> Augmenting path: s-t path in residual graph  
+
+  \begin{tikzpicture}[node distance = 2cm, auto]
+    \tikzstyle{flow}=[text=flow,swap]
+    \tikzstyle{dflow}=[color=flow, draw opacity=.5]
+    \tikzstyle{aug}=[color=red, draw opacity=.5, line width = 2pt]
+    \tikzstyle{resgp}=[->,color=parval,text=parval]
+    \tikzstyle{resga}=[->,color=aparval,text=aparval]
+
+    \basicnet
+    \resgraph
+    
+    \only<2>{\augpathres}
+    
+  \end{tikzpicture}
+    
+}  
+
+%   
+% # Maximum Flow Problem
+%   *<+-> Network: digraph with edge capacities and source/sink nodes
+%   *<+-> Flow: from source to sink, not exceeding capacities
+%     * Kirchhoff's law: inflow = outflow for all nodes but source/sink
+%     * No inflow to source, no outflow from sink
+%     * Value: flow transported from source to sink (=Outflow of source)
+%   *<+-> Problem: given a network, find a flow with maximum value
+% 
+% # Min-Cut/Max-Flow Theorem
+%   *<+-> Consider network with flow
+%     * No antiparallel edges: $u\edge{} v \implies v\centernot{\edge{}} u$
+%   *<+-> Residual graph
+%     * Intuition: flow that can be moved between nodes
+%       * By either increasing or decreasing flow on network edge
+%     * For network edge $u\edge{c,f} v$, residual graph has edges\\[1em]
+%       ~~~$u\edge{c-f} v$ and $v\edge{f} u$\\[1em]
+%   *<+-> Min-Cut/Max-Flow Theorem
+%     * Value of minimal cut = value of maximum flow
+%     * Corollary: maximum flow iff no source--sink path in residual graph
 
 #! Ford-Fulkerson Method
-  {}
-  {\small{
-    Path from source to sink in residual graph is called \emph{augmenting path}.\\
-    Flow is maximal iff there is no augmenting path.
-  }}
-  \vfill
-
-  *<+-> Greedy Algorithm to compute maximum flow
+  *<+-> Theorem: Flow is maximal iff there is no augmenting path.
+    * Corollary of Min-Cut/Max-Flow theorem
+  *<+-> Greedy algorithm to compute maximum flow
     \begin{lstlisting}
       set flow to zero
       while exists augmenting path
@@ -435,7 +572,7 @@
 \def\snippetfofu{
 \isacommand{definition}\isamarkupfalse%
 \ {\isachardoublequoteopen}ford{\isacharunderscore}fulkerson{\isacharunderscore}method\ {\isasymequiv}\ \isainnerkeyword{do}\ {\isacharbraceleft}\isanewline
-\ \ \isainnerkeyword{let}\ f\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \isainnerkeyword{let}\ f\isactrlsub {\isadigit{0}}\ {\isacharequal}\ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}u{\isacharcomma}v{\isacharparenright}{\isachardot}\ {\isadigit{0}}{\isacharparenright}{\isacharsemicolon}\isanewline
 \isanewline
 \ \ {\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}\ {\isasymleftarrow}\ \isainnerkeyword{while}\ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ {\isasymnot}brk{\isacharparenright}\ \isanewline
 \ \ \ \ {\isacharparenleft}{\isasymlambda}{\isacharparenleft}f{\isacharcomma}brk{\isacharparenright}{\isachardot}\ \isainnerkeyword{do}\ {\isacharbraceleft}\isanewline
@@ -444,7 +581,7 @@
 \ \ \ \ \ \ \ \ None\ {\isasymRightarrow}\ \isainnerkeyword{return}\ {\isacharparenleft}f{\isacharcomma}True{\isacharparenright}\isanewline
 \ \ \ \ \ \ {\isacharbar}\ Some\ p\ {\isasymRightarrow}\ \isainnerkeyword{return}\ {\isacharparenleft}augment\ c\ f\ p{\isacharcomma}\ False{\isacharparenright}\isanewline
 \ \ \ \ {\isacharbraceright}{\isacharparenright}\isanewline
-\ \ \ \ {\isacharparenleft}f{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ {\isacharparenleft}f\isactrlsub {\isadigit{0}}{\isacharcomma}False{\isacharparenright}{\isacharsemicolon}\isanewline
 \ \ \isainnerkeyword{return}\ f\ \isanewline
 {\isacharbraceright}{\isachardoublequoteclose}%
 }
@@ -574,7 +711,7 @@ p\ {\isasymleftarrow}\ \isawithcolor{blue}{find{\isacharunderscore}shortest{\isa
 }
 \def\snipalgoref{
 \isacommand{lemma}\isamarkupfalse%
-\ edka{\isacharunderscore}partial{\isacharunderscore}refine{\isacharbrackleft}refine{\isacharbrackright}{\isacharcolon}\ {\isachardoublequoteopen}edka{\isacharunderscore}partial\ {\isasymle}\ {\isasymDown}Id\ fofu{\isachardoublequoteclose}\isanewline
+\ edka{\isacharunderscore}partial{\isacharunderscore}refine{\isacharbrackleft}refine{\isacharbrackright}{\isacharcolon}\ {\isachardoublequoteopen}edka{\isacharunderscore}partial\ {\isasymle}\ fofu{\isachardoublequoteclose}\isanewline
 
 \isawithcolor{gray}{
 \isatagproof
@@ -631,7 +768,7 @@ p\ {\isasymleftarrow}\ \isawithcolor{blue}{find{\isacharunderscore}shortest{\isa
 \def\edkarefine{
 \isamarkuptrue%
 \isacommand{theorem}\isamarkupfalse%
-\ edka{\isacharunderscore}refine{\isacharbrackleft}refine{\isacharbrackright}{\isacharcolon}\ {\isachardoublequoteopen}edka\ {\isasymle}\ {\isasymDown}Id\ edka{\isacharunderscore}partial{\isachardoublequoteclose}\isanewline
+\ edka{\isacharunderscore}refine{\isacharbrackleft}refine{\isacharbrackright}{\isacharcolon}\ {\isachardoublequoteopen}edka\ {\isasymle}\ edka{\isacharunderscore}partial{\isachardoublequoteclose}\isanewline
 }
 \def\edkapartial{
 \isamarkuptrue%
@@ -918,7 +1055,14 @@ p\ {\isasymleftarrow}\ \isawithcolor{blue}{find{\isacharunderscore}shortest{\isa
     * ... down to imperative implementation
     * Showing off Isabelle Refinement Framework
   * Our implementation is pretty efficient
-    
+
+  \vfill
+  \center
+  Available in Archive of Formal Proofs
+  
+  \url{www.isa-afp.org/entries/EdmondsKarp_Maxflow.shtml}
+  
+  \url{www.isa-afp.org/entries/Refine_Imperative_HOL.shtml}
   \vfill
   
   \uncover<2->{\huge\center Questions?}
