@@ -50,7 +50,7 @@ definition "edmonds_karp el s t \<equiv> do {
       return (Some (c,am,N,f))
   }
 }"
-export_code edmonds_karp checking SML
+(*export_code edmonds_karp checking SML*)
 
 lemma network_is_impl: "Network c s t \<Longrightarrow> Network_Impl c s t" by intro_locales
 

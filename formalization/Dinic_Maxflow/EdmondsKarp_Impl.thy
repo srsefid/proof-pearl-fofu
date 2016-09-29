@@ -3,7 +3,7 @@ theory EdmondsKarp_Impl
 imports 
   EdmondsKarp_Algo
   "Augmenting_Path_BFS"
-  "../Refine_Imperative_HOL/IICF/IICF"
+  "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin
 
   text \<open>We now implement the Edmonds-Karp algorithm.
@@ -1080,7 +1080,7 @@ begin
 
   end
 
-  export_code edka_imp checking SML_imp
+  (*export_code edka_imp checking SML_imp*)
 
   subsection \<open>Correctness Theorem for Implementation\<close>
   text \<open>We combine all refinement steps to derive a correctness 

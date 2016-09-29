@@ -1,3 +1,0 @@
-#load "unix.cma";;
-#load "util.cma";;
-#use "test.ml"

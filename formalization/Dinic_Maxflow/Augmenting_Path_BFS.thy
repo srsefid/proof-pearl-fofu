@@ -727,6 +727,6 @@ subsection \<open>Imperative Implementation\<close>
   
   end
 
-  export_code bfs_impl checking SML_imp
+  (*export_code bfs_impl checking SML_imp*)
 
 end

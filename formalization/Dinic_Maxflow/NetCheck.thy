@@ -4,7 +4,7 @@ imports
   Fofu_Impl_Base
    Network 
   "Graph_Impl"
-  "../DFS_Framework/Examples/Reachable_Nodes"
+  "$AFP/DFS_Framework/Examples/Reachable_Nodes"
 begin
 text \<open>
   This theory contains code to read a network from an edge list, 
@@ -705,7 +705,7 @@ text \<open>
     apply (simp add: option_rel_def read'_correct)
     using domIff by force
 
-  export_code read checking SML     
+  (*export_code read checking SML     *)
   
   subsection \<open>Usefulness Check\<close>
   text \<open>
@@ -1508,7 +1508,7 @@ subsection \<open>Executable Network Checker\<close>
       Some (c,adjmap,N)
     }"
 
-  export_code prepareNet checking SML  
+  (*export_code prepareNet checking SML  *)
 
   theorem prepareNet_correct: "case (prepareNet el s t) of 
       Some (c, adjmap,N) \<Rightarrow> (el, c) \<in> ln_rel \<and> Network c s t 

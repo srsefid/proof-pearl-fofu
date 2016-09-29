@@ -1,1 +1,0 @@
-# isabelle_fordfulk
