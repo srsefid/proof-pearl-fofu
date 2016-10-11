@@ -1,6 +1,6 @@
 section \<open>Augmenting Flows\<close>
 theory Augmenting_Flow
-imports ResidualGraph
+imports Residual_Graph
 begin
 
 text \<open>

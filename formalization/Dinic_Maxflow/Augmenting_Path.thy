@@ -1,6 +1,6 @@
 section \<open>Augmenting Paths\<close>
 theory Augmenting_Path
-imports ResidualGraph
+imports Residual_Graph
 begin
 text \<open>We define the concept of an augmenting path in the residual graph,
   and the residual flow induced by an augmenting path.\<close>

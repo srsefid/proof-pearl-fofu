@@ -1,5 +1,5 @@
 section \<open>Residual Graph\<close>
-theory ResidualGraph
+theory Residual_Graph
 imports Network
 begin
 text \<open>
