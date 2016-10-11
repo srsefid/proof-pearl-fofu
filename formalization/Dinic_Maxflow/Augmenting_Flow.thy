@@ -32,13 +32,6 @@ text \<open>such that we can write @{term [source] "f\<up>f'"} for the flow @{te
   augmented by @{term f'}.\<close>
 
 
-(*<*) (* Some old syntax, not used any more *)
-(*notation (in NFlow_Loc_Syntax) augment ("\<langle>\<up>/ _\<rangle>" 1000)*)
-abbreviation (in Graph_Syntax) NFlow_augment :: "_ graph \<Rightarrow> _ flow \<Rightarrow> _ flow \<Rightarrow> _ flow"
-  ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>F/ \<langle>_/ \<up>/ _\<rangle>\<rbrace>" 1000)
-where "\<lbrace>c \<parallel>\<^sub>N\<^sub>F \<langle>f \<up> f'\<rangle>\<rbrace> \<equiv> NFlow.augment c f f'"
-(*>*)
-
 subsection \<open>Augmentation yields Valid Flow\<close>
 text \<open>We show that, if we augment the flow with a valid flow of
   the residual graph, the augmented flow is a valid flow again, i.e. 

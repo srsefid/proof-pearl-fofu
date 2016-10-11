@@ -38,14 +38,6 @@ end
 locale Finite_Flow = Flow c s t f + Finite_Graph c 
   for c :: "'capacity::linordered_idom graph" and s t f
 
-(*<*) (* Old syntax, not used any more *)
-  context Graph_Syntax begin    
-    abbreviation Flow_val :: "'capacity::linordered_idom graph \<Rightarrow> node \<Rightarrow> 'capacity flow \<Rightarrow> 'capacity"
-      ("\<lbrace>_,/ _/ \<parallel>\<^sub>F/ |_|\<rbrace>" 1000) 
-    where "\<lbrace>c, s \<parallel>\<^sub>F |f|\<rbrace> \<equiv> Flow.val c s f"
-  end  
-(*>*)
-
 
 subsubsection \<open>Cuts\<close>
 text \<open>A cut is a partitioning of the nodes into two sets. 
@@ -122,12 +114,6 @@ text \<open>A minimum cut is a cut with minimum capacity.\<close>
 definition isMinCut :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> cut \<Rightarrow> bool" 
 where "isMinCut c s t k \<equiv> NCut c s t k \<and>
   (\<forall>k'. NCut c s t k' \<longrightarrow> NCut.cap c k \<le> NCut.cap c k')"
-  
-(*<*) (* Old Syntax, not used any more*)
-abbreviation (in Graph_Syntax) NCut_cap :: "'capacity::linordered_idom graph \<Rightarrow> node set \<Rightarrow> 'capacity"
-  ("\<lbrace>_/ \<parallel>\<^sub>N\<^sub>C/ Cap/ (_)\<rbrace>" 1000) 
-where "\<lbrace>c \<parallel>\<^sub>N\<^sub>C Cap k\<rbrace> \<equiv> NCut.cap c k"
-(*>*)
 
 subsection \<open>Properties\<close>
 subsubsection \<open>Flows\<close>

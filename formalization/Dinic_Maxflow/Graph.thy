@@ -57,55 +57,6 @@ definition is_adj_map :: "(node \<Rightarrow> node list) \<Rightarrow> bool" whe
 
 end -- \<open>Graph\<close>
 
-(*<*) (* Old syntax*)
-locale Graph_Loc_Syntax = Graph
-begin
-  notation incoming ("\<delta>\<^sup>+(_)" 1000) 
-  notation outgoing ("\<delta>\<^sup>-(_)" 1000)
-  notation adjacent ("\<delta>(_)" 1000) 
-  notation incoming' ("\<Delta>\<^sup>+(_)" 1000) 
-  notation outgoing' ("\<Delta>\<^sup>-(_)" 1000)
-  notation adjacent' ("\<Delta>(_)" 1000) 
-end
-
-locale Graph_Syntax begin
-  abbreviation Graph_E :: "'c::linordered_idom graph \<Rightarrow> edge set"
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ E\<rbrace>" 1000)
-  where "\<lbrace>c \<parallel>\<^sub>G E\<rbrace> \<equiv> Graph.E c"
-    
-  abbreviation Graph_V :: "'c::linordered_idom graph \<Rightarrow> node set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ V\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G V\<rbrace> \<equiv> Graph.V c"
-    
-  abbreviation Graph_incoming :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>+(_)\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<delta>\<^sup>+ u\<rbrace> \<equiv> Graph.incoming c u"
-    
-  abbreviation Graph_outgoing :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>\<^sup>-(_)\<rbrace>" 1000)
-  where "\<lbrace>c \<parallel>\<^sub>G \<delta>\<^sup>- u\<rbrace> \<equiv> Graph.outgoing c u"
-    
-  abbreviation Graph_delta :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> edge set"
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<delta>(_)\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<delta> u\<rbrace> \<equiv> Graph.adjacent c u"
-    
-  abbreviation Graph_incoming' :: "'c::linordered_idom graph \<Rightarrow> node set \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>+(_)\<rbrace>" 1000)
-  where "\<lbrace>c \<parallel>\<^sub>G \<Delta>\<^sup>+ u\<rbrace> \<equiv> Graph.incoming' c u"  
-  
-  abbreviation Graph_outgoing' :: "'c::linordered_idom graph \<Rightarrow> node set \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>\<^sup>-(_)\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<Delta>\<^sup>- u\<rbrace> \<equiv> Graph.outgoing' c u"
-    
-  abbreviation Graph_delta' :: "'c::linordered_idom graph \<Rightarrow> node set \<Rightarrow> edge set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<Delta>(_)\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<Delta> u\<rbrace> \<equiv> Graph.adjacent' c u"
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
-  (*^^^^^^^^^^^^^^^^^^^^^^^END^^^^^^^^^^^^^^^^^^^^^^^^*)
-end  
-(*>*)
-
 subsubsection \<open>Finite Graphs\<close>
 locale Finite_Graph = Graph +
   assumes finite_V[simp, intro!]: "finite V"
@@ -162,37 +113,6 @@ begin
 
 end  
 
-(*<*) (* Old syntax *)
-context Graph_Loc_Syntax begin
-  notation isPath ("\<langle>\<leadsto>/ _,/ _,/ _\<rangle>"  1000)
-  notation connected ("\<langle>_/ \<leadsto>/ _\<rangle>" 1000)
-  notation reachableNodes ("\<langle>\<star>/ _\<rangle>" 1000)
-  notation isShortestPath ("\<langle>\<rightarrow>/ _,/ _,/ _\<rangle>" 1000) 
-  notation isSimplePath ("\<langle>\<Rightarrow>/ _,/ _,/ _\<rangle>" 1000)
-end
-
-context Graph_Syntax begin  
-  abbreviation Graph_isPath :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<leadsto> _, _, _\<rangle>\<rbrace>" 1000)
-  where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<leadsto> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isPath c u p v"
-    
-  abbreviation Graph_connected :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> node \<Rightarrow> bool" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>_/ \<leadsto>/ _\<rangle>\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<langle>u \<leadsto> v\<rangle>\<rbrace> \<equiv> Graph.connected c u v"
-    
-  abbreviation Graph_reachableNodes :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> node set" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<star>/ _\<rangle>\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<star> u\<rangle>\<rbrace> \<equiv> Graph.reachableNodes c u"
-    
-  abbreviation Graph_isShortestPath :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool" 
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<rightarrow> _, _, _\<rangle>\<rbrace>" 1000)
-  where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<rightarrow> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isShortestPath c u p v"
-    
-  abbreviation Graph_isSimplePath :: "'c::linordered_idom graph \<Rightarrow> node \<Rightarrow> path \<Rightarrow> node \<Rightarrow> bool"
-    ("\<lbrace>_/ \<parallel>\<^sub>G/ \<langle>\<Rightarrow> _, _, _\<rangle>\<rbrace>" 1000) 
-  where "\<lbrace>c \<parallel>\<^sub>G \<langle>\<Rightarrow> u, p, v\<rangle>\<rbrace> \<equiv> Graph.isSimplePath c u p v"
-end  
-(*>*)
 
 subsection \<open>Properties\<close>
 
@@ -738,108 +658,6 @@ lemma isSPath_sg_incoming:
   by (auto 
     simp: in_set_conv_decomp isSimplePath_fwd pathVertices_fwd_def
     elim!: Misc.list_match_lel_lel)
-
-    (* TODO: There should be a much simpler proof! 
-      Unused lemma.
-    *)  
-(*
-    lemma isSPath_no_returning: "\<lbrakk>isSimplePath u p v; (u1, v1) \<in> set p\<rbrakk> \<Longrightarrow>
-      (\<exists>es1 es2. p = es1 @ (v2, u1) # (u1, v1) # es2 \<or> (v2, u1) \<notin> set p)"
-      proof -
-        assume asm1: "isSimplePath u p v"
-        assume asm2: "(u1, v1) \<in> set p"
-        show ?thesis
-          proof (rule ccontr)
-            assume asm_s: "\<not> (\<exists>es1 es2. p = es1 @ (v2, u1) # (u1, v1) # es2 \<or> (v2, u1) \<notin> set p)"
-            have asm_s1: "\<forall> es1 es2. p \<noteq> es1 @ (v2, u1) # (u1, v1) # es2" using asm_s by auto
-            have asm_s2: "(v2, u1) \<in> set p" using asm_s by auto 
-            obtain w1 w2 where obt1: "p = w1 @ (u1, v1) # w2" 
-              using asm2 by (metis in_set_conv_decomp)
-            then have "(v2, u1) = (u1, v1) \<or> ((v2, u1) \<in> (set w1) \<or> (v2, u1) \<in> (set w2))" 
-              using asm_s2 by (metis Un_iff set_ConsD set_append)
-            then show "False"
-              proof 
-                assume "(v2, u1) = (u1, v1)"
-                then have "(u1, u1) \<in> set p" using asm2 by auto 
-                thus ?thesis using asm1 isSPath_no_selfloop by auto
-              next
-                assume "(v2, u1) \<in> (set w1) \<or> (v2, u1) \<in> (set w2)"
-                thus ?thesis
-                  proof
-                    assume "(v2, u1) \<in> (set w1)"
-                    have "pathVertices u p = butlast (pathVertices u w1) @  pathVertices (last 
-                      (pathVertices u w1)) ((u1, v1) # w2)" using obt1 pathVertices_append by auto
-                    moreover {
-                      have "set w1 \<noteq> {}" using `(v2, u1) \<in> (set w1)` by auto
-                      {
-                        obtain x where "isPath u w1 x" 
-                          using obt1 asm1 isSimplePath_def isPath_append by auto
-                        note pathVertices_edge_old[OF this `(v2, u1) \<in> (set w1)`]
-                      }
-                      then obtain vs1 vs2 where 
-                        obt2: "pathVertices u w1 = vs1 @ fst (v2, u1) # snd (v2, u1) # vs2" by auto
-                      moreover have "vs2 \<noteq> []"
-                        proof (rule ccontr)
-                          assume "\<not> vs2 \<noteq> []"
-                          then have fct1: "pathVertices u w1 = vs1 @ [v2, u1]" using obt2 by auto
-                          {
-                            have "pathVertices u w1 = map fst w1 @ [snd (last w1)]" 
-                              using pathVertices_alt `set w1 \<noteq> {}` by auto
-                            moreover have "map fst w1 = map fst (butlast w1) @ [fst (last w1)]" 
-                              using `set w1 \<noteq> {}` by (metis last_map empty_set map_butlast
-                              snoc_eq_iff_butlast zip_Nil zip_map_fst_snd)
-                            ultimately have "pathVertices u w1 = 
-                              map fst (butlast w1) @ fst (last w1) # snd (last w1) # []" by auto
-                          }  note fct2 = this
-                          have "map fst (butlast w1) @ [fst (last w1)] = vs1 @ [v2]" using fct1
-                            fct2 by (metis butlast.simps(2) butlast_append list.distinct(1)) 
-                          then have "fst (last w1) = v2" by (metis last_snoc)
-                          moreover have "snd (last w1) = u1" using fct1 fct2  
-                            by (metis append_Cons append_Nil last_appendR last_snoc)
-                          ultimately have "last w1 = (v2, u1)" by auto
-                          moreover have "(v2, u1) \<noteq> last w1"
-                            proof (rule ccontr)
-                              assume "\<not> (v2, u1) \<noteq> last w1"
-                              moreover have "butlast w1 @ [last w1] = w1" using `set w1 \<noteq> {}` 
-                                by (metis append_butlast_last_id list.set(1))
-                              ultimately have "p = butlast w1 @ (v2, u1) # (u1, v1) # w2" 
-                                using obt1 by auto
-                              thus "False" using asm_s1 by auto
-                            qed
-                          ultimately show "False" by metis
-                        qed
-                      ultimately have "\<exists> vs1' vs2'. butlast (pathVertices u w1) = 
-                        vs1' @ v2 # u1 # vs2'" by (metis butlast.simps(2)
-                        butlast_append fst_conv list.distinct(1) snd_conv)
-                    }
-                    moreover have "\<exists>vs3'. pathVertices (last (pathVertices u w1)) ((u1, v1) # w2) = 
-                      u1 # vs3'" by (metis Graph.pathVertices.simps(2) fst_conv)
-                    ultimately obtain vs1 vs2 vs3 where "pathVertices u p = 
-                      (vs1 @ v2 # u1 # vs2) @ (u1 # vs3)" by auto
-                    then have "\<not> distinct (pathVertices u p)" by (metis append_Cons append_assoc
-                      distinct.simps(2) distinct_append in_set_conv_decomp)
-                    thus ?thesis using asm1 isSimplePath_def by auto
-                  next
-                    assume "(v2, u1) \<in> (set w2)"
-                    have "pathVertices u p = butlast (pathVertices u w1) @  pathVertices (last 
-                      (pathVertices u w1)) ((u1, v1) # w2)" using obt1 pathVertices_append by auto
-                    moreover have "pathVertices (last (pathVertices u w1)) ((u1, v1) # w2) = u1 # 
-                      (pathVertices v1 w2)" by (metis Graph.pathVertices.simps(2) fst_conv snd_conv)
-                    moreover {
-                      have "isPath v1 w2 v" using asm1 isSimplePath_def
-                        by (metis Graph.isPath.simps(2) Graph.isPath_append obt1)
-                      note pathVertices_edge_old[OF this `(v2, u1) \<in> (set w2)`]
-                      then have " \<exists>vs1 vs2. pathVertices v1 w2 = vs1 @ v2 # u1 # vs2" by auto
-                    }
-                    ultimately obtain vs1 vs2 vs3 where 
-                      "pathVertices u p = vs1 @ (u1 # vs2 @ v2 # u1 # vs3 )" by auto
-                    then have "\<not> distinct (pathVertices u p)" by auto
-                    thus ?thesis using asm1 isSimplePath_def by auto
-                  qed
-              qed
-          qed
-      qed
-*)
       
 lemma isSPath_nt_parallel:
   assumes SP: "isSimplePath s p t"

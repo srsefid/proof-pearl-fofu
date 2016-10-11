@@ -19,10 +19,6 @@ where "residualGraph c f \<equiv> \<lambda>(u, v).
   else
     0"
 
-(*<*) (* Old syntax, not used any more *)
-  notation (in Graph_Syntax) residualGraph ("\<langle>\<C>\<^sub>\<f>/ _,/ _\<rangle>" 1000)
-(*>*)
-
 text \<open>Let's fix a network with a flow @{term f} on it\<close>
 context NFlow
 begin

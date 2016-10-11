@@ -33,30 +33,6 @@ where "augmentingFlow p \<equiv> \<lambda>(u, v).
   else
     0"
 
-(*<*) (* Old syntax sugar, not used any more *)
-end
-  locale NFlow_Loc_Syntax = Graph_Loc_Syntax + NFlow begin
-    notation isAugmentingPath ("\<langle>\<Rightarrow>\<^sup>A/ _\<rangle>" 1000)
-    notation resCap ("\<langle>\<nabla>/ _\<rangle>" 1000)
-    notation augmentingFlow ("\<langle>\<F>\<^sub>\<p>/ _\<rangle>" 1000)
-  end
-
-  context Graph_Syntax begin  
-    abbreviation NFlow_isAugmentingPath :: "_ graph \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> bool"
-      ("\<lbrace>_,/ _,/ _,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<Rightarrow>\<^sup>A/ _\<rangle>\<rbrace>" 1000)
-    where "\<lbrace>c, s, t, f \<parallel>\<^sub>N\<^sub>F \<langle>\<Rightarrow>\<^sup>A p\<rangle>\<rbrace> \<equiv> NFlow.isAugmentingPath c s t f p"
-    
-    abbreviation NFlow_resCap :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _"
-      ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<nabla>/ _\<rangle>\<rbrace>" 1000)
-    where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<nabla> p\<rangle>\<rbrace> \<equiv> NFlow.resCap c f p"
-    
-    abbreviation NFlow_augmentingFlow :: "_ graph \<Rightarrow> _ flow \<Rightarrow> path \<Rightarrow> _ flow"
-      ("\<lbrace>_,/ _/ \<parallel>\<^sub>N\<^sub>F/ \<langle>\<F>\<^sub>\<p>/ _\<rangle>\<rbrace>" 1000)
-    where "\<lbrace>c, f \<parallel>\<^sub>N\<^sub>F \<langle>\<F>\<^sub>\<p> p\<rangle>\<rbrace> \<equiv> NFlow.augmentingFlow c f p"
-  end
-context NFlow begin
-(*>*)
-
 subsection \<open>Augmenting Flow is Valid Flow\<close>
 text \<open>In this section, we show that the augmenting flow induced by an 
   augmenting path is a valid flow in the residual graph.
