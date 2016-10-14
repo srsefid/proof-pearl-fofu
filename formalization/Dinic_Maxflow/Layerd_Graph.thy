@@ -162,66 +162,104 @@ begin
     qed
     ultimately have "distinct (pathVertices u ((u', w) # p))" by auto
     thus ?case unfolding isSimplePath_def using "2.prems"(4) by blast
-  qed auto
+  qed auto  
          
   lemma isLayered_connected_s: 
     assumes "isLayered" and "v \<in> V"
     shows "connected s v"
     using assms by (auto simp add: V_def isLayered_def V_l_def)
  
-  lemma isLCO_vertices_distance: 
+  lemma isLayered_connected_t: 
     assumes isL: "isLayered"
     assumes isC_o: "isCleaned_out"
     assumes v_in: "v \<in> V"
     assumes V_finite: "finite V"
     shows "connected v t"
-    proof (cases "v = t")
-      case False
-      
-      let ?SC = "{v. v\<in> V \<and> connected v t}"
-      let ?SN = "{v. v\<in> V \<and> \<not>connected v t}"
-      have "finite ?SC" and "finite ?SN" using V_finite by auto
-      have "V = ?SC \<union> ?SN" and "?SC \<inter> ?SN = {}" by auto
-      moreover have "?SN = {}"
-      proof (rule ccontr)
-        assume "\<not> ?SN = {}"
-        let ?last_vertex = 
-          "SOME v. v \<in> ?SN \<and> (\<exists>d. dist s d v \<and> (\<forall>v' d'. v' \<in> ?SN \<and> dist s d' v' \<longrightarrow> d' \<le> d))"
-
-find_theorems name:Hilbert_Choice finite
-        
-
-        
-        obtain u where "u \<in> V" and "\<not>connected u t" using `\<not> ?SN = {}` by blast
-        then obtain w where "(u, w) \<in> E" using isC_o unfolding isCleaned_out_def outgoing_def by blast
-        
-        find_theorems Sup
-      
-      show ?thesis sorry
-    qed auto
+  proof (cases "v = t")
+    case False
     
-
-..
-    
-    shows "(\<forall>v\<in>V. connected s v \<and> connected v t \<and> (\<exists>i. min_dist s v = i \<and> min_dist v t = d - i))"
-  proof
-    have isC_i: "isCleaned_in" using `isLayered` isLayered_isCleaned by blast
-    have s_t_con: "connected s t" 
-     and s_t_dis: "min_dist s t = d" using t_lay V_l_def by auto
-
-    fix v
-    assume v_in: "v \<in> V"
-
-    have "connected s v" using v_in V_def isL isLayered_def V_l_def by auto
-    have "connected v t"
+    let ?SC = "{v. v\<in> V \<and> connected v t}"
+    let ?SN = "{v. v\<in> V \<and> \<not>connected v t}"
+    have sc_f: "finite ?SC" and sn_f: "finite ?SN" using V_finite by auto
+    have prt1: "V = ?SC \<union> ?SN" and prt2: "?SC \<inter> ?SN = {}" by auto
+    moreover have "?SN = {}"
     proof (rule ccontr)
+      assume "\<not> ?SN = {}"
       
-    
+      let ?SN_mds = "{min_dist s v|v. v \<in> ?SN}"
+      let ?MAX_d = "Max ?SN_mds"
+      have "finite ?SN_mds" using sn_f by auto
+      moreover have "?SN_mds \<noteq> {}"
+      proof -
+        obtain x where "x \<in>?SN" using `\<not> ?SN = {}` by blast
+        then have "connected s x" using isLayered_connected_s[OF isL] by blast
+        then obtain d where "min_dist s x = d" unfolding min_dist_def dist_def connected_def by auto
+        then have "d \<in> ?SN_mds" using `x \<in>?SN` by blast
+        thus ?thesis by auto
+      qed
+      ultimately have "?MAX_d \<in> ?SN_mds" using Max_in by blast
+      then obtain last_v where "last_v \<in> ?SN" and "min_dist s last_v = ?MAX_d" by auto
+
+      have "w \<in> ?SN \<Longrightarrow> (last_v, w) \<notin> E" for w
+      proof (rule ccontr)
+        assume "w \<in> ?SN"
+        assume "\<not> (last_v, w) \<notin> E"
+        then have "min_dist s w = Suc (min_dist s last_v)" using isL isLayered_def V_l_def by auto
+        moreover have "v \<in> ?SN \<Longrightarrow> min_dist s v \<le> min_dist s last_v" for v 
+          using `min_dist s last_v = ?MAX_d` `finite ?SN_mds` `?SN_mds \<noteq> {}` Max.bounded_iff
+          by auto
+        ultimately show False using `w \<in> ?SN` by force
+      qed
+      moreover obtain n where "(last_v, n) \<in> E" using isC_o `last_v \<in> ?SN`
+        unfolding isCleaned_out_def outgoing_def by auto
+      ultimately have "n \<notin> ?SN" and "n \<in> V" and "last_v \<in> V" unfolding V_def by auto
+      then have "connected n t" using prt1 prt2 by auto
+      then have "connected last_v t"  unfolding connected_def
+        using `(last_v, n) \<in> E`  isPath.simps(2) by blast
+      then have "last_v \<in> ?SC" using `last_v \<in> V` by auto
+      then have "?SC \<inter> ?SN \<noteq> {}" using `last_v \<in> ?SN` by blast
+      thus False using prt2 by blast
+    qed
+    ultimately have "V = ?SC" by simp
+    thus ?thesis using v_in by blast
+  qed auto
 
 
-    show "connected s v \<and> connected v t \<and> (\<exists>i. min_dist s v = i \<and> min_dist v t = d - i)" sorry
+  lemma isLayered_path_length: "\<lbrakk>isLayered; u \<in> V; v \<in> V; isPath u p v; u \<in> V\<^sub>l i; v \<in> V\<^sub>l j\<rbrakk> 
+    \<Longrightarrow> length p + i = j"
+  proof (induction p arbitrary: u v i j)
+    case Nil
+    thus ?case using isPath.simps(1) list.size(3) V_l_def by auto
+  next
+    case (Cons e p)
+    then obtain x y where "e = (x, y)" by (cases e)
+    then have "isPath y p v" and "(u, y) \<in> E" and "y \<in> V" using Cons.prems(4) V_def by auto
+    then obtain k where "y \<in> V\<^sub>l k" using isLayered_V_l_ex[OF Cons.prems(1)] by blast
+
+    obtain d where "u \<in> V\<^sub>l d" and "y \<in> V\<^sub>l (Suc d)" using `(u, y) \<in> E` Cons.prems(1) isLayered_def by blast
+    then have "k = Suc d" and "d = i" 
+      using isLayered_V_l_unique[OF Cons.prems(1)] `y \<in> V\<^sub>l k` Cons.prems(5) by auto
+    then have "k = Suc i" by blast
+    moreover have "length p + k = j" using Cons.IH `isPath y p v` `y \<in> V\<^sub>l k` `y \<in> V` 
+      Cons.prems(1) Cons.prems(3) Cons.prems(6) by blast
+    moreover have "length (e # p) = length p + 1" by simp
+    ultimately show ?case by auto
   qed
 
+  lemma isLayered_path_s_t: 
+    assumes "isLayered" and "isPath s p t"
+    shows "isShortestPath s p t"
+  proof -
+    obtain d where obt: "t \<in> V\<^sub>l d" using isLayered_V_l_ex `isLayered` t_node by blast
+    
+    have "min_dist s t = d" using obt unfolding V_l_def by auto
+    moreover have "s \<in> V\<^sub>l 0" using V_l_zero by simp
+    ultimately have "length p = min_dist s t"  using `isLayered` `isPath s p t` 
+      obt isLayered_path_length s_node t_node add.right_neutral by fastforce
+    thus ?thesis using isShortestPath_min_dist_def
+      isLayered_all_paths_simple `isLayered` `isPath s p t` s_node t_node by blast
+  qed
+    
 
 end
 
