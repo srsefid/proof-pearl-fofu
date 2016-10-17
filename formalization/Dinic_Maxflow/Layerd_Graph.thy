@@ -303,8 +303,28 @@ begin
 
     show ?thesis using `v \<in> V` `V = ?SC \<union> ?SN` `?SC \<inter> ?SN = {}` `?SN = {}`  by blast
   qed auto
+end
 
+
+context Graph
+begin
+  (* biggest conditional subgraph *)
+  definition bgcSubGraph :: "('capacity graph \<Rightarrow> bool) \<Rightarrow> 'capacity graph \<Rightarrow> bool" where
+    "bgcSubGraph cond \<equiv> \<lambda>g. (\<forall>e \<in> (Graph.E g). g e = c e) \<and> Graph.E g \<subseteq> E \<and> cond g \<and>
+      Graph.E g = Sup {Graph.E x| (x :: 'capacity graph). Graph.E x \<subseteq> E \<and> cond x}"
+
+  definition layeredSubGraph where
+    "layeredSubGraph g s \<equiv> bgcSubGraph (\<lambda>g. Graph.layered g s) g"
+
+  definition awin_exceptSubGraph where
+    "awin_exceptSubGraph g s t \<equiv> bgcSubGraph (\<lambda>g. Graph.awout_except g t) g"
+
+  definition awout_exceptSubGraph where
+    "awout_exceptSubGraph g s t \<equiv> bgcSubGraph (\<lambda>g. Graph.awout_except g t) g"
   
+  definition layeredCleanSubGraph where
+    "layeredCleanSubGraph g s t \<equiv> bgcSubGraph (\<lambda>g. Graph.layered g s \<and> Graph.awout_except g t) g"
+
 
 
 end
