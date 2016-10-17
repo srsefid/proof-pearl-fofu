@@ -168,6 +168,8 @@ begin
     ultimately show ?case by auto
   qed
 
+  (* CAN be derived as a collorary from the next lemma
+
   lemma layered_path_simplePath: "\<lbrakk>layered s; u \<in> V; v \<in> V; isPath u p v\<rbrakk> \<Longrightarrow> isSimplePath u p v"
   proof (induction rule:isPath.induct)
     case (2 u u' w p v)             
@@ -207,25 +209,33 @@ begin
     qed
     ultimately have "distinct (pathVertices u ((u', w) # p))" by auto
     thus ?case unfolding isSimplePath_def using "2.prems"(4) by blast
-  qed auto
+  qed auto *)
 
-  lemma isLayered_path_shortestPath: 
+  lemma layered_path_shortestPath: 
     assumes "layered s"
-        and s_node: "s \<in> V"
-        and t_node: "t \<in> V"
-        and "isPath s p t"
-      shows "isShortestPath s p t"
-  proof -
-    obtain d where obt: "t \<in> VL s d" using layered_VL_exists `layered s` t_node by blast
+        and "u \<in> V"
+        and "v \<in> V"
+        and "isPath u p v"
+      shows "isShortestPath u p v"
+  proof (rule ccontr)
+    assume "\<not>isShortestPath u p v"
     
-    have "min_dist s t = d" using obt unfolding VL_def by auto
-    moreover have "s \<in> VL s 0" using VL_of_zero by simp
-    ultimately have "length p = min_dist s t"  using `layered s` `isPath s p t` 
-      obt layered_path_length s_node t_node add.right_neutral by fastforce
-    thus ?thesis using isShortestPath_min_dist_def
-      layered_path_simplePath `layered s` `isPath s p t` s_node t_node by blast
+    obtain p1 where "isPath u p1 v" and "length p1 < length p"
+      using isShortestPath_def `isPath u p v` `\<not>isShortestPath u p v` by auto
+    obtain i j where "u \<in> VL s i" and "v \<in> VL s j" 
+      using layered_VL_exists `layered s` `u \<in> V` `v \<in> V` by metis    
+
+    have "length p + i = j"  using layered_path_length 
+      `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
+    moreover have "length p1 + i = j"  using layered_path_length 
+      `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
+    ultimately have "length p = length p1" by simp
+    thus False using `length p1 < length p` by simp
   qed
 
+  (*corollary layered_path_simplePath: "\<lbrakk>layered s; u \<in> V; v \<in> V; isPath u p v\<rbrakk> \<Longrightarrow> isSimplePath u p v"
+    using layered_path_shortestPath shortestPath_is_simple by blast*)
+  
   lemma layered_connected_s: 
     assumes "layered s" 
         and "v \<in> V"
@@ -293,8 +303,6 @@ begin
 
     show ?thesis using `v \<in> V` `V = ?SC \<union> ?SN` `?SC \<inter> ?SN = {}` `?SN = {}`  by blast
   qed auto
-
-  
 
   
 
