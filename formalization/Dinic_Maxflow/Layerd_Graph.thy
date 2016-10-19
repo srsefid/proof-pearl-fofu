@@ -305,28 +305,96 @@ begin
   qed auto
 end
 
+lemma  (in Graph) isPath_transfer: "\<lbrakk>isPath u p v; set p \<subseteq> Graph.E c'\<rbrakk> \<Longrightarrow> Graph.isPath c' u p v"
+proof (induction arbitrary: u v rule:isPath.induct)
+  case 1
+    thus ?case using isPath.simps(1) Graph.isPath.simps(1) by blast
+next
+  case (2 a x y p)
+  then have "Graph.isPath c' y p v" and "(x, y) \<in> Graph.E c'" and "u = x" by auto
+  thus ?case using Graph.isPath.simps(2) by blast
+qed
+
+lemma (in Graph) isSimplePath_transfer: 
+  assumes "isSimplePath u p v"
+      and "set p \<subseteq> Graph.E c'"
+    shows "Graph.isSimplePath c' u p v"
+proof -
+  have "Graph.isPath c' u p v" using assms isPath_transfer unfolding isSimplePath_def by auto
+  moreover have "distinct (pathVertices u p)" using assms(1) unfolding isSimplePath_def by blast
+  ultimately show ?thesis unfolding Graph.isSimplePath_def by blast
+qed  
+
+
+find_theorems Graph.min_dist
+
 
 context Graph
 begin
-  (* biggest conditional subgraph *)
-  definition bgcSubGraph :: "('capacity graph \<Rightarrow> bool) \<Rightarrow> 'capacity graph \<Rightarrow> bool" where
-    "bgcSubGraph cond \<equiv> \<lambda>g. (\<forall>e \<in> (Graph.E g). g e = c e) \<and> Graph.E g \<subseteq> E \<and> cond g \<and>
-      Graph.E g = Sup {Graph.E x| (x :: 'capacity graph). Graph.E x \<subseteq> E \<and> cond x}"
-
   definition layeredSubGraph where
-    "layeredSubGraph g s \<equiv> bgcSubGraph (\<lambda>g. Graph.layered g s) g"
-
-  definition awin_exceptSubGraph where
-    "awin_exceptSubGraph g s t \<equiv> bgcSubGraph (\<lambda>g. Graph.awout_except g t) g"
+    "layeredSubGraph g s \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
+      Graph.E g = {(u, v)|u v. (u, v) \<in> E \<and> (\<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i))}"
 
   definition awout_exceptSubGraph where
-    "awout_exceptSubGraph g s t \<equiv> bgcSubGraph (\<lambda>g. Graph.awout_except g t) g"
+    "awout_exceptSubGraph g t \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
+      Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"
+
+  (*lemma
+    assumes "layeredSubGraph g s"
+        and "Graph.isPath g u p v"
+      shows "min_dist s u + length p = min_dist s v"
+  using assms proof (induction arbitrary: u  v rule:Graph.isPath.induct)
+    case 1
+    thus ?case sorry
+  next
+    case 2
+    thus ?case sorry
+  qed
+
   
-  definition layeredCleanSubGraph where
-    "layeredCleanSubGraph g s t \<equiv> bgcSubGraph (\<lambda>g. Graph.layered g s \<and> Graph.awout_except g t) g"
+      
+
+qed
+    ....
 
 
+    shows "Graph.VL g s i = VL s i" (is "?L = ?R")
+  proof
+    show "?L \<subseteq> ?R"
+    proof
+      fix x
+      assume "x \<in> ?L"
+      then have "Graph.connected g s x" and "Graph.min_dist g s x = i" unfolding Graph.VL_def by auto
+      then obtain p where obt1: "Graph.isShortestPath g s p x" and obt2: "length p = i"
+        by (meson Graph.isShortestPath_min_dist_def Graph.obtain_shortest_path)
 
+      have "set p \<subseteq> Graph.E g" using Graph.shortestPath_is_path[OF obt1] Graph.isPath_edgeset by auto
+      also have "\<dots> \<subseteq> E" using assms unfolding layeredSubGraph_def by auto
+      finally have "set p \<subseteq> E" .
+
+      have "isSimplePath s p x" using `set p \<subseteq> E` Graph.shortestPath_is_simple[OF obt1] 
+        Graph.isSimplePath_transfer[of g s p x c] by blast
+
+      have "isShortestPath s p x"
+      proof (rule ccontr)
+        assume "\<not> isShortestPath s p x"
+        have "connected s x" using `isSimplePath s p x` 
+          unfolding isSimplePath_def connected_def by blast
+        then obtain p1 where "isShortestPath s p1 x" using obtain_shortest_path isShortestPath_def by auto
+        then have "length p1 < length p" using `\<not> isShortestPath s p x` `isSimplePath s p x`
+          isSimplePath_def isShortestPath_def by auto
+        
+        have "x \<in> VL s (length p1)" unfolding VL_def connected_def
+          using  isShortestPath_min_dist_def `isShortestPath s p1 x` shortestPath_is_path by auto
+        
+
+      qed
+
+  next
+    show "?R \<subseteq> ?L" sorry
+  qed
+    
+*)
 end
 
 
