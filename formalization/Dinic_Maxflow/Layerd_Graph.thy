@@ -464,6 +464,16 @@ begin
   using layeredSubGraph_shortestPaths_VL[OF assms] assms
   unfolding Graph.layered_def layeredSubGraph_def by auto
 
+  corollary layeredSubGraph_paths: 
+    assumes "layeredSubGraph g s"
+    shows "Graph.isPath g s p v \<longleftrightarrow> isShortestPath s p v"
+  proof -
+    have "Graph.layered g s" using assms layeredSubGraph_layered by blast
+    then have "Graph.isPath g s p v \<longleftrightarrow> Graph.isShortestPath g s p v"
+      using Graph.layered_path_shortestPath[of g s s p v] by auto
+    also have "\<dots> \<longleftrightarrow> isShortestPath s p v" using layeredSubGraph_shortestPaths[OF assms] .
+    finally show ?thesis .
+  qed
 
 end
 
