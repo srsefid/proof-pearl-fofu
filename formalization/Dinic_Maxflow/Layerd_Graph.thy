@@ -78,6 +78,7 @@ proof -
   ultimately show ?thesis unfolding connected_def using isPath_append_edge by blast
 qed
 
+(*
 (* TODO: did not use these lemmas yet, I have only proved them to have a complete set of rules*)
 lemma (in Graph) isPath_tail_connected_edge1:
   assumes "isPath u p v"
@@ -105,7 +106,7 @@ proof -
   moreover have "(a,b) \<in> E" using asm1 asm2 isPath_edgeset by simp
   ultimately show ?thesis using connected_append_edge connected_def by blast
 qed
-(* END todo *)
+(* END todo *)*)
 
 
 context Graph
