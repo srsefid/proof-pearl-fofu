@@ -3,6 +3,52 @@ imports
   Graph
 begin
 
+lemma  (in Graph) isPath_transfer: "\<lbrakk>isPath u p v; set p \<subseteq> Graph.E c'\<rbrakk> \<Longrightarrow> Graph.isPath c' u p v"
+proof (induction arbitrary: u v rule:isPath.induct)
+  case 1
+    thus ?case using isPath.simps(1) Graph.isPath.simps(1) by blast
+next
+  case (2 a x y p)
+  then have "Graph.isPath c' y p v" and "(x, y) \<in> Graph.E c'" and "u = x" by auto
+  thus ?case using Graph.isPath.simps(2) by blast
+qed
+
+lemma (in Graph) isSimplePath_transfer: 
+  assumes "isSimplePath u p v"
+      and "set p \<subseteq> Graph.E c'"
+    shows "Graph.isSimplePath c' u p v"
+proof -
+  have "Graph.isPath c' u p v" using assms isPath_transfer unfolding isSimplePath_def by auto
+  moreover have "distinct (pathVertices u p)" using assms(1) unfolding isSimplePath_def by blast
+  ultimately show ?thesis unfolding Graph.isSimplePath_def by blast
+qed
+
+lemma (in Graph) isShortestPath_transfer:
+  assumes "isShortestPath u p v"
+      and "Graph.E c' \<subseteq> E"
+      and "set p \<subseteq> Graph.E c'"
+    shows "Graph.isShortestPath c' u p v"
+proof -
+  have "isSimplePath u p v" using assms(1) shortestPath_is_simple by blast
+  then have "Graph.isSimplePath c' u p v" using assms(3) isSimplePath_transfer by blast
+  
+  show ?thesis
+  proof (rule ccontr)
+    assume c_asm: "\<not> Graph.isShortestPath c' u p v"
+    then obtain p' where obt: "Graph.isShortestPath c' u p' v" using `Graph.isSimplePath c' u p v`
+      unfolding Graph.isSimplePath_def by (meson Graph.connected_def Graph.obtain_shortest_path)
+
+    have *: "length p' < length p"  using `Graph.isSimplePath c' u p v` obt c_asm
+      unfolding Graph.isShortestPath_def Graph.isSimplePath_def by auto
+
+    have "Graph.isPath c' u p' v" using Graph.shortestPath_is_path[OF obt] .
+    then have "set p' \<subseteq> E" using Graph.isPath_edgeset assms(2) subset_eq by blast
+    then have "isPath u p' v" using Graph.isPath_transfer[OF `Graph.isPath c' u p' v`, of c] by blast
+    thus False using assms(1) * unfolding isShortestPath_def by auto
+  qed
+qed
+
+
 lemma (in Graph) isPath_head_connected_edge1:
   assumes "isPath u p v"
       and "(a, b) \<in> set p"
@@ -102,6 +148,23 @@ begin
   lemma VL_unique: "\<lbrakk>v \<in> VL s i; v \<in> VL s j\<rbrakk> \<Longrightarrow> i = j"
     unfolding VL_def by auto
 
+  lemma VL_isShortestPath1: 
+    assumes "v \<in> VL s i"
+      shows "\<exists>p. isShortestPath s p v \<and> length p = i"
+  proof -
+    have "connected s v" and "min_dist s v = i" using assms unfolding VL_def by auto
+    thus ?thesis using isShortestPath_min_dist_def by (meson obtain_shortest_path)
+  qed
+
+  lemma VL_isShortestPath2: 
+    assumes "isShortestPath s p v"
+      shows "v \<in> VL s (length p)"
+  proof -
+    have "connected s v" and "min_dist s v = length p" using assms isShortestPath_min_dist_def
+      unfolding connected_def by auto
+    thus ?thesis unfolding VL_def by blast
+  qed
+
   lemma layered_VL_exists: "\<lbrakk>layered s; v \<in> V\<rbrakk> \<Longrightarrow> \<exists>i. v \<in> VL s i"
     unfolding layered_def V_def by auto
 
@@ -168,73 +231,33 @@ begin
     ultimately show ?case by auto
   qed
 
-  (* CAN be derived as a collorary from the next lemma
-
-  lemma layered_path_simplePath: "\<lbrakk>layered s; u \<in> V; v \<in> V; isPath u p v\<rbrakk> \<Longrightarrow> isSimplePath u p v"
-  proof (induction rule:isPath.induct)
-    case (2 u u' w p v)             
-    have "u = u'" and "w \<in> V" and "(u', w) \<in> E" and "isPath w p v" using "2.prems"(4) V_def by auto
-    have "u' \<noteq> w" using "2.prems"(1) `(u', w) \<in> E` unfolding layered_def VL_def by auto
-    have "connected u w" using `u = u'` `(u', w) \<in> E` connected_def connected_edgeRtc by blast
-    
-    have "distinct (pathVertices w p)" 
-      using "2.IH" "2.prems"(1,3) isSimplePath_def `w \<in> V` `isPath w p v` by blast
-    moreover have "u' \<notin> set (pathVertices w p)"
-    proof (cases "p = []")
-      case True
-      then show ?thesis using `u' \<noteq> w` by auto
-    next
-      case False
-      show ?thesis
-      proof (rule ccontr)
-        assume "\<not> u' \<notin> set (pathVertices w p)"
-        then have "u' \<in> set (pathVertices_fwd w p)" using pathVertices_fwd[OF `isPath w p v`] by simp
-        then obtain x where "(x, u') \<in> set p" using pathVertices_fwd_def `u' \<noteq> w` by auto
-        then have "connected w u'" using `isPath w p v` isPath_head_connected_edge2 by blast
-
-        obtain i1 i2 where "u \<in> VL s i1" and "u' \<in> VL s i1" and "w \<in> VL s i2"
-          using layered_VL_exists "2.prems"(1) `w \<in> V` "2.prems"(2) `u = u'` by blast
-        moreover obtain d where "u' \<in> VL s d \<and> w \<in> VL s (Suc d)" 
-          using  "2.prems"(1) layered_def `(u', w) \<in> E` by blast
-        ultimately have *: "i1 = d" and **:"i2 = Suc d" using VL_unique by auto
-        
-        have "i2 \<le> i1" using `connected w u'` `u' \<in> VL s i1` `w \<in> VL s i2` 
-          "2.prems"(1) layared_connected_nodes_ids by blast
-        also have "i1 \<le> i2" using `connected u w` `u \<in> VL s i1` `w \<in> VL s i2` 
-          "2.prems"(1) layared_connected_nodes_ids by blast
-        finally have ***: "i1 = i2" by simp
-
-        show False using * ** *** by auto
-      qed
-    qed
-    ultimately have "distinct (pathVertices u ((u', w) # p))" by auto
-    thus ?case unfolding isSimplePath_def using "2.prems"(4) by blast
-  qed auto *)
-
   lemma layered_path_shortestPath: 
     assumes "layered s"
         and "u \<in> V"
         and "v \<in> V"
-        and "isPath u p v"
-      shows "isShortestPath u p v"
-  proof (rule ccontr)
-    assume "\<not>isShortestPath u p v"
-    
-    obtain p1 where "isPath u p1 v" and "length p1 < length p"
-      using isShortestPath_def `isPath u p v` `\<not>isShortestPath u p v` by auto
-    obtain i j where "u \<in> VL s i" and "v \<in> VL s j" 
-      using layered_VL_exists `layered s` `u \<in> V` `v \<in> V` by metis    
-
-    have "length p + i = j"  using layered_path_length 
-      `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
-    moreover have "length p1 + i = j"  using layered_path_length 
-      `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
-    ultimately have "length p = length p1" by simp
-    thus False using `length p1 < length p` by simp
+      shows "isPath u p v \<longleftrightarrow> isShortestPath u p v" (is "?L \<longleftrightarrow> ?R")
+  proof
+    assume ?L
+    show ?R
+    proof (rule ccontr)
+      assume "\<not>isShortestPath u p v"
+      
+      obtain p1 where "isPath u p1 v" and "length p1 < length p"
+        using isShortestPath_def `isPath u p v` `\<not>isShortestPath u p v` by auto
+      obtain i j where "u \<in> VL s i" and "v \<in> VL s j" 
+        using layered_VL_exists `layered s` `u \<in> V` `v \<in> V` by metis    
+  
+      have "length p + i = j"  using layered_path_length 
+        `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
+      moreover have "length p1 + i = j"  using layered_path_length 
+        `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
+      ultimately have "length p = length p1" by simp
+      thus False using `length p1 < length p` by simp
+    qed
+  next
+    assume ?R
+    thus ?L using shortestPath_is_path by blast
   qed
-
-  (*corollary layered_path_simplePath: "\<lbrakk>layered s; u \<in> V; v \<in> V; isPath u p v\<rbrakk> \<Longrightarrow> isSimplePath u p v"
-    using layered_path_shortestPath shortestPath_is_simple by blast*)
   
   lemma layered_connected_s: 
     assumes "layered s" 
@@ -305,96 +328,64 @@ begin
   qed auto
 end
 
-lemma  (in Graph) isPath_transfer: "\<lbrakk>isPath u p v; set p \<subseteq> Graph.E c'\<rbrakk> \<Longrightarrow> Graph.isPath c' u p v"
-proof (induction arbitrary: u v rule:isPath.induct)
-  case 1
-    thus ?case using isPath.simps(1) Graph.isPath.simps(1) by blast
-next
-  case (2 a x y p)
-  then have "Graph.isPath c' y p v" and "(x, y) \<in> Graph.E c'" and "u = x" by auto
-  thus ?case using Graph.isPath.simps(2) by blast
-qed
 
-lemma (in Graph) isSimplePath_transfer: 
-  assumes "isSimplePath u p v"
-      and "set p \<subseteq> Graph.E c'"
-    shows "Graph.isSimplePath c' u p v"
-proof -
-  have "Graph.isPath c' u p v" using assms isPath_transfer unfolding isSimplePath_def by auto
-  moreover have "distinct (pathVertices u p)" using assms(1) unfolding isSimplePath_def by blast
-  ultimately show ?thesis unfolding Graph.isSimplePath_def by blast
-qed  
-
-
-find_theorems Graph.min_dist
-
+    
 
 context Graph
 begin
   definition layeredSubGraph where
     "layeredSubGraph g s \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
-      Graph.E g = {(u, v)|u v. (u, v) \<in> E \<and> (\<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i))}"
+      Graph.E g = {(u, v)|u v. (\<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i))}"
 
   definition awout_exceptSubGraph where
     "awout_exceptSubGraph g t \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
       Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"
 
-  (*lemma
+  lemma layeredSubGraph_subset_Edges: 
     assumes "layeredSubGraph g s"
-        and "Graph.isPath g u p v"
-      shows "min_dist s u + length p = min_dist s v"
-  using assms proof (induction arbitrary: u  v rule:Graph.isPath.induct)
-    case 1
-    thus ?case sorry
-  next
-    case 2
-    thus ?case sorry
-  qed
-
-  
-      
-
-qed
-    ....
-
-
-    shows "Graph.VL g s i = VL s i" (is "?L = ?R")
+      shows "Graph.E g \<subseteq> E"
   proof
-    show "?L \<subseteq> ?R"
-    proof
-      fix x
-      assume "x \<in> ?L"
-      then have "Graph.connected g s x" and "Graph.min_dist g s x = i" unfolding Graph.VL_def by auto
-      then obtain p where obt1: "Graph.isShortestPath g s p x" and obt2: "length p = i"
-        by (meson Graph.isShortestPath_min_dist_def Graph.obtain_shortest_path)
-
-      have "set p \<subseteq> Graph.E g" using Graph.shortestPath_is_path[OF obt1] Graph.isPath_edgeset by auto
-      also have "\<dots> \<subseteq> E" using assms unfolding layeredSubGraph_def by auto
-      finally have "set p \<subseteq> E" .
-
-      have "isSimplePath s p x" using `set p \<subseteq> E` Graph.shortestPath_is_simple[OF obt1] 
-        Graph.isSimplePath_transfer[of g s p x c] by blast
-
-      have "isShortestPath s p x"
-      proof (rule ccontr)
-        assume "\<not> isShortestPath s p x"
-        have "connected s x" using `isSimplePath s p x` 
-          unfolding isSimplePath_def connected_def by blast
-        then obtain p1 where "isShortestPath s p1 x" using obtain_shortest_path isShortestPath_def by auto
-        then have "length p1 < length p" using `\<not> isShortestPath s p x` `isSimplePath s p x`
-          isSimplePath_def isShortestPath_def by auto
-        
-        have "x \<in> VL s (length p1)" unfolding VL_def connected_def
-          using  isShortestPath_min_dist_def `isShortestPath s p1 x` shortestPath_is_path by auto
-        
-
-      qed
-
-  next
-    show "?R \<subseteq> ?L" sorry
+    fix x
+    assume "x \<in> Graph.E g"
+    then have "g x \<noteq> 0" unfolding Graph.E_def by blast
+    then have "c x \<noteq> 0" using assms `x \<in> Graph.E g` unfolding layeredSubGraph_def by simp
+    thus "x \<in> E" unfolding E_def by blast
   qed
+
+  lemma layeredSubGraph_shortestPath_EdgeSet:
+    assumes "layeredSubGraph g s"
+        and "isShortestPath s p v"
+      shows "set p \<subseteq> Graph.E g"
+  proof
+    fix x
+    assume asm: "x \<in> set p"
+    obtain u v where obt: "x = (u, v)" by (cases x)
+
+    have "min_dist s v = min_dist s u + 1" 
+      using isShortestPath_level_edge(4) assms(2) asm obt by simp
+    moreover have "connected s u" using shortestPath_is_path[OF assms(2)] 
+      isPath_head_connected_edge1 asm obt by simp
+    moreover have "connected s v" using shortestPath_is_path[OF assms(2)]
+      isPath_head_connected_edge2 asm obt by simp
+    ultimately show "x \<in> Graph.E g" using asm obt assms(1) unfolding layeredSubGraph_def VL_def
+      by auto
+  qed    
+
+  lemma layeredSubGraph_shortestPaths:
+    assumes "layeredSubGraph g s"
+      shows "isShortestPath s p v \<longleftrightarrow> Graph.isShortestPath g s p v" (is "?L \<longleftrightarrow> ?R")
+  proof
+    assume "?L"
+    then have "set p \<subseteq> Graph.E g" using assms layeredSubGraph_shortestPath_EdgeSet by blast
+    thus "?R" using isShortestPath_transfer[OF `?L` layeredSubGraph_subset_Edges[OF assms]] by simp
+  next
+    assume "?R"
     
-*)
+    show "?L" sorry
+  qed
+
+
+
 end
 
 
