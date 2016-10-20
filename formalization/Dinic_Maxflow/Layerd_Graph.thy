@@ -477,5 +477,56 @@ begin
 
 end
 
+(*
+  let L\<^sub>s be the bfs tree and L\<^sub>s\<^sub>,\<^sub>t be the cleaned up bfs-tree. what I have formalized until now
+  corresponds to the L\<^sub>s. That is, (layeredSubGraph g s) \<longleftrightarrow> (g is the L\<^sub>s)
+
+
+  There are 3 versions of the Dinitz algorithm in the paper "Dinitz' Algorithm, Orig. & Eve. version"
+  1 :: Dinitz' version
+  
+    initialize zero flow;
+$1  while (L\<^sub>s\<^sub>,\<^sub>t of residualGraph is not empty) {
+      L <- L\<^sub>s\<^sub>,\<^sub>t;
+$2    while (L not empty) {
+        p <- find a path from t to s;
+        augment the flow using p;
+  
+        clean-up the saturated edges from L;
+          [[ this is done in two stages: right_pass; left_pass ]]
+      }
+    }
+
+    * the invariant at $1 should correspond to the loop invariant in fofu
+    * the invariant at $2 is that L is the union of all shortest augmenting paths of length d
+      where d is increased in each stage
+
+  2 :: Even's version:
+
+    initialize zero flow;
+$1  while (L\<^sub>s contains t) {
+      L <- L\<^sub>s;
+$2    Do DFS from s with following order:
+        - termination condition: (if we reach s in backTrack step)
+        - whenever reaching a dead end vertex u:
+          + if u \<noteq> t then remove the last edge and backtrack
+          + if u = t augment the flow along the path computed so far,
+              remove saturated edges from L, and continue from a non-
+              saturated edge closest to s.
+
+    * the invariant at $1 should correspond to the loop invariant in original version
+    * the invariant at DFS is that L "contains" all augmenting paths of length d & there is no
+      shorter augmenting path.
+
+  3 :: Cherkassky's implementation
+
+  this one is quite close to the second version, instead it defines the rank function, and also
+  does the DFS backwards from t to s.
+
+
+for invariant $1 in 3 versions and fofo I thought about the following relation
+"no s-t path in the residual Graph" \<longleftrightarrow> L\<^sub>s\<^sub>,\<^sub>t empty \<longleftrightarrow> t \<notin> Graph.V L\<^sub>s \<longleftrightarrow> rank(t) = infinity"
+
+*)
 
 end
