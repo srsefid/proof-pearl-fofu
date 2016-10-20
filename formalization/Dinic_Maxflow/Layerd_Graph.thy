@@ -385,6 +385,19 @@ begin
   qed
 
 
+  lemma layeredSubGraph_shortestPaths_VL:
+    assumes "layeredSubGraph g s"
+      shows "Graph.VL g s i = VL s i"
+  proof -
+    show ?thesis sorry
+  qed
+
+  lemma layeredSubGraph_layered:
+    assumes "layeredSubGraph g s"
+      shows "Graph.layered g s"
+  using layeredSubGraph_shortestPaths_VL[OF assms] assms
+  unfolding Graph.layered_def layeredSubGraph_def by auto
+
 
 end
 
