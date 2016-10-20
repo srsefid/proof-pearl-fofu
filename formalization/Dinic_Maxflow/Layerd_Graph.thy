@@ -212,7 +212,7 @@ begin
     qed
   qed*)
 
-  lemma layered_path_length: "\<lbrakk>layered s; u \<in> V; v \<in> V; isPath u p v; u \<in> VL s i; v \<in> VL s j\<rbrakk> 
+  lemma layered_path_length: "\<lbrakk>layered s; isPath u p v; u \<in> VL s i; v \<in> VL s j\<rbrakk> 
     \<Longrightarrow> length p + i = j"
   proof (induction p arbitrary: u v i j)
     case Nil
@@ -220,14 +220,14 @@ begin
   next
     case (Cons e p)
     then obtain x y where "e = (x, y)" by (cases e)
-    then have "isPath y p v" and "(u, y) \<in> E" and "y \<in> V" using Cons.prems(4) V_def by auto
+    then have "isPath y p v" and "(u, y) \<in> E" and "y \<in> V" using Cons.prems(2) V_def by auto
     then obtain k where "y \<in> VL s k" using layered_VL_exists[OF Cons.prems(1)] by blast
 
     obtain d where "u \<in> VL s d" and "y \<in> VL s (Suc d)" using `(u, y) \<in> E` Cons.prems(1) layered_def by blast
-    then have "k = Suc d" and "d = i" using VL_unique `y \<in> VL s k` Cons.prems(5) by auto
+    then have "k = Suc d" and "d = i" using VL_unique `y \<in> VL s k` Cons.prems(3) by auto
     then have "k = Suc i" by blast
     moreover have "length p + k = j" using Cons.IH `isPath y p v` `y \<in> VL s k` `y \<in> V` 
-      Cons.prems(1) Cons.prems(3) Cons.prems(6) by blast
+      Cons.prems(1) Cons.prems(3) Cons.prems(4) by blast
     moreover have "length (e # p) = length p + 1" by simp
     ultimately show ?case by auto
   qed
@@ -242,12 +242,26 @@ begin
     then have "u = v \<or> (u \<in> V \<and> v \<in> V)" using isPath_rtc[OF `?L`] by blast
     then show ?R
     proof
-      assume "u = v" (*Clean up this proof*)
-      then have "p = []" using `?L` isPath.simps(1) 
-        by (metis (no_types, lifting) Graph.isShortestPath_alt
-            Graph.isShortestPath_def V_def add_right_cancel assms
-            isPath_fwd_cases layered_VL_exists layered_path_length
-            less_or_eq_imp_le mem_Collect_eq simplePath_same_conv)
+      assume "u = v"
+      have "p = []"
+      proof (rule ccontr)
+        assume "\<not> p = []"
+        then obtain e1 p1 e2 p2 where obt1:"p = e1 # p1" and obt2:"p = p2 @ [e2]"
+          by (meson list.exhaust rev_exhaust)
+
+        have "e1 \<in> E \<and> fst e1 = u" using obt1 `?L` isPath_head by auto
+        then have "u \<in> V" using E_ss_VxV by fastforce
+
+        have "e2 \<in> E \<and> snd e2 = v" using obt2 `?L` isPath_tail by auto
+        then have "v \<in> V" using E_ss_VxV by fastforce
+
+        obtain i j where obt3:"u \<in> VL s i" and obt4:"v \<in> VL s j" 
+          using layered_VL_exists `u \<in> V` `v \<in> V` assms by blast
+        then have "length p + i = j" using layered_path_length[OF assms `?L`] by blast
+        then have "i < j" using `\<not> p = []` by auto
+        moreover have "i = j" using `u = v` obt3 obt4 VL_unique by auto
+        ultimately show False by blast
+      qed
       thus ?thesis unfolding isShortestPath_def using `?L` by auto
     next
       assume "u \<in> V \<and> v \<in> V"
@@ -261,10 +275,10 @@ begin
         obtain i j where "u \<in> VL s i" and "v \<in> VL s j" 
           using layered_VL_exists `layered s` `u \<in> V` `v \<in> V` by metis    
     
-        have "length p + i = j"  using layered_path_length 
-          `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
-        moreover have "length p1 + i = j"  using layered_path_length 
-          `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
+        have "length p + i = j"  using layered_path_length
+          `layered s` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
+        moreover have "length p1 + i = j"  using layered_path_length
+          `layered s` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
         ultimately have "length p = length p1" by simp
         thus False using `length p1 < length p` by simp
       qed
