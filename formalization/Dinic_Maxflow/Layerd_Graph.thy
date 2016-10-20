@@ -325,11 +325,9 @@ begin
     qed
 
     show ?thesis using `v \<in> V` `V = ?SC \<union> ?SN` `?SC \<inter> ?SN = {}` `?SN = {}`  by blast
-  qed auto
+  qed auto 
+
 end
-
-
-    
 
 context Graph
 begin
@@ -369,27 +367,66 @@ begin
       isPath_head_connected_edge2 asm obt by simp
     ultimately show "x \<in> Graph.E g" using asm obt assms(1) unfolding layeredSubGraph_def VL_def
       by auto
-  qed    
-
-  lemma layeredSubGraph_shortestPaths:
-    assumes "layeredSubGraph g s"
-      shows "isShortestPath s p v \<longleftrightarrow> Graph.isShortestPath g s p v" (is "?L \<longleftrightarrow> ?R")
-  proof
-    assume "?L"
-    then have "set p \<subseteq> Graph.E g" using assms layeredSubGraph_shortestPath_EdgeSet by blast
-    thus "?R" using isShortestPath_transfer[OF `?L` layeredSubGraph_subset_Edges[OF assms]] by simp
-  next
-    assume "?R"
-    
-    show "?L" sorry
   qed
 
+  lemma layeredSubGraph_shortestPaths1:
+    assumes "layeredSubGraph g s"
+        and "isShortestPath s p v"
+      shows "Graph.isShortestPath g s p v"
+  proof -
+    have "set p \<subseteq> Graph.E g" using assms layeredSubGraph_shortestPath_EdgeSet by blast
+    thus ?thesis using isShortestPath_transfer[OF assms(2) layeredSubGraph_subset_Edges[OF assms(1)]] by simp
+  qed
+
+  lemma layeredSubGraph_shortestPaths2:
+    assumes "layeredSubGraph g s"
+        and "Graph.isShortestPath g s p v"
+      shows "isShortestPath s p v"
+  proof -
+    have "Graph.isPath g s p v" using Graph.shortestPath_is_path assms(2) by blast
+    then have "set p \<subseteq> E" using Graph.isPath_edgeset layeredSubGraph_subset_Edges[OF assms(1)]
+      subset_iff by blast
+    then have "isPath s p v" using Graph.isPath_transfer[OF `Graph.isPath g s p v`, of c] by blast
+    
+    show ?thesis
+    proof (rule ccontr)
+      assume c_asm: "\<not> isShortestPath s p v"
+      then obtain p' where obt: "isShortestPath s p' v" using `isPath s p v` connected_def
+        obtain_shortest_path by blast
+      then have *: "length p' < length p" using `isPath s p v` c_asm unfolding isShortestPath_def by auto
+
+      have "Graph.isShortestPath g s p' v" using obt layeredSubGraph_shortestPaths1[OF assms(1)] by blast
+      thus False using assms(2) * unfolding Graph.isShortestPath_def by auto
+    qed  
+  qed
+
+  corollary layeredSubGraph_shortestPaths:
+    "layeredSubGraph g s \<Longrightarrow> Graph.isShortestPath g s p v \<longleftrightarrow> isShortestPath s p v"
+  using layeredSubGraph_shortestPaths1 layeredSubGraph_shortestPaths2 by auto
 
   lemma layeredSubGraph_shortestPaths_VL:
     assumes "layeredSubGraph g s"
-      shows "Graph.VL g s i = VL s i"
-  proof -
-    show ?thesis sorry
+      shows "Graph.VL g s i = VL s i" (is "?L = ?R")
+  proof
+    show "?L \<subseteq> ?R"
+    proof
+      fix x
+      assume "x \<in> ?L"
+      then obtain p where "Graph.isShortestPath g s p x" and "length p = i"
+        using Graph.VL_isShortestPath1 by blast
+      then have "isShortestPath s p x" using layeredSubGraph_shortestPaths[OF assms, symmetric] by blast
+      then show "x \<in> VL s i" using VL_isShortestPath2 `length p = i` by auto
+    qed
+  next  
+    show "?R \<subseteq> ?L"
+    proof
+      fix x
+      assume "x \<in> ?R"
+      then obtain p where "isShortestPath s p x" and "length p = i"
+        using VL_isShortestPath1 by blast
+      then have "Graph.isShortestPath g s p x" using layeredSubGraph_shortestPaths[OF assms] by blast
+      then show "x \<in> Graph.VL g s i" using Graph.VL_isShortestPath2 `length p = i` by auto
+    qed
   qed
 
   lemma layeredSubGraph_layered:
