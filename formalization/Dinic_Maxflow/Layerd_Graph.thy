@@ -120,10 +120,10 @@ begin
   (* All With Incoming Edges Except *)
   definition awin_except where
     "awin_except s \<equiv> (\<forall>v \<in> V - {s}. incoming v \<noteq> {})"
-
+(*
   (* All With outgoing Edges Except *)
   definition awout_except where
-    "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})"
+    "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})" *)
 
   lemma VL_of_zero: 
       shows "VL s 0 = {s}"
@@ -265,7 +265,7 @@ begin
       shows "connected s v"
     using assms by (auto simp add: V_def layered_def VL_def)
 
-  lemma layered_awout_connected_t: 
+  (*lemma layered_awout_connected_t: 
     assumes "layered s"
         and "awout_except t"
         and "finite V"
@@ -325,7 +325,7 @@ begin
     qed
 
     show ?thesis using `v \<in> V` `V = ?SC \<union> ?SN` `?SC \<inter> ?SN = {}` `?SN = {}`  by blast
-  qed auto 
+  qed auto *)
 
 end
 
@@ -335,9 +335,9 @@ begin
     "layeredSubGraph g s \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
       Graph.E g = {(u, v)|u v. (\<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i))}"
 
-  definition awout_exceptSubGraph where
+  (*definition awout_exceptSubGraph where
     "awout_exceptSubGraph g t \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
-      Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"
+      Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"*)
 
   lemma layeredSubGraph_subset_Edges: 
     assumes "layeredSubGraph g s"
