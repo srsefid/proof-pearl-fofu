@@ -186,7 +186,7 @@ begin
     then have "\<not>layered s" unfolding layered_def VL_def using `(v, x) \<in> E` by auto
     thus "False" using `layered s` by blast
   qed
-
+(*
   lemma layared_connected_nodes_ids:
     assumes "layered s" 
         and "connected u v"
@@ -210,7 +210,7 @@ begin
       also have "i' \<le> j" using `isPath w p v` `w \<in> VL s i'` Cons.IH Cons.prems(2)  Cons.prems(4) by simp
       finally show ?case .
     qed
-  qed
+  qed*)
 
   lemma layered_path_length: "\<lbrakk>layered s; u \<in> V; v \<in> V; isPath u p v; u \<in> VL s i; v \<in> VL s j\<rbrakk> 
     \<Longrightarrow> length p + i = j"
@@ -234,26 +234,40 @@ begin
 
   lemma layered_path_shortestPath: 
     assumes "layered s"
-        and "u \<in> V"
-        and "v \<in> V"
       shows "isPath u p v \<longleftrightarrow> isShortestPath u p v" (is "?L \<longleftrightarrow> ?R")
   proof
-    assume ?L
-    show ?R
-    proof (rule ccontr)
-      assume "\<not>isShortestPath u p v"
-      
-      obtain p1 where "isPath u p1 v" and "length p1 < length p"
-        using isShortestPath_def `isPath u p v` `\<not>isShortestPath u p v` by auto
-      obtain i j where "u \<in> VL s i" and "v \<in> VL s j" 
-        using layered_VL_exists `layered s` `u \<in> V` `v \<in> V` by metis    
-  
-      have "length p + i = j"  using layered_path_length 
-        `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
-      moreover have "length p1 + i = j"  using layered_path_length 
-        `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
-      ultimately have "length p = length p1" by simp
-      thus False using `length p1 < length p` by simp
+    assume ?L  
+    have "(u, v) \<in> E\<^sup>* \<Longrightarrow> (u = v) \<or> (u \<in> V \<and> v \<in> V)" for u v
+      unfolding V_def by (metis (mono_tags, lifting) converse_rtranclE mem_Collect_eq rtrancl.cases)
+    then have "u = v \<or> (u \<in> V \<and> v \<in> V)" using isPath_rtc[OF `?L`] by blast
+    then show ?R
+    proof
+      assume "u = v" (*Clean up this proof*)
+      then have "p = []" using `?L` isPath.simps(1) 
+        by (metis (no_types, lifting) Graph.isShortestPath_alt
+            Graph.isShortestPath_def V_def add_right_cancel assms
+            isPath_fwd_cases layered_VL_exists layered_path_length
+            less_or_eq_imp_le mem_Collect_eq simplePath_same_conv)
+      thus ?thesis unfolding isShortestPath_def using `?L` by auto
+    next
+      assume "u \<in> V \<and> v \<in> V"
+      then have "u \<in> V" and "v \<in> V" by auto
+      show  ?thesis
+      proof (rule ccontr)
+        assume "\<not>isShortestPath u p v"
+        
+        obtain p1 where "isPath u p1 v" and "length p1 < length p"
+          using isShortestPath_def `isPath u p v` `\<not>isShortestPath u p v` by auto
+        obtain i j where "u \<in> VL s i" and "v \<in> VL s j" 
+          using layered_VL_exists `layered s` `u \<in> V` `v \<in> V` by metis    
+    
+        have "length p + i = j"  using layered_path_length 
+          `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p v` by blast
+        moreover have "length p1 + i = j"  using layered_path_length 
+          `layered s` `u \<in> V` `v \<in> V` `u \<in> VL s i` `v \<in> VL s j` `isPath u p1 v` by blast
+        ultimately have "length p = length p1" by simp
+        thus False using `length p1 < length p` by simp
+      qed
     qed
   next
     assume ?R
