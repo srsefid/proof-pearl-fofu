@@ -3,7 +3,10 @@ imports
   Graph
 begin
 
-lemma  (in Graph) isPath_transfer: "\<lbrakk>isPath u p v; set p \<subseteq> Graph.E c'\<rbrakk> \<Longrightarrow> Graph.isPath c' u p v"
+context Graph
+begin
+
+lemma isPath_transfer: "\<lbrakk>isPath u p v; set p \<subseteq> Graph.E c'\<rbrakk> \<Longrightarrow> Graph.isPath c' u p v"
 proof (induction arbitrary: u v rule:isPath.induct)
   case 1
     thus ?case using isPath.simps(1) Graph.isPath.simps(1) by blast
@@ -13,7 +16,7 @@ next
   thus ?case using Graph.isPath.simps(2) by blast
 qed
 
-lemma (in Graph) isSimplePath_transfer: 
+lemma isSimplePath_transfer: 
   assumes "isSimplePath u p v"
       and "set p \<subseteq> Graph.E c'"
     shows "Graph.isSimplePath c' u p v"
@@ -23,7 +26,7 @@ proof -
   ultimately show ?thesis unfolding Graph.isSimplePath_def by blast
 qed
 
-lemma (in Graph) isShortestPath_transfer:
+lemma isShortestPath_transfer:
   assumes "isShortestPath u p v"
       and "Graph.E c' \<subseteq> E"
       and "set p \<subseteq> Graph.E c'"
@@ -48,8 +51,13 @@ proof -
   qed
 qed
 
+end
 
-lemma (in Graph) isPath_head_connected_edge1:
+
+context Graph
+begin
+
+lemma isPath_head_connected_edge1:
   assumes "isPath u p v"
       and "(a, b) \<in> set p"
   shows "connected u a"
@@ -69,7 +77,7 @@ using assms proof (induction arbitrary: u v a b rule:isPath.induct)
   qed
 qed auto
 
-lemma (in Graph) isPath_head_connected_edge2: "\<lbrakk>isPath u p v; (a, b) \<in> set p\<rbrakk> \<Longrightarrow> connected u b"
+lemma isPath_head_connected_edge2: "\<lbrakk>isPath u p v; (a, b) \<in> set p\<rbrakk> \<Longrightarrow> connected u b"
 proof -
   assume asm1: "isPath u p v" and asm2: "(a, b) \<in> set p"
 
@@ -78,9 +86,8 @@ proof -
   ultimately show ?thesis unfolding connected_def using isPath_append_edge by blast
 qed
 
-(*
 (* TODO: did not use these lemmas yet, I have only proved them to have a complete set of rules*)
-lemma (in Graph) isPath_tail_connected_edge1:
+lemma isPath_tail_connected_edge1:
   assumes "isPath u p v"
       and "(a, b) \<in> set p"
   shows "connected b v"
@@ -98,7 +105,7 @@ using assms proof (induction arbitrary: u v a b rule:isPath.induct)
   qed
 qed auto
 
-lemma (in Graph) isPath_tail_connected_edge2: "\<lbrakk>isPath u p v; (a, b) \<in> set p\<rbrakk> \<Longrightarrow> connected a b"
+lemma isPath_tail_connected_edge2: "\<lbrakk>isPath u p v; (a, b) \<in> set p\<rbrakk> \<Longrightarrow> connected a b"
 proof -
   assume asm1: "isPath u p v" and asm2: "(a, b) \<in> set p"
 
@@ -106,25 +113,19 @@ proof -
   moreover have "(a,b) \<in> E" using asm1 asm2 isPath_edgeset by simp
   ultimately show ?thesis using connected_append_edge connected_def by blast
 qed
-(* END todo *)*)
+(* END todo *)
+
+end
+
+
+
+
 
 
 context Graph
 begin
   definition VL where
     "VL s i \<equiv> {v. connected s v \<and> min_dist s v = i}"
-
-  (* Layered With the Root *)
-  definition layered where
-    "layered s \<equiv> \<forall>(u, v)\<in>E. \<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i)"
-
-  (* All With Incoming Edges Except *)
-  definition awin_except where
-    "awin_except s \<equiv> (\<forall>v \<in> V - {s}. incoming v \<noteq> {})"
-(*
-  (* All With outgoing Edges Except *)
-  definition awout_except where
-    "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})" *)
 
   lemma VL_of_zero: 
       shows "VL s 0 = {s}"
@@ -166,10 +167,26 @@ begin
     thus ?thesis unfolding VL_def by blast
   qed
 
+end
+
+context Graph
+begin
+  (* Layered With the Root *)
+  definition layered where
+    "layered s \<equiv> \<forall>(u, v)\<in>E. \<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i)"
+
+  (* All With Incoming Edges Except *)
+  (*definition awin_except where
+    "awin_except s \<equiv> (\<forall>v \<in> V - {s}. incoming v \<noteq> {})"*)
+(*
+  (* All With outgoing Edges Except *)
+  definition awout_except where
+    "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})" *)
+
   lemma layered_VL_exists: "\<lbrakk>layered s; v \<in> V\<rbrakk> \<Longrightarrow> \<exists>i. v \<in> VL s i"
     unfolding layered_def V_def by auto
 
-  lemma layered_awin_except: 
+(*  lemma layered_awin_except: 
     assumes "layered s"
       shows "awin_except s"
   proof (rule ccontr)
@@ -186,7 +203,7 @@ begin
     then have "\<not>layered s" unfolding layered_def VL_def using `(v, x) \<in> E` by auto
     thus "False" using `layered s` by blast
   qed
-(*
+
   lemma layared_connected_nodes_ids:
     assumes "layered s" 
         and "connected u v"
