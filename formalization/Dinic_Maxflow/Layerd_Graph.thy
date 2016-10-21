@@ -502,7 +502,48 @@ begin
 
 end
 
+(* Just trying something *)
+context Graph
+begin
+  definition isAcyclic where
+    "isAcyclic \<equiv> (\<forall>u p v. isPath u p v \<longrightarrow> isSimplePath u p v)"
+
+  lemma isAcyclic_subGraph:
+    assumes "isAcyclic"
+        and "Graph.E g \<subseteq> E"
+      shows "Graph.isAcyclic g"
+  proof (rule ccontr)
+    assume "\<not> Graph.isAcyclic g"
+    then obtain u p v where obt1: "Graph.isPath g u p v" and obt2: "\<not>Graph.isSimplePath g u p v"
+      unfolding Graph.isAcyclic_def by blast
+    then have *: "\<not> distinct (pathVertices u p)" unfolding Graph.isSimplePath_def by auto
+    
+    have "set p \<subseteq> E" using "Graph.isPath_edgeset"[OF obt1] assms(2) by auto
+    then have **: "isPath u p v" using Graph.isPath_transfer[OF obt1, of c] by blast
+    moreover have "\<not>isSimplePath u p v" using * ** unfolding isSimplePath_def by blast
+    ultimately show False using assms(1) unfolding isAcyclic_def by blast
+  qed
+end
+(* End -- Just trying something *)
+
+(* For Peter \<longrightarrow>
+  I am not sure at all if we have to formalize the original version at all, my reasoning behind this:
+    - it is hard to directly refine the original version to the cherkasky implementation.
+    - I tried many different options for abstractly defining the right-pass and the left-pass
+      procedures. (not succeeded)
+    - if I get to define them, then I will need the following lemmas:
+      any subgraph which is computed in each stage must retain the properties of the previous step.
+      so if I have a layered graph and do the right-pass, the result will be both layered and without
+      dead ends in source direction, ... the same when doing the left pass.
+      ( I am not sure it is worth doing these proofs at all... )
+
+What is your opinion? should we go directly for the cherkaskey's implementation?
+    
+*)
+
 (*
+  For Peter \<longrightarrow>
+
   let L\<^sub>s be the bfs tree and L\<^sub>s\<^sub>,\<^sub>t be the cleaned up bfs-tree. what I have formalized until now
   corresponds to the L\<^sub>s. That is, (layeredSubGraph g s) \<longleftrightarrow> (g is the L\<^sub>s)
 
