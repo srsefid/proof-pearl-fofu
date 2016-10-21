@@ -538,6 +538,10 @@ end
       ( I am not sure it is worth doing these proofs at all... )
 
 What is your opinion? should we go directly for the cherkaskey's implementation?
+
+Peter: I would go directly for an implementation. 
+  The purpose should not be to formalize all intermediate historical developments, 
+  but to get a nice and concise implementation. 
     
 *)
 
