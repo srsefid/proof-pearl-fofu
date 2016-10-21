@@ -175,14 +175,6 @@ begin
   definition layered where
     "layered s \<equiv> \<forall>(u, v)\<in>E. \<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i)"
 
-  (* All With Incoming Edges Except *)
-  (*definition awin_except where
-    "awin_except s \<equiv> (\<forall>v \<in> V - {s}. incoming v \<noteq> {})"*)
-(*
-  (* All With outgoing Edges Except *)
-  definition awout_except where
-    "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})" *)
-
   lemma layered_connected_s: 
     assumes "layered s" 
         and "v \<in> V"
@@ -269,24 +261,7 @@ begin
   qed
 
 (* TODO: I am not sure if the following lemmas are useful-- all of them are correct indeed!*)
-(*  lemma layered_awin_except: 
-    assumes "layered s"
-      shows "awin_except s"
-  proof (rule ccontr)
-    assume "\<not> awin_except s"
-    then obtain v x where "v \<noteq> s" and "(v, x) \<in> E" and "incoming v = {}"
-      unfolding awin_except_def incoming_def V_def by blast
-    
-    have "\<not> connected s v"
-    proof (rule ccontr)
-      assume "\<not> \<not> connected s v"   
-      then have "\<exists>x. (x, v) \<in> E" using `v \<noteq> s` connected_edgeRtc by (meson rtrancl.cases)
-      thus "False" using `incoming v = {}` incoming_def by blast
-    qed
-    then have "\<not>layered s" unfolding layered_def VL_def using `(v, x) \<in> E` by auto
-    thus "False" using `layered s` by blast
-  qed
-
+(*  
   lemma layared_connected_nodes_ids:
     assumes "layered s" 
         and "connected u v"
@@ -311,6 +286,42 @@ begin
       finally show ?case .
     qed
   qed*)
+
+
+end
+
+context Graph
+begin
+  (* All With Incoming Edges Except *)
+  definition awin_except where
+    "awin_except s \<equiv> (\<forall>v \<in> V - {s}. incoming v \<noteq> {})"
+
+  (*lemma layered_awin_except: 
+    assumes "layered s"
+      shows "awin_except s"
+  proof (rule ccontr)
+    assume "\<not> awin_except s"
+    then obtain v x where "v \<noteq> s" and "(v, x) \<in> E" and "incoming v = {}"
+      unfolding awin_except_def incoming_def V_def by blast
+    
+    have "\<not> connected s v"
+    proof (rule ccontr)
+      assume "\<not> \<not> connected s v"   
+      then have "\<exists>x. (x, v) \<in> E" using `v \<noteq> s` connected_edgeRtc by (meson rtrancl.cases)
+      thus "False" using `incoming v = {}` incoming_def by blast
+    qed
+    then have "\<not>layered s" unfolding layered_def VL_def using `(v, x) \<in> E` by auto
+    thus "False" using `layered s` by blast
+  qed*)
+  
+end
+
+
+context Graph
+begin  
+  (* All With outgoing Edges Except *)
+  definition awout_except where
+    "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})"
   
   (*lemma layered_awout_connected_t: 
     assumes "layered s"
@@ -489,13 +500,6 @@ begin
     finally show ?thesis .
   qed
 
-end
-
-context Graph
-begin
-  (*definition awout_exceptSubGraph where
-    "awout_exceptSubGraph g t \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
-      Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"*)
 end
 
 (*
