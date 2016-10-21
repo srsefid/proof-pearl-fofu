@@ -183,51 +183,14 @@ begin
   definition awout_except where
     "awout_except t = (\<forall>v \<in> V - {t}. outgoing v \<noteq> {})" *)
 
+  lemma layered_connected_s: 
+    assumes "layered s" 
+        and "v \<in> V"
+      shows "connected s v"
+    using assms by (auto simp add: V_def layered_def VL_def)
+
   lemma layered_VL_exists: "\<lbrakk>layered s; v \<in> V\<rbrakk> \<Longrightarrow> \<exists>i. v \<in> VL s i"
     unfolding layered_def V_def by auto
-
-(*  lemma layered_awin_except: 
-    assumes "layered s"
-      shows "awin_except s"
-  proof (rule ccontr)
-    assume "\<not> awin_except s"
-    then obtain v x where "v \<noteq> s" and "(v, x) \<in> E" and "incoming v = {}"
-      unfolding awin_except_def incoming_def V_def by blast
-    
-    have "\<not> connected s v"
-    proof (rule ccontr)
-      assume "\<not> \<not> connected s v"   
-      then have "\<exists>x. (x, v) \<in> E" using `v \<noteq> s` connected_edgeRtc by (meson rtrancl.cases)
-      thus "False" using `incoming v = {}` incoming_def by blast
-    qed
-    then have "\<not>layered s" unfolding layered_def VL_def using `(v, x) \<in> E` by auto
-    thus "False" using `layered s` by blast
-  qed
-
-  lemma layared_connected_nodes_ids:
-    assumes "layered s" 
-        and "connected u v"
-        and "u \<in> VL s i" 
-        and "v \<in> VL s j"
-      shows "i \<le> j"
-  proof -
-    obtain p where "isPath u p v" using `connected u v` connected_def by blast
-    then show ?thesis using assms(1,3,4)
-    proof (induction p arbitrary: u v i j)
-      case (Nil)
-        thus ?case unfolding VL_def by auto
-    next
-      case (Cons e p)
-      obtain w where "(u, w) \<in> E" and "isPath w p v" using Cons.prems(1) isPath_head by (cases e) auto
-      obtain i' where "w \<in> VL s i'" using `(u, w) \<in> E` layered_VL_exists[OF Cons.prems(2)] V_def by auto
-      obtain d where "u \<in> VL s d \<and> w \<in> VL s (Suc d)" using `(u, w) \<in> E` Cons.prems(2) layered_def by blast      
-      then have *: "d = i \<and> Suc d = i'" using `w \<in> VL s i'` Cons.prems(3) VL_unique by auto
-
-      have "i \<le> i'" using * by simp
-      also have "i' \<le> j" using `isPath w p v` `w \<in> VL s i'` Cons.IH Cons.prems(2)  Cons.prems(4) by simp
-      finally show ?case .
-    qed
-  qed*)
 
   lemma layered_path_length: "\<lbrakk>layered s; isPath u p v; u \<in> VL s i; v \<in> VL s j\<rbrakk> 
     \<Longrightarrow> length p + i = j"
@@ -304,13 +267,51 @@ begin
     assume ?R
     thus ?L using shortestPath_is_path by blast
   qed
-  
-  lemma layered_connected_s: 
-    assumes "layered s" 
-        and "v \<in> V"
-      shows "connected s v"
-    using assms by (auto simp add: V_def layered_def VL_def)
 
+(* TODO: I am not sure if the following lemmas are useful-- all of them are correct indeed!*)
+(*  lemma layered_awin_except: 
+    assumes "layered s"
+      shows "awin_except s"
+  proof (rule ccontr)
+    assume "\<not> awin_except s"
+    then obtain v x where "v \<noteq> s" and "(v, x) \<in> E" and "incoming v = {}"
+      unfolding awin_except_def incoming_def V_def by blast
+    
+    have "\<not> connected s v"
+    proof (rule ccontr)
+      assume "\<not> \<not> connected s v"   
+      then have "\<exists>x. (x, v) \<in> E" using `v \<noteq> s` connected_edgeRtc by (meson rtrancl.cases)
+      thus "False" using `incoming v = {}` incoming_def by blast
+    qed
+    then have "\<not>layered s" unfolding layered_def VL_def using `(v, x) \<in> E` by auto
+    thus "False" using `layered s` by blast
+  qed
+
+  lemma layared_connected_nodes_ids:
+    assumes "layered s" 
+        and "connected u v"
+        and "u \<in> VL s i" 
+        and "v \<in> VL s j"
+      shows "i \<le> j"
+  proof -
+    obtain p where "isPath u p v" using `connected u v` connected_def by blast
+    then show ?thesis using assms(1,3,4)
+    proof (induction p arbitrary: u v i j)
+      case (Nil)
+        thus ?case unfolding VL_def by auto
+    next
+      case (Cons e p)
+      obtain w where "(u, w) \<in> E" and "isPath w p v" using Cons.prems(1) isPath_head by (cases e) auto
+      obtain i' where "w \<in> VL s i'" using `(u, w) \<in> E` layered_VL_exists[OF Cons.prems(2)] V_def by auto
+      obtain d where "u \<in> VL s d \<and> w \<in> VL s (Suc d)" using `(u, w) \<in> E` Cons.prems(2) layered_def by blast      
+      then have *: "d = i \<and> Suc d = i'" using `w \<in> VL s i'` Cons.prems(3) VL_unique by auto
+
+      have "i \<le> i'" using * by simp
+      also have "i' \<le> j" using `isPath w p v` `w \<in> VL s i'` Cons.IH Cons.prems(2)  Cons.prems(4) by simp
+      finally show ?case .
+    qed
+  qed*)
+  
   (*lemma layered_awout_connected_t: 
     assumes "layered s"
         and "awout_except t"
@@ -381,10 +382,6 @@ begin
     "layeredSubGraph g s \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
       Graph.E g = {(u, v)|u v. (\<exists>i. u \<in> VL s i \<and> v \<in> VL s (Suc i))}"
 
-  (*definition awout_exceptSubGraph where
-    "awout_exceptSubGraph g t \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
-      Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"*)
-
   lemma layeredSubGraph_subset_Edges: 
     assumes "layeredSubGraph g s"
       shows "Graph.E g \<subseteq> E"
@@ -396,7 +393,7 @@ begin
     thus "x \<in> E" unfolding E_def by blast
   qed
 
-  lemma layeredSubGraph_shortestPath_EdgeSet:
+  lemma layeredSubGraph_shortestPath_edgeSet:
     assumes "layeredSubGraph g s"
         and "isShortestPath s p v"
       shows "set p \<subseteq> Graph.E g"
@@ -415,16 +412,16 @@ begin
       by auto
   qed
 
-  lemma layeredSubGraph_shortestPaths1:
+  lemma layeredSubGraph_shortestPaths_transfer1:
     assumes "layeredSubGraph g s"
         and "isShortestPath s p v"
       shows "Graph.isShortestPath g s p v"
   proof -
-    have "set p \<subseteq> Graph.E g" using assms layeredSubGraph_shortestPath_EdgeSet by blast
+    have "set p \<subseteq> Graph.E g" using assms layeredSubGraph_shortestPath_edgeSet by blast
     thus ?thesis using isShortestPath_transfer[OF assms(2) layeredSubGraph_subset_Edges[OF assms(1)]] by simp
   qed
 
-  lemma layeredSubGraph_shortestPaths2:
+  lemma layeredSubGraph_shortestPaths_transfer2:
     assumes "layeredSubGraph g s"
         and "Graph.isShortestPath g s p v"
       shows "isShortestPath s p v"
@@ -441,14 +438,14 @@ begin
         obtain_shortest_path by blast
       then have *: "length p' < length p" using `isPath s p v` c_asm unfolding isShortestPath_def by auto
 
-      have "Graph.isShortestPath g s p' v" using obt layeredSubGraph_shortestPaths1[OF assms(1)] by blast
+      have "Graph.isShortestPath g s p' v" using obt layeredSubGraph_shortestPaths_transfer1[OF assms(1)] by blast
       thus False using assms(2) * unfolding Graph.isShortestPath_def by auto
     qed  
   qed
 
-  corollary layeredSubGraph_shortestPaths:
+  corollary layeredSubGraph_shortestPaths_tr:
     "layeredSubGraph g s \<Longrightarrow> Graph.isShortestPath g s p v \<longleftrightarrow> isShortestPath s p v"
-  using layeredSubGraph_shortestPaths1 layeredSubGraph_shortestPaths2 by auto
+  using layeredSubGraph_shortestPaths_transfer1 layeredSubGraph_shortestPaths_transfer2 by auto
 
   lemma layeredSubGraph_shortestPaths_VL:
     assumes "layeredSubGraph g s"
@@ -460,7 +457,7 @@ begin
       assume "x \<in> ?L"
       then obtain p where "Graph.isShortestPath g s p x" and "length p = i"
         using Graph.VL_isShortestPath1 by blast
-      then have "isShortestPath s p x" using layeredSubGraph_shortestPaths[OF assms, symmetric] by blast
+      then have "isShortestPath s p x" using layeredSubGraph_shortestPaths_tr[OF assms, symmetric] by blast
       then show "x \<in> VL s i" using VL_isShortestPath2 `length p = i` by auto
     qed
   next  
@@ -470,7 +467,7 @@ begin
       assume "x \<in> ?R"
       then obtain p where "isShortestPath s p x" and "length p = i"
         using VL_isShortestPath1 by blast
-      then have "Graph.isShortestPath g s p x" using layeredSubGraph_shortestPaths[OF assms] by blast
+      then have "Graph.isShortestPath g s p x" using layeredSubGraph_shortestPaths_tr[OF assms] by blast
       then show "x \<in> Graph.VL g s i" using Graph.VL_isShortestPath2 `length p = i` by auto
     qed
   qed
@@ -481,17 +478,24 @@ begin
   using layeredSubGraph_shortestPaths_VL[OF assms] assms
   unfolding Graph.layered_def layeredSubGraph_def by auto
 
-  corollary layeredSubGraph_paths: 
+  corollary layeredSubGraph_paths_tr: 
     assumes "layeredSubGraph g s"
     shows "Graph.isPath g s p v \<longleftrightarrow> isShortestPath s p v"
   proof -
     have "Graph.layered g s" using assms layeredSubGraph_layered by blast
     then have "Graph.isPath g s p v \<longleftrightarrow> Graph.isShortestPath g s p v"
       using Graph.layered_path_shortestPath[of g s s p v] by auto
-    also have "\<dots> \<longleftrightarrow> isShortestPath s p v" using layeredSubGraph_shortestPaths[OF assms] .
+    also have "\<dots> \<longleftrightarrow> isShortestPath s p v" using layeredSubGraph_shortestPaths_tr[OF assms] .
     finally show ?thesis .
   qed
 
+end
+
+context Graph
+begin
+  (*definition awout_exceptSubGraph where
+    "awout_exceptSubGraph g t \<equiv> (\<forall>e \<in> (Graph.E g). g e = c e) \<and>
+      Graph.V g = {v. v \<in> V \<and>  (v \<noteq> t \<longrightarrow> outgoing v \<noteq> {})}"*)
 end
 
 (*
