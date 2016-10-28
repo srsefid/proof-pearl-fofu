@@ -290,6 +290,7 @@ begin
 
 end
 
+(*
 context Graph
 begin
   (* All With Incoming Edges Except *)
@@ -385,7 +386,7 @@ begin
     show ?thesis using `v \<in> V` `V = ?SC \<union> ?SN` `?SC \<inter> ?SN = {}` `?SN = {}`  by blast
   qed auto *)
 
-end
+end*)
 
 context Graph
 begin
@@ -526,77 +527,66 @@ begin
 end
 (* End -- Just trying something *)
 
-(* For Peter \<longrightarrow>
-  I am not sure at all if we have to formalize the original version at all, my reasoning behind this:
-    - it is hard to directly refine the original version to the cherkasky implementation.
-    - I tried many different options for abstractly defining the right-pass and the left-pass
-      procedures. (not succeeded)
-    - if I get to define them, then I will need the following lemmas:
-      any subgraph which is computed in each stage must retain the properties of the previous step.
-      so if I have a layered graph and do the right-pass, the result will be both layered and without
-      dead ends in source direction, ... the same when doing the left pass.
-      ( I am not sure it is worth doing these proofs at all... )
+(* 
+  Hi Peter,
 
-What is your opinion? should we go directly for the cherkaskey's implementation?
+  You have mentioned that we have to start with the DFS implementation. My sense is that none of
+  my proofs about layered-sub-graph (BFS tree) would be useful then. (Because we will be using the
+  rank function...).
+  I have looked into your DFS framework, to get some idea for DFS implementation here. The part 
+  that you described how to establish the Invariant was not quite clear to me (but it seemed quite
+  ingenious method). I have an Idea for the implementation of the DFS, and I am sure such an approach
+  will help a lot for proving it correct.
 
-Peter: I would go directly for an implementation. 
-  The purpose should not be to formalize all intermediate historical developments, 
-  but to get a nice and concise implementation. 
-    
-*)
+  I would appreciate it if you take a look into it and tell me whether it suits our requirements:
 
-(*
-  For Peter \<longrightarrow>
+  as you said the starting point is as following:
+  dinitz \<equiv> {
+    f \<leftarrow> zero_flow
+    while (connected s t in c\<^sub>f) {
+      rank \<leftarrow> current BFS numbering of the c\<^sub>f
+      f\<^sub>b \<leftarrow> find_blocking c\<^sub>f rank t s
+      f \<leftarrow> augment f f\<^sub>b
+    }
+  }
 
-  let L\<^sub>s be the bfs tree and L\<^sub>s\<^sub>,\<^sub>t be the cleaned up bfs-tree. what I have formalized until now
-  corresponds to the L\<^sub>s. That is, (layeredSubGraph g s) \<longleftrightarrow> (g is the L\<^sub>s)
+  maybe we could co-relate the rank function with my formalization of layered_sub-graph, but I am
+  not optimistic about it...
 
+  the specification of find_blocking is that it finds a blocking flow with positive value, and I have
+  no idea the requirement that allows us to show termination. It is the DFS function as following:
 
-  There are 3 versions of the Dinitz algorithm in the paper "Dinitz' Algorithm, Orig. & Eve. version"
-  1 :: Dinitz' version
-  
-    initialize zero flow;
-$1  while (L\<^sub>s\<^sub>,\<^sub>t of residualGraph is not empty) {
-      L <- L\<^sub>s\<^sub>,\<^sub>t;
-$2    while (L not empty) {
-        p <- find a path from t to s;
-        augment the flow using p;
-  
-        clean-up the saturated edges from L;
-          [[ this is done in two stages: right_pass; left_pass ]]
+  find_blocking c rank t s \<equiv> {
+    f\<^sub>b \<leftarrow> (\<lambda>_. 0);
+    stk \<leftarrow> [(t, [])];
+    while (stk \<noteq> []) {
+      let (v, vertexes_to_t) = hd stk;
+      stk \<leftarrow> tl stk;
+
+      if (v = s) {
+        p \<leftarrow> obtain_path (from vertexes_to_t) 
+        f\<^sub>b \<leftarrow> add_to_blocking f\<^sub>b p min_cap
+        x \<leftarrow> find_first saturated c f\<^sub>b p
+        stk \<leftarrow> stack_cleanup x
+      }
+      else {
+        VT \<leftarrow> (v # vertexes_to_t);
+        foreach ((u, v) in filter_incoming_based_on_rank_and_blocking_flow  v) {
+          stk \<leftarrow> (u, VT) # stk;
+        }
       }
     }
 
-    * the invariant at $1 should correspond to the loop invariant in fofu
-    * the invariant at $2 is that L is the union of all shortest augmenting paths of length d
-      where d is increased in each stage
+    return f\<^sub>b;
+  }
 
-  2 :: Even's version:
+  filtering the graph using the rank function means that we do not need to flag visited nodes (because
+    all the paths are simple)
 
-    initialize zero flow;
-$1  while (L\<^sub>s contains t) {
-      L <- L\<^sub>s;
-$2    Do DFS from s with following order:
-        - termination condition: (if we reach s in backTrack step)
-        - whenever reaching a dead end vertex u:
-          + if u \<noteq> t then remove the last edge and backtrack
-          + if u = t augment the flow along the path computed so far,
-              remove saturated edges from L, and continue from a non-
-              saturated edge closest to s.
-
-    * the invariant at $1 should correspond to the loop invariant in original version
-    * the invariant at DFS is that L "contains" all augmenting paths of length d & there is no
-      shorter augmenting path.
-
-  3 :: Cherkassky's implementation
-
-  this one is quite close to the second version, instead it defines the rank function, and also
-  does the DFS backwards from t to s.
-
-
-for invariant $1 in 3 versions and fofo I thought about the following relation
-"no s-t path in the residual Graph" \<longleftrightarrow> L\<^sub>s\<^sub>,\<^sub>t empty \<longleftrightarrow> t \<notin> Graph.V L\<^sub>s \<longleftrightarrow> rank(t) = infinity"
-
+  Do you think the above definition is abstract enough for proving the correctness?
+  Do you think DFS Framework is a good option here? If yes, I would suggest that you architecture the
+    system, and guide me for the important lemmas to be proved. And, I will then invest time on proving
+    those lemmas. (I think this would be the most efficient way, because of your knowledge and experience)
 *)
 
 end
