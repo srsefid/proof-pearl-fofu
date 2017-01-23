@@ -45,32 +45,32 @@ proof -
   also have "?SAOG = (\<Sum>y \<in> k - {s}. ?SOG y) + ?SOG s"
   proof -
     have "?SAOG = (\<Sum>e\<in>(outgoing' k \<union> ?LCL). f e)"
-      by (rule setsum.union_disjoint[symmetric]) (auto simp: outgoing'_def)
+      by (rule sum.union_disjoint[symmetric]) (auto simp: outgoing'_def)
     also have "outgoing' k \<union> ?LCL = (\<Union>y\<in>k-{s}. outgoing y) \<union> outgoing s"
       by (auto simp: outgoing_def outgoing'_def s_in_cut)
     also have "(\<Sum>e\<in>(UNION (k - {s}) outgoing \<union> outgoing s). f e) 
       = (\<Sum>e\<in>(UNION (k - {s}) outgoing). f e) + (\<Sum>e\<in>outgoing s. f e)"  
-      by (rule setsum.union_disjoint) 
+      by (rule sum.union_disjoint) 
          (auto simp: outgoing_def intro: finite_Image)
     also have "(\<Sum>e\<in>(UNION (k - {s}) outgoing). f e) 
       = (\<Sum>y \<in> k - {s}. ?SOG y)"
-      by (rule setsum.UNION_disjoint)
+      by (rule sum.UNION_disjoint)
          (auto simp: outgoing_def intro: finite_Image)
     finally show ?thesis .
   qed     
   also have "?SAIN = (\<Sum>y \<in> k - {s}. ?SIN y) + ?SIN s"
   proof -
     have "?SAIN = (\<Sum>e\<in>(incoming' k \<union> ?LCL). f e)"
-      by (rule setsum.union_disjoint[symmetric]) (auto simp: incoming'_def)
+      by (rule sum.union_disjoint[symmetric]) (auto simp: incoming'_def)
     also have "incoming' k \<union> ?LCL = (\<Union>y\<in>k-{s}. incoming y) \<union> incoming s"
       by (auto simp: incoming_def incoming'_def s_in_cut)
     also have "(\<Sum>e\<in>(UNION (k - {s}) incoming \<union> incoming s). f e) 
       = (\<Sum>e\<in>(UNION (k - {s}) incoming). f e) + (\<Sum>e\<in>incoming s. f e)"  
-      by (rule setsum.union_disjoint) 
+      by (rule sum.union_disjoint) 
          (auto simp: incoming_def intro: finite_Image)
     also have "(\<Sum>e\<in>(UNION (k - {s}) incoming). f e) 
       = (\<Sum>y \<in> k - {s}. ?SIN y)"
-      by (rule setsum.UNION_disjoint)
+      by (rule sum.UNION_disjoint)
          (auto simp: incoming_def intro: finite_Image)
     finally show ?thesis .
   qed  
@@ -93,10 +93,10 @@ text \<open>The value of any flow is bounded by the capacity of any cut.
 corollary weak_duality: "val \<le> cap"
 proof -
   have "(\<Sum>e \<in> outgoing' k. f e) \<le> (\<Sum>e \<in> outgoing' k. c e)" (is "?L \<le> ?R") 
-    using capacity_const by (metis setsum_mono)
+    using capacity_const by (metis sum_mono)
   then have "(\<Sum>e \<in> outgoing' k. f e) \<le> cap" unfolding cap_def  by simp
   moreover have "val \<le> (\<Sum>e \<in> outgoing' k. f e)" using netFlow_def
-    by (simp add: capacity_const flow_value setsum_nonneg)
+    by (simp add: capacity_const flow_value sum_nonneg)
   ultimately show ?thesis by simp
 qed
 
@@ -117,7 +117,7 @@ proof (rule ccontr)
   have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
     resCap_gzero isAugmentingPath_def cf.isSimplePath_def by auto
   have "NFlow c s t (augment (augmentingFlow p))" 
-    using fct1 augment_flow_presv Network_axioms unfolding NFlow_def by auto
+    using fct1 augment_flow_presv Network_axioms unfolding Flow_def NFlow_def NPreflow_def by auto
   moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 
     using fct1 fct2 augment_flow_value by auto
   ultimately show "False" using asm by auto
@@ -192,7 +192,7 @@ proof clarify
   {
     fix f'
     assume "Flow c s t f'"
-    then interpret fc': NFlow c s t f' by intro_locales
+    then interpret fc': Flow c s t f' .
     interpret fc': NFlowCut c s t f' k by intro_locales
 
     have "fc'.val \<le> cap" using fc'.weak_duality .

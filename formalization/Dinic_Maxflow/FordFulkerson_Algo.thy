@@ -19,7 +19,7 @@ text \<open>
   \<close>
 definition "find_augmenting_spec f \<equiv> do {
     assert (NFlow c s t f);
-    selectp p. NFlow.isAugmentingPath c s t f p
+    selectp p. NPreflow.isAugmentingPath c s t f p
   }"
 
 text \<open>Moreover, we specify augmentation of a flow along a path\<close>
@@ -30,7 +30,7 @@ text \<open>
 \<close>
 abbreviation "fofu_invar \<equiv> \<lambda>(f,brk). 
         NFlow c s t f 
-      \<and> (brk \<longrightarrow> (\<forall>p. \<not>NFlow.isAugmentingPath c s t f p))
+      \<and> (brk \<longrightarrow> (\<forall>p. \<not>NPreflow.isAugmentingPath c s t f p))
     "  
 
 text \<open>Finally, we obtain the Ford-Fulkerson algorithm.
@@ -46,7 +46,7 @@ definition "fofu \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
-          assert (NFlow.isAugmentingPath c s t f p);
+          assert (NPreflow.isAugmentingPath c s t f p);
           let f = NFlow.augment_with_path c f p;
           assert (NFlow c s t f);
           return (f, False)
@@ -65,8 +65,7 @@ text \<open>Correctness of the algorithm is a consequence from the
 
 text \<open>The zero flow is a valid flow\<close>
 lemma zero_flow: "NFlow c s t (\<lambda>_. 0)" 
-  unfolding NFlow_def Flow_def 
-  using Network_axioms
+  apply unfold_locales
   by (auto simp: s_node t_node cap_non_negative)  
 
 text \<open>Augmentation preserves the flow property\<close>
@@ -74,9 +73,9 @@ lemma (in NFlow) augment_pres_nflow:
   assumes AUG: "isAugmentingPath p"
   shows "NFlow c s t (augment (augmentingFlow p))"
 proof -
-  note augment_flow_presv[OF augFlow_resFlow[OF AUG]]
-  thus ?thesis
-    by intro_locales
+  from augment_flow_presv[OF augFlow_resFlow[OF AUG]]
+  interpret f': Flow c s t "augment (augmentingFlow p)" .
+  show ?thesis by intro_locales
 qed    
 
 text \<open>Augmenting paths cannot be empty\<close>
@@ -108,7 +107,7 @@ context begin
 private abbreviation (input) "augment 
   \<equiv> NFlow.augment_with_path"
 private abbreviation (input) "is_augmenting_path f p 
-  \<equiv> NFlow.isAugmentingPath c s t f p"
+  \<equiv> NPreflow.isAugmentingPath c s t f p"
 
 text \<open> {} \<close>
 text_raw \<open>\DefineSnippet{ford_fulkerson_algo}{\<close>       

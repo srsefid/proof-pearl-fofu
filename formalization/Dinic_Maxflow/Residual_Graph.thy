@@ -19,8 +19,8 @@ where "residualGraph c f \<equiv> \<lambda>(u, v).
   else
     0"
 
-text \<open>Let's fix a network with a flow @{term f} on it\<close>
-context NFlow
+text \<open>Let's fix a network with a preflow @{term f} on it\<close>
+context NPreflow
 begin
   text \<open>We abbreviate the residual graph by @{term cf}.\<close>
   abbreviation "cf \<equiv> residualGraph c f"
@@ -130,16 +130,18 @@ proof -
 qed 
       
 (* TODO: Only one usage: Move or remove! *)  
-lemma reverse_flow: "Flow cf s t f' \<Longrightarrow> \<forall>(u, v) \<in> E. f' (v, u) \<le> f (u, v)"
+lemma reverse_flow: "Preflow cf s t f' \<Longrightarrow> \<forall>(u, v) \<in> E. f' (v, u) \<le> f (u, v)"
 proof -
-  assume asm: "Flow cf s t f'"
+  assume asm: "Preflow cf s t f'"
+  then interpret f': Preflow cf s t f' .
+      
   {
     fix u v
     assume "(u, v) \<in> E"
     
     then have "cf (v, u) = f (u, v)"
       unfolding residualGraph_def using no_parallel_edge by auto
-    moreover have "f' (v, u) \<le> cf (v, u)" using asm[unfolded Flow_def] by auto
+    moreover have "f' (v, u) \<le> cf (v, u)" using f'.capacity_const by auto
     ultimately have "f' (v, u) \<le> f (u, v)" by metis
   }
   thus ?thesis by auto

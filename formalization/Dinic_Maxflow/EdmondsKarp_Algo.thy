@@ -54,7 +54,7 @@ definition "edka_partial \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
-          assert (NFlow.isAugmentingPath c s t f p);
+          assert (NPreflow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
           let f = NFlow.augment_with_path c f p;
           assert (NFlow c s t f);
@@ -298,7 +298,7 @@ lemma card_spEdges_le:
 
 lemma card_spEdges_less:
   shows "card spEdges < card uE + 1"
-  using card_spEdges_le[OF assms] 
+  using card_spEdges_le 
   by auto
   
 
@@ -612,7 +612,7 @@ definition "edka \<equiv> do {
         None \<Rightarrow> return (f,True)
       | Some p \<Rightarrow> do {
           assert (p\<noteq>[]);
-          assert (NFlow.isAugmentingPath c s t f p);
+          assert (NPreflow.isAugmentingPath c s t f p);
           assert (Graph.isShortestPath (residualGraph c f) s p t);
           let f = NFlow.augment_with_path c f p;
           assert (NFlow c s t f);
@@ -669,8 +669,7 @@ lemma ekMeasure_upper_bound:
    < 2 * card V * card E + card V"
 proof -  
   interpret NFlow c s t "(\<lambda>_. 0)"
-    unfolding NFlow_def Flow_def using Network_axioms 
-      by (auto simp: s_node t_node cap_non_negative)
+    by unfold_locales (auto simp: s_node t_node cap_non_negative)
 
   interpret ek: ek_analysis cf  
     by unfold_locales auto

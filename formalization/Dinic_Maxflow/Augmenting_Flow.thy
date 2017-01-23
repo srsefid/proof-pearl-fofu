@@ -99,11 +99,11 @@ proof -
   from no_parallel_edge have DJ: "E``{u} \<inter> E\<inverse>``{u} = {}" by auto
 
   have "?LHS = (\<Sum>v\<in>E``{u} \<union> E\<inverse>``{u}. f' (u,v))"
-    apply (rule setsum.mono_neutral_left)
+    apply (rule sum.mono_neutral_left)
     using cfE_ss_invE
     by (auto intro: finite_Image)
   also have "\<dots> = ?RHS"
-    apply (subst setsum.union_disjoint[OF _ _ DJ])
+    apply (subst sum.union_disjoint[OF _ _ DJ])
     by (auto intro: finite_Image)
   finally show "?LHS = ?RHS" .
 qed  
@@ -115,11 +115,11 @@ proof -
   from no_parallel_edge have DJ: "E``{u} \<inter> E\<inverse>``{u} = {}" by auto
 
   have "?LHS = (\<Sum>v\<in>E``{u} \<union> E\<inverse>``{u}. f' (v,u))"
-    apply (rule setsum.mono_neutral_left)
+    apply (rule sum.mono_neutral_left)
     using cfE_ss_invE
     by (auto intro: finite_Image)
   also have "\<dots> = ?RHS"
-    apply (subst setsum.union_disjoint[OF _ _ DJ])
+    apply (subst sum.union_disjoint[OF _ _ DJ])
     by (auto intro: finite_Image)
   finally show "?LHS = ?RHS" .
 qed  
@@ -177,13 +177,13 @@ proof -
     by (auto simp: augment_def)
   also have "\<dots> 
     = (\<Sum>v\<in>?Vo. f (u,v)) + (\<Sum>v\<in>?Vo. f' (u,v)) - (\<Sum>v\<in>?Vo. f' (v,u))"
-    by (auto simp: setsum_subtractf setsum.distrib)
+    by (auto simp: sum_subtractf sum.distrib)
   also have "\<dots> 
     = (\<Sum>v\<in>?Vi. f (v,u)) + (\<Sum>v\<in>?Vi. f' (v,u)) - (\<Sum>v\<in>?Vi. f' (u,v))" 
     by (auto simp: conservation_const_pointwise[OF U_ASM] flow_summation_aux)
   also have "\<dots> 
     = (\<Sum>v\<in>?Vi. f (v,u) + f' (v,u) - f' (u,v))" 
-    by (auto simp: setsum_subtractf setsum.distrib)
+    by (auto simp: sum_subtractf sum.distrib)
   also have "\<dots> 
     = (\<Sum>v\<in>?Vi. augment f' (v,u))"  
     by (auto simp: augment_def)
@@ -205,7 +205,7 @@ end -- \<open>@{term u} is node\<close>
 text \<open>As main result, we get that the augmented flow is again a valid flow.\<close>
 corollary augment_flow_presv: "Flow c s t (f\<up>f')"
   using augment_flow_presv_cap augment_flow_presv_con 
-  by unfold_locales auto
+  by (rule_tac intro_Flow) auto
 
 subsection \<open>Value of the Augmented Flow\<close>
 text \<open>Next, we show that the value of the augmented flow is the sum of the values
@@ -213,21 +213,21 @@ text \<open>Next, we show that the value of the augmented flow is the sum of the
   
 lemma augment_flow_value: "Flow.val c s (f\<up>f') = val + Flow.val cf s f'"
 proof -
-  interpret f'': Flow c s t "f\<up>f'" using augment_flow_presv[OF assms] . 
+  interpret f'': Flow c s t "f\<up>f'" using augment_flow_presv . 
 
   txt \<open>For this proof, we set up Isabelle's rewriting engine for rewriting of sums.
     In particular, we add lemmas to convert sums over incoming or outgoing 
     edges to sums over all vertices. This allows us to write the summations
     from Cormen et al.~a bit more concise, leaving some of the tedious 
     calculation work to the computer.\<close>
-  note setsum_simp_setup[simp] = 
+  note sum_simp_setup[simp] = 
     sum_outgoing_alt[OF capacity_const] s_node
     sum_incoming_alt[OF capacity_const]
     cf.sum_outgoing_alt[OF f'.capacity_const]
     cf.sum_incoming_alt[OF f'.capacity_const]
     sum_outgoing_alt[OF f''.capacity_const]
     sum_incoming_alt[OF f''.capacity_const]
-    setsum_subtractf setsum.distrib
+    sum_subtractf sum.distrib
   
   txt \<open>Note that, if neither an edge nor its reverse is in the graph,
     there is also no edge in the residual graph, and thus the flow value
@@ -244,7 +244,7 @@ proof -
     unfolding f''.val_def by simp
   also have "\<dots> = (\<Sum>u\<in>V. f (s, u) - f (u, s) + (f' (s, u) - f' (u, s)))"
     -- \<open>Note that this is the crucial step of the proof, which Cormen et al. leave as an exercise.\<close>
-    by (rule setsum.cong) (auto simp: augment_def no_parallel_edge aux1)
+    by (rule sum.cong) (auto simp: augment_def no_parallel_edge aux1)
   also have "\<dots> = val + Flow.val cf s f'"  
     unfolding val_def f'.val_def by simp
   finally show "f''.val = val + f'.val" .  
@@ -255,7 +255,7 @@ txt \<open>Note, there is also an automatic proof. When creating the above
     subgoals, abusing Isabelle as a term rewriter.\<close>
 lemma "Flow.val c s (f\<up>f') = val + Flow.val cf s f'"
 proof -
-  interpret f'': Flow c s t "f\<up>f'" using augment_flow_presv[OF assms] . 
+  interpret f'': Flow c s t "f\<up>f'" using augment_flow_presv . 
 
   have aux1: "f'(u,v) = 0" if A: "(u,v)\<notin>E" "(v,u)\<notin>E" for u v
   proof -
@@ -273,9 +273,9 @@ proof -
       sum_incoming_alt[OF f''.capacity_const]
       cf.sum_outgoing_alt[OF f'.capacity_const]
       cf.sum_incoming_alt[OF f'.capacity_const]
-      setsum_subtractf[symmetric] setsum.distrib[symmetric]
+      sum_subtractf[symmetric] sum.distrib[symmetric]
       )
-    apply (rule setsum.cong)
+    apply (rule sum.cong)
     apply (auto simp: augment_def no_parallel_edge aux1)
     done
 qed

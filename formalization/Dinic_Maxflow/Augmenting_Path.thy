@@ -5,8 +5,8 @@ begin
 text \<open>We define the concept of an augmenting path in the residual graph,
   and the residual flow induced by an augmenting path.\<close>
 
-text \<open>We fix a network with a flow @{term f} on it.\<close>
-context NFlow
+text \<open>We fix a network with a preflow @{term f} on it.\<close>
+context NPreflow
 begin
 
 subsection \<open>Definitions\<close>
@@ -55,20 +55,20 @@ lemma resCap_gzero: "isAugmentingPath p \<Longrightarrow> 0<resCap p"
 
 text \<open>As all edges of the augmenting flow have the same value, we can factor 
   this out from a summation:\<close>
-lemma setsum_augmenting_alt:
+lemma sum_augmenting_alt:
   assumes "finite A"          
   shows "(\<Sum>e \<in> A. (augmentingFlow p) e) 
         = resCap p * of_nat (card (A\<inter>set p))"
 proof -
-  have "(\<Sum>e \<in> A. (augmentingFlow p) e) = setsum (\<lambda>_. resCap p) (A\<inter>set p)"
-    apply (subst setsum.inter_restrict)
+  have "(\<Sum>e \<in> A. (augmentingFlow p) e) = sum (\<lambda>_. resCap p) (A\<inter>set p)"
+    apply (subst sum.inter_restrict)
     apply (auto simp: augmentingFlow_def assms)
     done
   thus ?thesis by auto
 qed  
 
 lemma augFlow_resFlow: "isAugmentingPath p \<Longrightarrow> Flow cf s t (augmentingFlow p)"
-proof (unfold_locales; intro allI ballI)
+proof (rule cf.intro_Flow; intro allI ballI)
   assume AUG: "isAugmentingPath p"
   hence SPATH: "cf.isSimplePath s p t" by (simp add: isAugmentingPath_def)
   hence PATH: "cf.isPath s p t" by (simp add: cf.isSimplePath_def)
@@ -123,7 +123,7 @@ proof (unfold_locales; intro allI ballI)
     qed  
     thus "(\<Sum>e \<in> Graph.incoming cf v. (augmentingFlow p) e) =
       (\<Sum>e \<in> Graph.outgoing cf v. (augmentingFlow p) e)"
-      by (auto simp: setsum_augmenting_alt)
+      by (auto simp: sum_augmenting_alt)
   }
 qed
 
@@ -153,7 +153,7 @@ proof -
       simp: cf.isSimplePath_append cf.isSimplePath_cons)  
   ultimately show ?thesis
     unfolding f.val_def
-    by (auto simp: setsum_augmenting_alt)
+    by (auto simp: sum_augmenting_alt)
 qed    
 
 end -- \<open>Network with flow\<close>

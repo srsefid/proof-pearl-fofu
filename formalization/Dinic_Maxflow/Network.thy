@@ -10,6 +10,26 @@ text \<open>
 subsection \<open>Definitions\<close>
 
 subsubsection \<open>Flows\<close>
+
+type_synonym 'capacity flow = "edge \<Rightarrow> 'capacity"
+
+locale Preflow = Graph c for c :: "'capacity::linordered_idom graph" +
+  fixes s t :: node
+  fixes f :: "'capacity flow"  
+  (* TODO: Move \<forall>-quantifiers to meta-level!? *)
+  assumes capacity_const: "\<forall>e. 0 \<le> f e \<and> f e \<le> c e"
+  assumes no_deficient_nodes: "\<forall>v \<in> V-{s,t}.
+    (\<Sum>e\<in>outgoing v. f e) \<le> (\<Sum>e\<in>incoming v. f e)" 
+begin
+definition excess :: "node \<Rightarrow> 'capacity" where
+  "excess v \<equiv> (\<Sum>e\<in>incoming v. f e) - (\<Sum>e\<in>outgoing v. f e)"
+
+lemma excess_non_negative: "\<forall>v\<in>V-{s,t}. excess v \<ge> 0"
+  unfolding excess_def using no_deficient_nodes by auto
+
+end  
+  
+  
 text \<open>An $s$-$t$ flow on a graph is a labeling of the edges with 
   real values, such that: 
   \begin{description}
@@ -20,22 +40,27 @@ text \<open>An $s$-$t$ flow on a graph is a labeling of the edges with
   \end{description}    
 \<close>
 
-type_synonym 'capacity flow = "edge \<Rightarrow> 'capacity"
-
-locale Flow = Graph c for c :: "'capacity::linordered_idom graph" +
-  fixes s t :: node
-  fixes f :: "'capacity::linordered_idom flow"
-  (* TODO: Move \<forall>-quantifiers to meta-level!? *)
-  assumes capacity_const: "\<forall>e. 0 \<le> f e \<and> f e \<le> c e"
-  assumes conservation_const: "\<forall>v \<in> V - {s, t}. 
-    (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
+locale Flow = Preflow c s t f
+  for c :: "'capacity::linordered_idom graph"
+  and s t :: node
+  and f +
+  assumes no_active_nodes: 
+    "\<forall>v \<in> V - {s,t}. (\<Sum>e\<in>outgoing v. f e) \<ge> (\<Sum>e\<in>incoming v. f e)"
 begin
+  lemma conservation_const: "\<forall>v \<in> V - {s, t}. 
+    (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
+    using no_deficient_nodes no_active_nodes 
+    by force
+  
   text \<open>The value of a flow is the flow that leaves $s$ and does not return.\<close>
   definition val :: "'capacity"
     where "val \<equiv> (\<Sum>e \<in> outgoing s. f e) - (\<Sum>e \<in> incoming s. f e)"
 end
 
-locale Finite_Flow = Flow c s t f + Finite_Graph c 
+locale Finite_Preflow = Preflow c s t f + Finite_Graph c 
+  for c :: "'capacity::linordered_idom graph" and s t f
+  
+locale Finite_Flow = Flow c s t f + Finite_Preflow c s t f
   for c :: "'capacity::linordered_idom graph" and s t f
 
 
@@ -62,9 +87,9 @@ text \<open>A network is a finite graph with two distinct nodes, source and sink
 
 locale Network = Graph c for c :: "'capacity::linordered_idom graph" +
   fixes s t :: node
-  assumes s_node: "s \<in> V"
-  assumes t_node: "t \<in> V"
-  assumes s_not_t: "s \<noteq> t"
+  assumes s_node[simp, intro!]: "s \<in> V"
+  assumes t_node[simp, intro!]: "t \<in> V"
+  assumes s_not_t[simp, intro!]: "s \<noteq> t"
   assumes cap_non_negative: "\<forall>u v. c (u, v) \<ge> 0"
   assumes no_incoming_s: "\<forall>u. (u, s) \<notin> E"
   assumes no_outgoing_t: "\<forall>u. (t, u) \<notin> E"
@@ -80,21 +105,26 @@ begin
   definition isMaxFlow :: "_ flow \<Rightarrow> bool" 
   where "isMaxFlow f \<equiv> Flow c s t f \<and> 
     (\<forall>f'. Flow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
-
+    
+  lemma t_not_s[simp]: "t \<noteq> s" using s_not_t by blast
+    
 end  
   
 subsubsection \<open>Networks with Flows and Cuts\<close>  
 text \<open>For convenience, we define locales for a network with a fixed flow,
   and a network with a fixed cut\<close>
 
-locale NFlow = Network c s t + Flow c s t f 
+locale NPreflow = Network c s t + Preflow c s t f 
+  for c :: "'capacity::linordered_idom graph" and s t f
+    
+locale NFlow = NPreflow c s t f + Flow c s t f 
   for c :: "'capacity::linordered_idom graph" and s t f
 
 lemma (in Network) isMaxFlow_alt: 
   "isMaxFlow f \<longleftrightarrow> NFlow c s t f \<and> 
     (\<forall>f'. NFlow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
   unfolding isMaxFlow_def     
-  by (auto simp: NFlow_def) (intro_locales)
+  by (auto simp: NFlow_def Flow_def NPreflow_def) intro_locales  
 
 text \<open>A cut in a network separates the source from the sink\<close>
 locale NCut = Network c s t + Cut c k 
@@ -118,7 +148,7 @@ where "isMinCut c s t k \<equiv> NCut c s t k \<and>
 subsection \<open>Properties\<close>
 subsubsection \<open>Flows\<close>
 
-context Flow 
+context Preflow 
 begin
 
 text \<open>Only edges are labeled with non-zero flows\<close>
@@ -126,6 +156,10 @@ lemma zero_flow_simp[simp]:
   "(u,v)\<notin>E \<Longrightarrow> f(u,v) = 0"
   by (metis capacity_const eq_iff zero_cap_simp)
 
+end -- \<open>Preflow\<close>   
+    
+context Flow
+begin
 text \<open>We provide a useful equivalent formulation of the 
   conservation constraint.\<close>
 lemma conservation_const_pointwise: 
@@ -136,7 +170,15 @@ lemma conservation_const_pointwise:
 
 end -- \<open>Flow\<close>   
 
-context Finite_Flow 
+text \<open>Introduce a flow via the conservation constraint\<close>  
+lemma (in Graph) intro_Flow:
+  assumes cap: "\<forall>e. 0 \<le> f e \<and> f e \<le> c e"
+  assumes cons: "\<forall>v \<in> V - {s, t}. 
+    (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
+  shows "Flow c s t f"  
+  using assms by unfold_locales auto  
+  
+context Finite_Preflow 
 begin
 
 text \<open>The summation of flows over incoming/outgoing edges can be 
@@ -157,11 +199,20 @@ lemma sum_incoming_alt_flow:
   apply (subst sum_incoming_alt)
   using assms capacity_const
   by auto
-end -- \<open>Finite Flow\<close>   
+end -- \<open>Finite Preflow\<close>   
 
 subsubsection \<open>Networks\<close>  
 context Network
 begin
+  
+lemmas [simp] = no_incoming_s no_outgoing_t
+  
+lemma incoming_s_empty[simp]: "incoming s = {}"
+  unfolding incoming_def using no_incoming_s by auto
+  
+lemma outgoing_t_empty[simp]: "outgoing t = {}"
+  unfolding outgoing_def using no_outgoing_t by auto
+  
 text \<open>The network constraints implies that all nodes are 
   reachable from the source node\<close>  
 
@@ -170,7 +221,7 @@ proof
   show "V \<subseteq> reachableNodes s"
   unfolding reachableNodes_def using s_node nodes_on_st_path
     by auto
-qed (simp add: s_node reachable_ss_V)
+qed (simp add: reachable_ss_V)
 
 sublocale Finite_Graph 
   apply unfold_locales
@@ -181,15 +232,15 @@ lemma cap_positive: "e \<in> E \<Longrightarrow> c e > 0"
 
 lemma V_not_empty: "V\<noteq>{}" using s_node by auto
 lemma E_not_empty: "E\<noteq>{}" using V_not_empty by (auto simp: V_def)
-
+    
 end -- \<open>Network\<close>
 
 subsubsection \<open>Networks with Flow\<close>
 
-context NFlow 
+context NPreflow 
 begin
 
-sublocale Finite_Flow by unfold_locales
+sublocale Finite_Preflow by unfold_locales
 
 text \<open>As there are no edges entering the source/leaving the sink, 
   also the corresponding flow values are zero:\<close>
@@ -209,14 +260,19 @@ proof (rule ccontr)
   thus "False" using obt1 no_outgoing_t outgoing_def by auto
 qed
 
-text \<open>Thus, we can simplify the definition of the value:\<close>  
-corollary val_alt: "val = (\<Sum>e \<in> outgoing s. f e)"
-  unfolding val_def by (auto simp: no_inflow_s)
-
 text \<open>For an edge, there is no reverse edge, and thus, no flow in the reverse direction:\<close>
 lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
   using no_parallel_edge by auto
 
-end -- \<open>Network with flow\<close>
+end -- \<open>Network with preflow\<close>
+
+context NFlow begin  
+  sublocale Finite_Preflow by unfold_locales
+  text \<open>There is no outflow from the sink in a network. 
+    Thus, we can simplify the definition of the value:\<close>  
+  corollary val_alt: "val = (\<Sum>e \<in> outgoing s. f e)"
+    unfolding val_def by (auto simp: no_inflow_s)
+      
+end  
   
 end -- \<open>Theory\<close>

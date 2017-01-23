@@ -159,7 +159,7 @@ begin
 
     lemma augment_cf_refine:
       assumes R: "(cf,f)\<in>cfi_rel"
-      assumes AUG: "NFlow.isAugmentingPath c s t f p"
+      assumes AUG: "NPreflow.isAugmentingPath c s t f p"
       shows "(Graph.augment_cf cf (set p) (resCap_cf cf p), 
           NFlow.augment_with_path c f p) \<in> cfi_rel"
     proof -    

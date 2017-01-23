@@ -127,9 +127,9 @@ definition setsum_impl :: "('a \<Rightarrow> 'b::comm_monoid_add nres) \<Rightar
 lemma setsum_imp_correct: 
   assumes [simp]: "finite S"
   assumes [THEN order_trans, refine_vcg]: "\<And>x. x\<in>S \<Longrightarrow> gi x \<le> (spec r. r=g x)"
-  shows "setsum_impl gi S \<le> (spec r. r=setsum g S)"
+  shows "setsum_impl gi S \<le> (spec r. r=sum g S)"
   unfolding setsum_impl_def
-  apply (refine_vcg FOREACH_rule[where I="\<lambda>it a. a = setsum g (S - it)"])
+  apply (refine_vcg FOREACH_rule[where I="\<lambda>it a. a = sum g (S - it)"])
   apply (auto simp: it_step_insert_iff algebra_simps)
   done
 

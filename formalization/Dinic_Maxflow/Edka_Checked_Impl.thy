@@ -50,7 +50,7 @@ definition "edmonds_karp el s t \<equiv> do {
       return (Some (c,am,N,f))
   }
 }"
-(*export_code edmonds_karp checking SML*)
+export_code edmonds_karp checking SML
 
 lemma network_is_impl: "Network c s t \<Longrightarrow> Network_Impl c s t" by intro_locales
 
@@ -125,7 +125,7 @@ begin
   definition "get_cap e \<equiv> c e"
   definition (in -) get_am :: "(node \<Rightarrow> node list) \<Rightarrow> node \<Rightarrow> node list" 
     where "get_am am v \<equiv> am v"
-
+      
   definition "compute_flow_val am cf \<equiv> do {
       let succs = get_am am s;
       setsum_impl 
