@@ -270,36 +270,71 @@ lemma push_invar:
   done    
     
 definition "relabel u \<equiv> do {
-  assert (excess u > 0 \<and> (\<forall>v. (u,v)\<in>cf.E \<longrightarrow> l u \<noteq> l v + 1));
+  (* Precondition: Active, non-sink node without any admissible edges. *)
+  assert (u\<noteq>t \<and> excess u > 0 \<and> (\<forall>v. (u,v)\<in>cf.E \<longrightarrow> l u \<noteq> l v + 1));
   let lu = Min { l v | v. (u,v)\<in>cf.E } + 1;
   let l = l( u := lu );
   return (f,l)
 }"
 
+lemma sum_f_nonneg[simp]: "sum f X \<ge> 0" using capacity_const
+  by (auto simp: sum_nonneg) 
+  
+lemma active_has_cf_outgoing: "excess u > 0 \<Longrightarrow> cf.outgoing u \<noteq> {}"  
+  unfolding excess_def
+proof -
+  assume "0 < sum f (incoming u) - sum f (outgoing u)"
+  hence "0 < sum f (incoming u)"
+    by (metis diff_gt_0_iff_gt linorder_neqE_linordered_idom linorder_not_le sum_f_nonneg)
+  then obtain v where "(v,u)\<in>E" "f (v,u) > 0"
+    by (metis (no_types, lifting) f_non_negative le_neq_trans not_less sum.neutral sum_incoming_pointwise zero_flow_simp)
+  hence "cf (u,v) > 0" unfolding residualGraph_def by auto
+  thus ?thesis unfolding cf.outgoing_def cf.E_def by fastforce   
+qed      
+  
+  
 lemma relabel_invar:
+  assumes NOT_SINK: "u\<noteq>t"
   assumes ACTIVE: "excess u > 0"
   assumes NO_ADM: "\<And>v. (u,v)\<in>cf.E \<Longrightarrow> l u \<noteq> l v + 1"
   shows "relabel u \<le> SPEC (\<lambda>(f',l'). f'=f \<and> Labeling c s t f l')"  
 proof -
   from ACTIVE have [simp]: "s\<noteq>u" using excess_s_non_pos by auto
+      
+  have [simp, intro!]: "finite {l v |v. (u, v) \<in> cf.E}"    
+  proof -
+    have "{l v |v. (u, v) \<in> cf.E} = l`snd`cf.outgoing u"
+      by (auto simp: cf.outgoing_def)
+    moreover have "finite (l`snd`cf.outgoing u)" by auto
+    ultimately show ?thesis by auto
+  qed    
+  from active_has_cf_outgoing[OF ACTIVE] have [simp]: "\<exists>v. (u, v) \<in> cf.E" 
+    by (auto simp: cf.outgoing_def)
   
-  show ?thesis
+  from NO_ADM valid have "l u < l v + 1" if "(u,v)\<in>cf.E" for v
+    by (simp add: nat_less_le that)
+  hence "l u \<le> Min { l v | v. (u,v)\<in>cf.E }" 
+    by (auto simp: less_Suc_eq_le)
+  with valid have "\<forall>u'. (u',u)\<in>cf.E \<longrightarrow> l u' \<le> Min { l v | v. (u,v)\<in>cf.E } + 1"    
+    by (smt ab_semigroup_add_class.add.commute add_le_cancel_left le_trans)
+  moreover have "\<forall>v. (u,v)\<in>cf.E \<longrightarrow> Min { l v | v. (u,v)\<in>cf.E } + 1 \<le> l v + 1"
+    using Min_le by auto
+  ultimately show ?thesis
     unfolding relabel_def
     apply refine_vcg  
-    using NO_ADM  
+    using NO_ADM NOT_SINK 
     apply (vc_solve simp: ACTIVE)
     apply (unfold_locales)
-    apply auto []
-    subgoal  sorry  
-    subgoal  sorry  
-    subgoal 
-      using Suc_eq_plus1 valid by presburger  
+    subgoal for u' v' using valid by auto
+    subgoal by auto    
+    subgoal by auto
+    done
+qed      
     
-    
-  
-oops  
-show: Push preserves labeling!  
-  
+oops
+next: if neither relabel nor push applies, we have computed a maximum flow.
+* We have a flow (excess v = 0) for all nodes but sink
+* We cannot have augmenting paths: thm no_augmenting_path  
   
 oops  
 preflow push works on labeling and flow.
