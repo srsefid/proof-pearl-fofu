@@ -275,6 +275,30 @@ lemma push_invar:
   qed      
   done    
 
+(* Saturating and non-saturating pushes *)    
+definition "sat_push_precond \<equiv> \<lambda>(u,v). excess u > 0 \<and> excess u \<ge> cf (u,v) \<and> (u,v)\<in>cf.E \<and> l u = l v + 1"
+definition "unsat_push_precond \<equiv> \<lambda>(u,v). excess u > 0 \<and> excess u < cf (u,v) \<and> (u,v)\<in>cf.E \<and> l u = l v + 1"
+
+lemma push_precond_eq_sat_or_unsat: "push_precond (u,v) \<longleftrightarrow> sat_push_precond (u,v) \<or> unsat_push_precond (u,v)"  
+  unfolding push_precond_def sat_push_precond_def unsat_push_precond_def
+  by auto  
+  
+lemma sat_unsat_push_disj: 
+  "sat_push_precond (u,v) \<Longrightarrow> \<not>unsat_push_precond (u,v)"
+  "unsat_push_precond (u,v) \<Longrightarrow> \<not>sat_push_precond (u,v)"
+  unfolding sat_push_precond_def unsat_push_precond_def
+  by auto  
+  
+lemma sat_push_alt: "sat_push_precond (u,v) \<Longrightarrow> push (u,v) = return (augment_edge (u,v) (cf (u,v)),l)"
+  unfolding push_def push_precond_eq_sat_or_unsat sat_push_precond_def 
+  by (auto simp: min_absorb2)
+    
+lemma unsat_push_alt: "unsat_push_precond (u,v) \<Longrightarrow> push (u,v) = return (augment_edge (u,v) (excess u),l)"    
+  unfolding push_def push_precond_eq_sat_or_unsat unsat_push_precond_def 
+  by (auto simp: min_absorb1)
+    
+    
+(* Relabel *)    
 definition "relabel_precond u \<equiv> u\<noteq>t \<and> excess u > 0 \<and> (\<forall>v. (u,v)\<in>cf.E \<longrightarrow> l u \<noteq> l v + 1)"    
   -- \<open>Active, non-sink node without any admissible edges.\<close>
     
@@ -303,7 +327,7 @@ qed
   
 lemma relabel_invar:
   assumes PRE: "relabel_precond u"
-  shows "relabel u \<le> SPEC (\<lambda>(f',l'). f'=f \<and> Labeling c s t f l')"  
+  shows "relabel u \<le> SPEC (\<lambda>(f',l'). f'=f \<and> l' u > l u \<and> Labeling c s t f l')"  
 proof -
   from PRE have  
         NOT_SINK: "u\<noteq>t"
@@ -325,7 +349,7 @@ proof -
   
   from NO_ADM valid have "l u < l v + 1" if "(u,v)\<in>cf.E" for v
     by (simp add: nat_less_le that)
-  hence "l u \<le> Min { l v | v. (u,v)\<in>cf.E }" 
+  hence LU_INCR: "l u \<le> Min { l v | v. (u,v)\<in>cf.E }" 
     by (auto simp: less_Suc_eq_le)
   with valid have "\<forall>u'. (u',u)\<in>cf.E \<longrightarrow> l u' \<le> Min { l v | v. (u,v)\<in>cf.E } + 1"    
     by (smt ab_semigroup_add_class.add.commute add_le_cancel_left le_trans)
@@ -335,6 +359,7 @@ proof -
     unfolding relabel_def
     apply refine_vcg  
     apply (vc_solve simp: PRE)
+    subgoal using LU_INCR by (simp add: less_Suc_eq_le)
     apply (unfold_locales)
     subgoal for u' v' using valid by auto
     subgoal by auto    
@@ -357,7 +382,98 @@ proof -
   from noAugPath_iff_maxFlow no_augmenting_path show "isMaxFlow f" by auto
 qed      
       
+(* Cormen 26.19 *) 
+lemma excess_imp_source_path: 
+  assumes "excess u > 0"
+  obtains p where "cf.isSimplePath u p s"
+  sorry  
+
+end    
+   
+locale Height_Bounded_Labeling = Labeling +
+  assumes height_bound: "\<forall>u\<in>V. l u \<le> 2*card V - 1"
+begin    
   
+end  
+  
+lemma (in Network) pp_init_height_bound: "Height_Bounded_Labeling c s t pp_init_f pp_init_l"
+proof -
+  interpret Labeling c s t pp_init_f pp_init_l by (rule pp_init_invar)
+  show ?thesis by unfold_locales (auto simp: pp_init_l_def)  
+qed    
+    
+(* TODO: Move *)  
+lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<lambda>s. inres m s \<and> nofail m \<and> \<Phi> s)"
+  -- "Strengthen SPEC by adding trivial upper bound for result"
+  by (auto simp: pw_le_iff refine_pw_simps)
+  
+  
+context Height_Bounded_Labeling
+begin
+
+(* Cormen 26.20 *)  
+lemma relabel_pres_height_bound:
+  assumes "relabel_precond u"
+  shows "relabel u \<le> SPEC (\<lambda>(f',l'). f'=f \<and> l u < l' u \<and> Height_Bounded_Labeling c s t f l')"  
+  apply (refine_vcg strengthen_SPEC'[OF relabel_invar[OF assms], THEN order_trans])  
+  apply vc_solve
+proof -    
+  fix l'
+  assume "Labeling c s t f l'"
+  then interpret l': Labeling c s t f l' .
+
+  assume "inres (relabel u) (f, l')" "nofail (relabel u)"   
+  then obtain x where L'_EQ: "l' = l( u := x )"
+    unfolding relabel_def by (auto simp: refine_pw_simps)
+      
+  from assms have "excess u > 0" unfolding relabel_precond_def by auto
+  with l'.excess_imp_source_path obtain p where "cf.isSimplePath u p s" .
+  have "l' u \<le> 2*card V - 1" sorry (* Extending valid-inequalities over path, which is length-bounded *)
+  thus "Height_Bounded_Labeling c s t f l'" 
+    apply unfold_locales
+    using height_bound 
+    by (auto simp: L'_EQ)
+qed
+  
+(* Cormen 26.21 ... this limits the number of relabel operations. *)  
+  
+(* Cormen 26.22 ... also limits number of saturating pushes: Sat-push removes edge (u,v),
+  and it can only be re-inserted by a push in the other direction, for which height of
+  other node must increase, and, in turn, height of this node must increase before the
+  next saturated push over this edge.
+*)  
+  
+definition (in Labeling) "unsat_potential \<equiv> sum l {v. excess v > 0}"
+  -- \<open>Sum of heights of all active nodes\<close>
+  
+lemma 
+  assumes "unsat_push_precond (u,v)"
+  shows "push (u,v) \<le> SPEC (\<lambda>(f',l'). l'=l \<and> unsat_potential < Labeling.unsat_potential c f' l)"  
+  apply (rule strengthen_SPEC'[OF push_invar, THEN order_trans])
+  unfolding unsat_push_alt[OF assms]
+  subgoal using assms by (simp add: push_precond_eq_sat_or_unsat)
+proof clarsimp    
+  let ?f'="(augment_edge (u, v) (excess u))"
+  assume "Labeling c s t ?f' l"
+  then interpret l': Labeling c s t ?f' l .
+  
+  from assms have "(u,v) \<in> cf.E"    
+    unfolding unsat_push_precond_def by auto
+  hence UVE: "(u,v)\<in>E\<union>E\<inverse>" using cfE_ss_invE ..
+      
+  have "l'.excess u = 0"
+    unfolding augment_edge_def  
+    using UVE no_parallel_edge 
+    apply auto  
+      xxx, ctd here
+      
+    apply (clarsimp split!: if_split)  
+      
+    apply (auto dest: no_parallel_edge UVE)
+      
+      
+  
+    
 oops
   
 Show 
