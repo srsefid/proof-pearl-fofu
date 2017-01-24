@@ -462,10 +462,47 @@ proof clarsimp
   hence UVE: "(u,v)\<in>E\<union>E\<inverse>" using cfE_ss_invE ..
       
   have "l'.excess u = 0"
+    unfolding l'.excess_def
+  proof -
+    show "sum (augment_edge (u, v) (excess u)) (incoming u) 
+          - sum (augment_edge (u, v) (excess u)) (outgoing u) = 0"
+    proof (cases "(u,v)\<in>E")  
+      case True hence UV_ONI:"(u,v)\<in>outgoing u - incoming u"
+        by (auto simp: incoming_def outgoing_def no_self_loop)
+      have 1: "sum (augment_edge (u, v) (excess u)) (incoming u) = sum f (incoming u)"    
+        apply (rule sum.cong[OF refl])
+        using True UV_ONI
+        apply (subst augment_edge_other)
+        by auto  
+          
+      have "sum (augment_edge (u, v) (excess u)) (outgoing u) 
+        = sum f (outgoing u) + (\<Sum>x\<in>outgoing u. if x = (u, v) then excess u else 0)"     
+        by (auto simp: augment_edge_def True sum.distrib[symmetric] intro: sum.cong)
+      also have "\<dots> = sum f (outgoing u) + excess u" using UV_ONI by (auto simp: sum.delta)
+      finally show ?thesis using 1 unfolding excess_def by simp 
+    next  
+      xxx, ctd here: Symmetric case ...
+          
+          
+         
+         apply (auto cong: sum.cong)
+        thm sum.cong  
+        thm augment_edge_other
+          
+          
+      thus ?thesis using True
+        unfolding augment_edge_def
+        apply auto  
+      
+      
+    apply (simp add: augment_edge_def)
+      
+oops      
     unfolding augment_edge_def  
     using UVE no_parallel_edge 
     apply auto  
-      xxx, ctd here
+    subgoal
+      unfolding excess_def l'.excess_def
       
     apply (clarsimp split!: if_split)  
       
