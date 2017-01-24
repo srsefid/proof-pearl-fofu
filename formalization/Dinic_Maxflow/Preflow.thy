@@ -1,5 +1,5 @@
 theory Preflow
-imports Augmenting_Path
+imports Ford_Fulkerson
   Refine_Add_Fofu
   Refine_Monadic_Syntax_Sugar
 begin
@@ -27,7 +27,7 @@ begin
     The proof works by contradiction, using the validity constraint 
     to show that any augmenting path would be too long for a simple path.
   \<close>
-  lemma no_augmenting_path[simp, intro!]: "\<not>isAugmentingPath p"
+  lemma no_augmenting_path: "\<not>isAugmentingPath p"
   proof
     assume "isAugmentingPath p"  
     hence SP: "cf.isSimplePath s p t" unfolding isAugmentingPath_def .
@@ -229,9 +229,11 @@ end
   
 context Labeling begin  
 
+definition "push_precond \<equiv> \<lambda>(u,v). excess u > 0 \<and> (u,v)\<in>cf.E \<and> l u = l v + 1"
+  -- \<open>Admissible edge from active node\<close>
   
 definition "push \<equiv> \<lambda>(u,v). do {
-  assert (excess u > 0 \<and> (u,v)\<in>cf.E \<and> l u = l v + 1); (* Precondition: Active node, admissible edge *)
+  assert (push_precond (u,v)); 
   let \<Delta> = min (excess u) (cf (u,v));
   return (augment_edge (u,v) \<Delta>, l)
 }"
@@ -246,9 +248,7 @@ lemma cfE_augment_ss:
   done
   
 lemma push_invar:
-  assumes ACTIVE: "excess u > 0"
-  assumes EDGE: "(u,v)\<in>cf.E"  
-  assumes ADM: "l u = l v + 1"
+  assumes "push_precond (u,v)"
   shows "push (u,v) \<le> SPEC (\<lambda>(f',l'). l'=l \<and> Labeling c s t f' l)"
   unfolding push_def  
   apply refine_vcg
@@ -256,6 +256,12 @@ lemma push_invar:
   subgoal 
   proof -
     let ?f' = "(augment_edge (u, v) (min (excess u) (cf (u, v))))"
+      
+    from assms have   
+      ACTIVE: "excess u > 0"
+      and EDGE: "(u,v)\<in>cf.E"  
+      and ADM: "l u = l v + 1"
+      unfolding push_precond_def by auto
       
     interpret cf': Preflow c s t ?f'
      apply (rule augment_edge_preflow_preserve)
@@ -268,10 +274,12 @@ lemma push_invar:
       by auto  
   qed      
   done    
+
+definition "relabel_precond u \<equiv> u\<noteq>t \<and> excess u > 0 \<and> (\<forall>v. (u,v)\<in>cf.E \<longrightarrow> l u \<noteq> l v + 1)"    
+  -- \<open>Active, non-sink node without any admissible edges.\<close>
     
 definition "relabel u \<equiv> do {
-  (* Precondition: Active, non-sink node without any admissible edges. *)
-  assert (u\<noteq>t \<and> excess u > 0 \<and> (\<forall>v. (u,v)\<in>cf.E \<longrightarrow> l u \<noteq> l v + 1));
+  assert (relabel_precond u);
   let lu = Min { l v | v. (u,v)\<in>cf.E } + 1;
   let l = l( u := lu );
   return (f,l)
@@ -294,11 +302,15 @@ qed
   
   
 lemma relabel_invar:
-  assumes NOT_SINK: "u\<noteq>t"
-  assumes ACTIVE: "excess u > 0"
-  assumes NO_ADM: "\<And>v. (u,v)\<in>cf.E \<Longrightarrow> l u \<noteq> l v + 1"
+  assumes PRE: "relabel_precond u"
   shows "relabel u \<le> SPEC (\<lambda>(f',l'). f'=f \<and> Labeling c s t f l')"  
 proof -
+  from PRE have  
+        NOT_SINK: "u\<noteq>t"
+    and ACTIVE: "excess u > 0"
+    and NO_ADM: "\<And>v. (u,v)\<in>cf.E \<Longrightarrow> l u \<noteq> l v + 1"
+  unfolding relabel_precond_def by auto
+  
   from ACTIVE have [simp]: "s\<noteq>u" using excess_s_non_pos by auto
       
   have [simp, intro!]: "finite {l v |v. (u, v) \<in> cf.E}"    
@@ -322,28 +334,33 @@ proof -
   ultimately show ?thesis
     unfolding relabel_def
     apply refine_vcg  
-    using NO_ADM NOT_SINK 
-    apply (vc_solve simp: ACTIVE)
+    apply (vc_solve simp: PRE)
     apply (unfold_locales)
     subgoal for u' v' using valid by auto
     subgoal by auto    
-    subgoal by auto
+    subgoal using NOT_SINK by auto
     done
 qed      
-    
+
+lemma push_relabel_term_imp_maxflow:
+  assumes no_push: "\<forall>(u,v)\<in>cf.E. \<not>push_precond (u,v)"
+  assumes no_relabel: "\<forall>u. \<not>relabel_precond u"
+  shows "isMaxFlow f"  
+proof -
+  from assms have "\<forall>u\<in>V-{t}. excess u \<le> 0"
+    unfolding push_precond_def relabel_precond_def
+    by force 
+  with excess_non_negative have "\<forall>u\<in>V-{s,t}. excess u = 0" by force
+  then interpret NFlow 
+    apply unfold_locales 
+    using no_deficient_nodes unfolding excess_def by auto
+  from noAugPath_iff_maxFlow no_augmenting_path show "isMaxFlow f" by auto
+qed      
+      
+  
 oops
-next: if neither relabel nor push applies, we have computed a maximum flow.
-* We have a flow (excess v = 0) for all nodes but sink
-* We cannot have augmenting paths: thm no_augmenting_path  
   
-oops  
-preflow push works on labeling and flow.
-  
-Define initial flow  
-Define push and relabel operations  
 Show 
-  * invariant preservation, 
-  * termination implies maxflow  
   * termination
   
   
