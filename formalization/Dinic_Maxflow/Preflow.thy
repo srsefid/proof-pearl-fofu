@@ -386,7 +386,128 @@ qed
 lemma excess_imp_source_path: 
   assumes "excess u > 0"
   obtains p where "cf.isSimplePath u p s"
-  sorry  
+proof -
+  obtain U where U_def: "U = {v|p v. cf.isSimplePath u p v}" by blast
+  have fct1: "U \<subseteq> V"
+  proof 
+    fix v
+    assume "v \<in> U"
+    then have "(u, v) \<in> cf.E\<^sup>*" using U_def cf.isSimplePath_def cf.isPath_rtc by auto
+    then obtain u' where "u = v \<or> ((u, u') \<in> cf.E\<^sup>* \<and> (u', v) \<in> cf.E)" by (meson rtranclE)
+    thus "v \<in> V"
+    proof
+      assume "u = v"
+      thus ?thesis using excess_nodes_only[OF assms] by blast
+    next
+      assume "(u, u') \<in> cf.E\<^sup>* \<and> (u', v) \<in> cf.E"
+      then have "v \<in> cf.V" unfolding cf.V_def by blast
+      thus ?thesis by simp
+    qed
+  qed 
+    
+  have "s \<in> U"
+  proof(rule ccontr)
+    assume "s \<notin> U"
+    obtain U' where U'_def: "U' = V - U" by blast
+    
+    have "(\<Sum>u\<in>U. excess u) = (\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (v, u))) - (\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (u, v)))"
+    proof -
+      have "(\<Sum>u\<in>U. excess u) = (\<Sum>u\<in>U. (\<Sum>v\<in>incoming u. f v)) - (\<Sum>u\<in>U.(\<Sum>v\<in>outgoing u. f v))"
+        (is "_ = ?R1 - ?R2") unfolding excess_def by (simp add: sum_subtractf)
+      also have "?R1 = (\<Sum>u\<in>U. (\<Sum>v\<in>V. f (v, u)))" 
+        using sum_incoming_alt_flow fct1 by (meson subsetCE sum.cong)
+      also have "\<dots> = (\<Sum>u\<in>U. (\<Sum>v\<in>U. f (v, u))) + (\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (v, u)))"
+      proof -
+        have "(\<Sum>v\<in>V. f (v, u)) = (\<Sum>v\<in>U. f (v, u)) + (\<Sum>v\<in>U'. f (v, u))" for u
+          using U'_def fct1 finite_V by (metis ab_semigroup_add_class.add.commute sum_subset_split)
+        thus ?thesis by (simp add: sum.distrib)
+      qed
+      also have "?R2 = (\<Sum>u\<in>U. (\<Sum>v\<in>V. f (u, v)))" 
+        using sum_outgoing_alt_flow fct1 by (meson subsetCE sum.cong)
+      also have "\<dots> = (\<Sum>u\<in>U. (\<Sum>v\<in>U. f (u, v))) + (\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (u, v)))"
+      proof -
+        have "(\<Sum>v\<in>V. f (u, v)) = (\<Sum>v\<in>U. f (u, v)) + (\<Sum>v\<in>U'. f (u, v))" for u
+          using U'_def fct1 finite_V by (metis ab_semigroup_add_class.add.commute sum_subset_split)
+        thus ?thesis by (simp add: sum.distrib)
+      qed
+      also have "(\<Sum>u\<in>U. (\<Sum>v\<in>U. f (u, v))) = (\<Sum>u\<in>U. (\<Sum>v\<in>U. f (v, u)))"
+      proof -
+        {
+          fix A :: "nat set"
+          assume "finite A"
+          then have "(\<Sum>u\<in>A. (\<Sum>v\<in>A. f (u, v))) = (\<Sum>u\<in>A. (\<Sum>v\<in>A. f (v, u)))"
+          proof (induction "card A" arbitrary: A)
+            case 0
+            then show ?case by auto
+          next
+            case (Suc x)
+            then obtain A' a where o1:"A = insert a A'" and o2:"x = card A'" and o3:"finite A'"
+              by (metis card_insert_disjoint card_le_Suc_iff le_refl nat.inject)
+            then have lm:"(\<Sum>e\<in>A. g e) = (\<Sum>e\<in>A'. g e) + g a" for g :: "nat \<Rightarrow> 'a"  using Suc.hyps(2)
+              by (metis card_insert_if n_not_Suc_n semiring_normalization_rules(24) sum.insert)
+
+            have "(\<Sum>u\<in>A. (\<Sum>v\<in>A. f (u, v))) = (\<Sum>u\<in>A'. (\<Sum>v\<in>A. f (u, v))) + (\<Sum>v\<in>A. f (a, v))"
+              (is "_ = ?R1 + ?R2") using lm by auto     
+            also have "?R1 = (\<Sum>u\<in>A'. (\<Sum>v\<in>A'. f (u, v))) + (\<Sum>u\<in>A'. f(u, a))" 
+              (is "_ = ?R1_1 + ?R1_2") using lm sum.distrib by force
+            also note add.assoc
+            also have "?R1_2 + ?R2 = (\<Sum>u\<in>A'. f(a, u)) + (\<Sum>v\<in>A. f(v, a))"
+              (is "_ = ?R1_2' + ?R2'") using lm by auto    
+            also have "?R1_1 = (\<Sum>u\<in>A'. (\<Sum>v\<in>A'. f (v, u)))" 
+              (is "_ = ?R1_1'") using Suc.hyps(1)[of A'] o2 o3 by auto
+            also note add.assoc[symmetric]
+            also have "?R1_1' + ?R1_2' = (\<Sum>u\<in>A'. (\<Sum>v\<in>A. f (v, u)))"
+              by (metis (no_types, lifting) lm sum.cong sum.distrib)
+            finally show ?case using lm[symmetric] by auto
+          qed
+        } note this[of U]
+        thus ?thesis using fct1 finite_V finite_subset by auto
+      qed
+      finally show ?thesis by arith
+    qed
+    moreover have "(\<Sum>u\<in>U. excess u) > 0"
+    proof -
+      have "u \<in> U" using U_def by simp
+      moreover have "u \<in> U \<Longrightarrow> excess u \<ge> 0" for u using fct1 excess_non_negative `s \<notin> U` by auto
+      ultimately show ?thesis using assms fct1 finite_V
+        by (metis Diff_cancel Diff_eq_empty_iff Diff_infinite_finite finite_Diff sum_pos2)
+    qed
+    ultimately have fct2: "(\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (v, u))) - (\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (u, v))) > 0" by simp
+    
+    have fct3: "(\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (v, u))) > 0"
+    proof -
+      have "(\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (v, u))) \<ge> 0" using capacity_const by (simp add: sum_nonneg)
+      moreover have "(\<Sum>u\<in>U. (\<Sum>v\<in>U'. f (u, v))) \<ge> 0" using capacity_const by (simp add: sum_nonneg)
+      ultimately show ?thesis using fct2 by simp
+    qed
+      
+    have "\<exists>u' v'. (u' \<in> U \<and> v' \<in> U' \<and> f (v', u') > 0)"
+    proof(rule ccontr)
+      assume "\<not> (\<exists>u' v'. u' \<in> U \<and> v' \<in> U' \<and> f (v', u') > 0)"
+      then have "(\<forall>u' v'. (u' \<in> U \<and> v' \<in> U' \<longrightarrow> f (v', u') = 0))"
+        using capacity_const by (metis le_neq_trans)
+      thus False using fct3 by simp
+    qed
+    then obtain u' v' where "u' \<in> U" and "v' \<in> U'" and "f (v', u') > 0" by blast
+    
+    obtain p1 where "cf.isSimplePath u p1 u'" using U_def `u' \<in> U` by auto
+    moreover have "(u', v') \<in> cf.E"
+    proof -
+      have "(v', u') \<in> E" using capacity_const `f (v', u') > 0` by (metis not_less zero_flow_simp)
+      then have "cf (u', v') > 0" unfolding cf_def 
+        using no_parallel_edge `f (v', u') > 0` by (auto split: if_split)
+      thus ?thesis unfolding cf.E_def by simp
+    qed
+    ultimately have "cf.isPath u (p1 @ [(u', v')]) v'" 
+      using Graph.isPath_append_edge Graph.isSimplePath_def by blast
+    then obtain p2 where "cf.isSimplePath u p2 v'" using cf.isSPath_pathLE by blast
+    then have "v' \<in> U" using U_def by auto
+    thus False using `v' \<in> U'` and U'_def by simp
+  qed
+  then obtain p' where "cf.isSimplePath u p' s" using U_def by auto
+  thus ?thesis ..
+qed
+
 
 end    
    
