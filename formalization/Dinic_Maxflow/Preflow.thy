@@ -19,7 +19,7 @@ locale Labeling = NPreflow +
   assumes lab_sink[simp]: "l t = 0"
 begin
   text \<open>Generalizing validity to paths\<close>
-  lemma gen_valid: "l(u) \<le> l(t) + length p" if "cf.isPath u p t"
+  lemma gen_valid: "l(u) \<le> l(x) + length p" if "cf.isPath u p x"
     using that by (induction p arbitrary: u; fastforce dest: valid)
   
   text \<open>
@@ -548,8 +548,14 @@ proof -
     unfolding relabel_def by (auto simp: refine_pw_simps)
       
   from assms have "excess u > 0" unfolding relabel_precond_def by auto
-  with l'.excess_imp_source_path obtain p where "cf.isSimplePath u p s" .
-  have "l' u \<le> 2*card V - 1" sorry (* Extending valid-inequalities over path, which is length-bounded *)
+  with l'.excess_imp_source_path obtain p where p_obt: "cf.isSimplePath u p s" .
+  
+  have "u \<in> V" using excess_nodes_only `excess u > 0` .
+  then have "length p < card V" using cf.simplePath_length_less_V[of u p] p_obt by auto
+  moreover have "l' u \<le> l' s + length p" using p_obt l'.gen_valid[of u p s] p_obt 
+    unfolding cf.isSimplePath_def by auto
+  moreover have "l' s = card V" using l'.Labeling_axioms Labeling_def Labeling_axioms_def by auto
+  ultimately have "l' u \<le> 2*card V - 1" by auto
   thus "Height_Bounded_Labeling c s t f l'" 
     apply unfold_locales
     using height_bound 
