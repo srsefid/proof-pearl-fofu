@@ -26,7 +26,6 @@ definition excess :: "node \<Rightarrow> 'capacity" where
 
 lemma excess_non_negative: "\<forall>v\<in>V-{s,t}. excess v \<ge> 0"
   unfolding excess_def using no_deficient_nodes by auto
-
 end  
   
   
@@ -116,6 +115,18 @@ text \<open>For convenience, we define locales for a network with a fixed flow,
 
 locale NPreflow = Network c s t + Preflow c s t f 
   for c :: "'capacity::linordered_idom graph" and s t f
+begin
+lemma excess_nodes_only: "excess v > 0 \<Longrightarrow> v \<in> V"  
+  unfolding excess_def incoming_def outgoing_def V_def 
+  using sum.not_neutral_contains_not_neutral by fastforce
+  
+lemma excess_non_negative: "\<forall>v \<in> V - {s}. excess v \<ge> 0"
+proof -
+  have "excess t \<ge> 0" unfolding excess_def outgoing_def 
+    by (auto simp add: no_outgoing_t capacity_const sum_nonneg)
+  thus ?thesis using excess_non_negative by blast
+qed 
+end
     
 locale NFlow = NPreflow c s t f + Flow c s t f 
   for c :: "'capacity::linordered_idom graph" and s t f
