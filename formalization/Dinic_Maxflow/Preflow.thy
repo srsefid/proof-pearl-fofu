@@ -407,7 +407,115 @@ lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<la
   -- "Strengthen SPEC by adding trivial upper bound for result"
   by (auto simp: pw_le_iff refine_pw_simps)
   
+text \<open>Locale to relate original flow and flow where one edge was augmented.
+  We already must have proven that we preserve a valid Labeling.
+\<close>
+locale augment_edge_locale =
+  Labeling c s t f l + l': Labeling c s t "augment_edge (u, v) \<Delta>" l
+  for c s t f l u v \<Delta> +
+  assumes uv_cf_edge: "(u,v)\<in>cf.E"
+begin  
+  abbreviation "f' \<equiv> augment_edge (u, v) \<Delta>"
   
+  lemma uv_edge_cases:
+    obtains (par) "(u,v)\<in>E" "(v,u)\<notin>E" | (rev) "(v,u)\<in>E" "(u,v)\<notin>E"
+    using uv_cf_edge cfE_ss_invE no_parallel_edge by blast  
+  
+  lemma excess'_u[simp]: "l'.excess u = excess u - \<Delta>"
+    unfolding l'.excess_def
+  proof -
+    show "sum f' (incoming u) - sum f' (outgoing u) = excess u - \<Delta>"
+    proof (cases rule: uv_edge_cases)  
+      case [simp]: par 
+      hence UV_ONI:"(u,v)\<in>outgoing u - incoming u"
+        by (auto simp: incoming_def outgoing_def no_self_loop)
+      have 1: "sum f' (incoming u) = sum f (incoming u)"    
+        apply (rule sum.cong[OF refl])
+        using UV_ONI
+        apply (subst augment_edge_other)
+        by auto  
+          
+      have "sum f' (outgoing u) 
+        = sum f (outgoing u) + (\<Sum>x\<in>outgoing u. if x = (u, v) then \<Delta> else 0)"     
+        by (auto simp: augment_edge_def sum.distrib[symmetric] intro: sum.cong)
+      also have "\<dots> = sum f (outgoing u) + \<Delta>" using UV_ONI by (auto simp: sum.delta)
+      finally show ?thesis using 1 unfolding excess_def by simp 
+    next  
+      case [simp]: rev 
+      have UV_INO:"(v,u)\<in>incoming u - outgoing u"
+        by (auto simp: incoming_def outgoing_def no_self_loop)
+      have 1: "sum f' (outgoing u) = sum f (outgoing u)"    
+        apply (rule sum.cong[OF refl])
+        using UV_INO
+        apply (subst augment_edge_rev_other)  
+        by (auto)
+      have "sum f' (incoming u) 
+        = sum f (incoming u) + (\<Sum>x\<in>incoming u. if x = (v, u) then - \<Delta> else 0)"
+        by (auto simp: sum.distrib[symmetric] augment_edge_def intro: sum.cong)
+      also have "\<dots> = sum f (incoming u) - \<Delta>"  
+        using UV_INO by (auto simp: sum.delta)
+      finally show ?thesis using 1 unfolding excess_def by auto
+    qed      
+  qed
+    
+  lemma excess'_v[simp]: "l'.excess v = excess v + \<Delta>"
+    unfolding l'.excess_def
+  proof -    
+    show "sum f' (incoming v) - sum f' (outgoing v) = excess v + \<Delta>"
+    proof (cases rule: uv_edge_cases)
+      case [simp]: par 
+      have UV_INO: "(u,v)\<in>incoming v - outgoing v"
+        unfolding incoming_def outgoing_def by (auto simp: no_self_loop)
+      have 1: "sum f' (outgoing v) = sum f (outgoing v)"    
+        using UV_INO
+        by (auto simp: augment_edge_def intro: sum.cong)
+          
+      have "sum f' (incoming v) 
+        = sum f (incoming v) + (\<Sum>x\<in>incoming v. if x=(u,v) then \<Delta> else 0)"    
+        using UV_INO
+        by (auto simp: augment_edge_def sum.distrib[symmetric] intro: sum.cong)
+      also have "\<dots> = sum f (incoming v) + \<Delta>" using UV_INO by (auto simp: sum.delta)
+      finally show ?thesis using 1 by (auto simp: excess_def)
+    next
+      case [simp]: rev
+      have UV_INO:"(v,u)\<in>outgoing v - incoming v"
+        by (auto simp: incoming_def outgoing_def no_self_loop)
+
+      have 1: "sum f' (incoming v) = sum f (incoming v)"
+        using UV_INO
+        by (auto simp: augment_edge_def intro: sum.cong)
+          
+      have "sum f' (outgoing v) 
+        = sum f (outgoing v) + (\<Sum>x\<in>outgoing v. if x=(v,u) then - \<Delta> else 0)"    
+        using UV_INO
+        by (auto simp: augment_edge_def sum.distrib[symmetric] intro: sum.cong)
+      also have "\<dots> = sum f (outgoing v) - \<Delta>" using UV_INO by (auto simp: sum.delta)
+      finally show ?thesis using 1 by (auto simp: excess_def)
+    qed
+  qed  
+    
+  lemma excess'_other[simp]:
+    assumes "x \<noteq> u" "x \<noteq> v"  
+    shows "l'.excess x = excess x"
+  proof -
+    have NE: "(u,v)\<notin>incoming x" "(u,v)\<notin>outgoing x"
+          "(v,u)\<notin>incoming x" "(v,u)\<notin>outgoing x"
+      using assms unfolding incoming_def outgoing_def by auto
+    have 
+      "sum f' (outgoing x) = sum f (outgoing x)"
+      "sum f' (incoming x) = sum f (incoming x)"
+      by (auto simp: augment_edge_def NE split!: if_split intro: sum.cong)  
+    thus ?thesis    
+      unfolding l'.excess_def excess_def by auto
+  qed      
+
+  lemma excess'_if: 
+    "l'.excess x = (if x=u then excess u - \<Delta> else if x=v then excess v + \<Delta> else excess x)"  
+    by simp
+    
+    
+end    
+    
 context Height_Bounded_Labeling
 begin
 
@@ -442,13 +550,16 @@ qed
   other node must increase, and, in turn, height of this node must increase before the
   next saturated push over this edge.
 *)  
+
+xxx: Show that sat-push reduces #admissible-edges!  
   
-definition (in Labeling) "unsat_potential \<equiv> sum l {v. excess v > 0}"
+definition (in Labeling) "unsat_potential \<equiv> sum l {v\<in>V. excess v > 0}"
   -- \<open>Sum of heights of all active nodes\<close>
   
-lemma 
+  
+lemma unsat_push_decr_unsat_potential:
   assumes "unsat_push_precond (u,v)"
-  shows "push (u,v) \<le> SPEC (\<lambda>(f',l'). l'=l \<and> unsat_potential < Labeling.unsat_potential c f' l)"  
+  shows "push (u,v) \<le> SPEC (\<lambda>(f',l'). l'=l \<and> Labeling.unsat_potential c f' l < unsat_potential)"  
   apply (rule strengthen_SPEC'[OF push_invar, THEN order_trans])
   unfolding unsat_push_alt[OF assms]
   subgoal using assms by (simp add: push_precond_eq_sat_or_unsat)
@@ -457,57 +568,55 @@ proof clarsimp
   assume "Labeling c s t ?f' l"
   then interpret l': Labeling c s t ?f' l .
   
-  from assms have "(u,v) \<in> cf.E"    
+  from assms have UVCFE: "(u,v) \<in> cf.E" and [simp]: "l u = l v + 1" and XU: "0 < excess u"
     unfolding unsat_push_precond_def by auto
-  hence UVE: "(u,v)\<in>E\<union>E\<inverse>" using cfE_ss_invE ..
       
-  have "l'.excess u = 0"
-    unfolding l'.excess_def
-  proof -
-    show "sum (augment_edge (u, v) (excess u)) (incoming u) 
-          - sum (augment_edge (u, v) (excess u)) (outgoing u) = 0"
-    proof (cases "(u,v)\<in>E")  
-      case True hence UV_ONI:"(u,v)\<in>outgoing u - incoming u"
-        by (auto simp: incoming_def outgoing_def no_self_loop)
-      have 1: "sum (augment_edge (u, v) (excess u)) (incoming u) = sum f (incoming u)"    
-        apply (rule sum.cong[OF refl])
-        using True UV_ONI
-        apply (subst augment_edge_other)
-        by auto  
-          
-      have "sum (augment_edge (u, v) (excess u)) (outgoing u) 
-        = sum f (outgoing u) + (\<Sum>x\<in>outgoing u. if x = (u, v) then excess u else 0)"     
-        by (auto simp: augment_edge_def True sum.distrib[symmetric] intro: sum.cong)
-      also have "\<dots> = sum f (outgoing u) + excess u" using UV_ONI by (auto simp: sum.delta)
-      finally show ?thesis using 1 unfolding excess_def by simp 
-    next  
-      xxx, ctd here: Symmetric case ...
-          
-          
-         
-         apply (auto cong: sum.cong)
-        thm sum.cong  
-        thm augment_edge_other
-          
-          
-      thus ?thesis using True
-        unfolding augment_edge_def
-        apply auto  
+  interpret augment_edge_locale c s t f l u v "excess u" 
+    apply unfold_locales using UVCFE by auto
+
+  have [simp]: "u\<in>V" "v\<in>V" "u\<noteq>v" "v\<noteq>u"
+    using UVCFE E_ss_VxV cfE_ss_invE no_parallel_edge by auto
+  from XU have [simp]: "u\<noteq>s" using excess_s_non_pos by auto    
+
+  define S where "S={x\<in>V. x\<noteq>u \<and> x\<noteq>v \<and> 0<excess x}"
+  have S_alt: "S = {x\<in>V. x\<noteq>u \<and> x\<noteq>v \<and> 0<l'.excess x}"  
+    unfolding S_def by auto
+
+  have NES: "s\<notin>S" "u\<notin>S" "v\<notin>S" 
+    and [simp, intro!]: "finite S" 
+    unfolding S_def using excess_s_non_pos
+    by auto 
+
+  have 1: "{v\<in>V. 0 < l'.excess v} = (if s=v then S else insert v S)"
+    unfolding S_alt
+    using XU excess_non_negative' l'.excess_s_non_pos
+    by (auto intro!: add_nonneg_pos)
       
-      
-    apply (simp add: augment_edge_def)
-      
-oops      
-    unfolding augment_edge_def  
-    using UVE no_parallel_edge 
-    apply auto  
-    subgoal
-      unfolding excess_def l'.excess_def
-      
-    apply (clarsimp split!: if_split)  
-      
-    apply (auto dest: no_parallel_edge UVE)
-      
+  have 2: "{v\<in>V. 0 < excess v} 
+    = insert u S \<union> (if excess v>0 then {v} else {})"    
+    unfolding S_def using XU by auto  
+
+  show "l'.unsat_potential < unsat_potential"
+    unfolding unsat_potential_def l'.unsat_potential_def 1 2
+    by (cases "s=v"; cases "0<excess v"; auto simp: NES)
+qed      
+    
+(*
+  Overall termination argument:
+    Have bound on #sat_push and #relabel. 
+    unsat_push decreases unsat_potential.
+
+  If we can phrase bounds on #sat_push and #relabel as decreasing measures, 
+  which are preserved by unsat_push, we could use lexorder. 
+
+
+  relabel: Increases height of a node, max-height is 2|V|-1
+  sat_push: Preserves height, removes admissible edge
+  unsat_push: Preserves height, preserves admissible edges, decreases potential
+  
+
+
+*)      
       
   
     

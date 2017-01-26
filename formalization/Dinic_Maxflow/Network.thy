@@ -264,6 +264,11 @@ text \<open>For an edge, there is no reverse edge, and thus, no flow in the reve
 lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
   using no_parallel_edge by auto
 
+lemma excess_non_negative': "\<forall>v\<in>V-{s}. excess v \<ge> 0"
+  unfolding excess_def using no_deficient_nodes 
+  by (metis Diff_iff capacity_const insert_iff outgoing_t_empty sum.empty sum_nonneg zero_comp_diff_simps(1))  
+    
+    
 end -- \<open>Network with preflow\<close>
 
 context NFlow begin  
