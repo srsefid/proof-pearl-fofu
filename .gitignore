@@ -7,8 +7,8 @@
 *.blg
 *.cut
 *.fdb_latexmk
+paper/*.eps
 paper/root.pdf
-paper/jar-paper/*.pdf
-paper/jar-paper/*.eps
-paper/jar-paper/auto
+paper/old-papers/itp/root.pdf
+paper/auto
 
