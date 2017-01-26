@@ -8,4 +8,5 @@
 *.cut
 *.fdb_latexmk
 paper/root.pdf
-
+paper/jar-paper/*.pdf
+paper/jar-paper/*.eps
