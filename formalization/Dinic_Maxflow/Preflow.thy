@@ -509,6 +509,8 @@ proof -
 qed
 
 
+  
+  
 end    
    
 locale Height_Bounded_Labeling = Labeling +
@@ -678,8 +680,6 @@ qed
   next saturated push over this edge.
 *)  
 
-xxx: Show that sat-push reduces #admissible-edges!  
-  
 definition (in Labeling) "unsat_potential \<equiv> sum l {v\<in>V. excess v > 0}"
   -- \<open>Sum of heights of all active nodes\<close>
   
@@ -745,6 +745,8 @@ qed
 
 *)      
       
+xxx: Show that sat-push reduces #admissible-edges!  
+  
   
     
 oops
