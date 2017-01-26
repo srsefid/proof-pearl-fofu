@@ -21,11 +21,6 @@ locale Preflow = Graph c for c :: "'capacity::linordered_idom graph" +
   assumes no_deficient_nodes: "\<forall>v \<in> V-{s,t}.
     (\<Sum>e\<in>outgoing v. f e) \<le> (\<Sum>e\<in>incoming v. f e)" 
 begin
-definition excess :: "node \<Rightarrow> 'capacity" where
-  "excess v \<equiv> (\<Sum>e\<in>incoming v. f e) - (\<Sum>e\<in>outgoing v. f e)"
-
-lemma excess_non_negative: "\<forall>v\<in>V-{s,t}. excess v \<ge> 0"
-  unfolding excess_def using no_deficient_nodes by auto
 end  
   
   
@@ -113,19 +108,17 @@ subsubsection \<open>Networks with Flows and Cuts\<close>
 text \<open>For convenience, we define locales for a network with a fixed flow,
   and a network with a fixed cut\<close>
 
+context Network begin  
+
+definition excess :: "'capacity flow \<Rightarrow> node \<Rightarrow> 'capacity" where
+  "excess f v \<equiv> (\<Sum>e\<in>incoming v. f e) - (\<Sum>e\<in>outgoing v. f e)"
+  
+end
+  
 locale NPreflow = Network c s t + Preflow c s t f 
   for c :: "'capacity::linordered_idom graph" and s t f
 begin
-lemma excess_nodes_only: "excess v > 0 \<Longrightarrow> v \<in> V"  
-  unfolding excess_def incoming_def outgoing_def V_def 
-  using sum.not_neutral_contains_not_neutral by fastforce
   
-lemma excess_non_negative: "\<forall>v \<in> V - {s}. excess v \<ge> 0"
-proof -
-  have "excess t \<ge> 0" unfolding excess_def outgoing_def 
-    by (auto simp add: no_outgoing_t capacity_const sum_nonneg)
-  thus ?thesis using excess_non_negative by blast
-qed 
 end
     
 locale NFlow = NPreflow c s t f + Flow c s t f 
@@ -167,6 +160,12 @@ lemma zero_flow_simp[simp]:
   "(u,v)\<notin>E \<Longrightarrow> f(u,v) = 0"
   by (metis capacity_const eq_iff zero_cap_simp)
 
+lemma f_non_negative: "0 \<le> f e"
+  using capacity_const by (cases e) auto
+    
+lemma sum_f_non_negative: "sum f X \<ge> 0" using capacity_const
+  by (auto simp: sum_nonneg f_non_negative) 
+    
 end -- \<open>Preflow\<close>   
     
 context Flow
@@ -275,10 +274,24 @@ text \<open>For an edge, there is no reverse edge, and thus, no flow in the reve
 lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
   using no_parallel_edge by auto
 
-lemma excess_non_negative': "\<forall>v\<in>V-{s}. excess v \<ge> 0"
-  unfolding excess_def using no_deficient_nodes 
-  by (metis Diff_iff capacity_const insert_iff outgoing_t_empty sum.empty sum_nonneg zero_comp_diff_simps(1))  
     
+lemma excess_non_negative: "\<forall>v\<in>V-{s,t}. excess f v \<ge> 0"
+  unfolding excess_def using no_deficient_nodes by auto
+  
+lemma excess_nodes_only: "excess f v > 0 \<Longrightarrow> v \<in> V"  
+  unfolding excess_def incoming_def outgoing_def V_def 
+  using sum.not_neutral_contains_not_neutral by fastforce
+  
+lemma excess_non_negative': "\<forall>v \<in> V - {s}. excess f v \<ge> 0"
+proof -
+  have "excess f t \<ge> 0" unfolding excess_def outgoing_def 
+    by (auto simp add: no_outgoing_t capacity_const sum_nonneg)
+  thus ?thesis using excess_non_negative by blast
+qed 
+
+lemma excess_s_non_pos: "excess f s \<le> 0"
+  unfolding excess_def
+  by (simp add: capacity_const sum_nonneg)  
     
 end -- \<open>Network with preflow\<close>
 
