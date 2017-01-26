@@ -1,5 +1,23 @@
-% Markierungen: TODO
-\documentclass{llncs}
+%%%%%%%%%%%%%%%%%%%%%%% file template.tex %%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is a general template file for the LaTeX package SVJour3
+% for Springer journals.          Springer Heidelberg 2010/09/16
+%
+% Copy it to a new file with a new name and use it as the basis
+% for your article. Delete % signs as needed.
+%
+% This template includes a few options for different layouts and
+% content for various journals. Please consult a previous issue of
+% your journal as needed.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\RequirePackage{fix-cm}
+%
+%\documentclass{svjour3}                     % onecolumn (standard format)
+\documentclass[smallcondensed]{svjour3}     % onecolumn (ditto)
+%\documentclass[smallextended]{svjour3}       % onecolumn (second format)
+%\documentclass[twocolumn]{svjour3}          % twocolumn
+%
 
 \usepackage{etex}
 \pagestyle{plain} % turn on page numbers
@@ -77,39 +95,56 @@
 
 % \overfullrule=8pt
 
+%
 \begin{document}
 
-\title{Formalizing the Edmonds-Karp Algorithm}
-\titlerunning{Formalizing the Edmonds-Karp Algorithm}
-% \subtitle{}
+\title{Formalizing Network Flow Algorithms}
+\subtitle{using refinement in Isabelle/HOL}
 
-\author{Peter Lammich, S.~Reza Sefidgar}
-\authorrunning{Peter Lammich, S.~Reza Sefidgar}
+%\titlerunning{Short form of title}        % if too long for running head
 
-\institute{Technische Universit\"at M\"unchen, \email{\{lammich,sefidgar\}@in.tum.de}}
+\author{Peter Lammich \and S. Reza Sefidgar}
+
+%\authorrunning{Short form of author list} % if too long for running head
+
+\institute{
+  Peter Lammich \at
+  Institut f\"ur Informatik,
+  Technische Universit\"at M\"unchen \\
+  \email{lammich@in.tum.de} %
+\and
+  S. Reza Sefidgar \at
+  Institute of Information Security,
+  Department of Computer Science,
+  ETH Zurich, Switzerland \\
+  \email{reza.sefidgar@inf.ethz.ch} %
+}
+
+\date{Received: date / Accepted: date}
+% The correct dates will be entered by the editor
+
 
 \maketitle
+
 \begin{abstract}
 We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network.
 Our formal proof closely follows a standard textbook proof, and is accessible even without being
 an expert in Isabelle/HOL --- the interactive theorem prover used for the formalization.
 We then use stepwise refinement to obtain the Edmonds-Karp algorithm, and formally prove a bound on its complexity.
 Further refinement yields a verified implementation, whose execution time compares well to an unverified reference implementation in Java.
-
-%We present a formalization of the Ford-Fulkerson method for computing the maximum flow in a network. 
-%The formal proofs are done in Isabelle/HOL. They closely follow a standard textbook proof and are relatively easy 
-%to read, even without being an Isabelle expert.
-
-%We then use stepwise refinement to obtain the Edmonds-Karp algorithm and prove its upper complexity bound of $O(|V||E|^2)$.
-%Further refinement yields a verified implementation, which is almost as fast as an unverified  
-%reference implementation in Java. 
-
-% 
-% and a verified imperative implementation of it. Our implementation is roughly 2.5 times slower than an unverified  
-% reference implementation in Java. 
-% 
-% Finally, we prove the upper complexity bound of $O(|V||E|^2)$ for the Edmonds-Karp algorithm.
+\keywords{First keyword \and Second keyword \and More}
+% \PACS{PACS code1 \and PACS code2 \and more}
+% \subclass{MSC code1 \and MSC code2 \and more}
 \end{abstract}
+
+
+
+
+
+
+
+
+
 
 \section{Introduction}
 Computing the maximum flow of a network is an important problem in graph theory.
@@ -858,64 +893,104 @@ results in a program that refines the original program. This gives us a natural 
   \subsection{Future Work}
   Future work includes the optimization of our implementation, and the formalization of more advanced maximum flow algorithms, like Dinic's algorithm~\cite{Di06} or push-relabel algorithms~\cite{GoTa88}.
   We expect both formalizing the abstract theory and developing efficient implementations to be challenging but realistic tasks.
-  
-%   
-%   can be performed in two directions. First of all, the abstract theory can be extended to also support more advanced 
-%   maximum flow algorithms like push-relabel algorithms~\cite{GoTa88}
-%   
-%   
-%   
-%   What do the Coq-Guys have: CFML? Others?
-%   
-%   
-%   XXX, ctd here
-%   
-%   Unfortunately, it
-% 
-%   ... and related work
-%     Mizar-Formalization: What did they do.
-%     
-%     History of the formalization: 
-%       Impl: From first impl that was hardly able to compute a 100 nodes graph, to current efficient one.
-%     
-%     Future Work: Dinic. (Actually, our abstract scheme [almost] covers Dinic's algorithm!)
-%     
-% 
-% 
-%   
-% Contributions
-% 
-%   Formal proof of mincut maxflow
-%   fofo-scheme
-%   inst to edmonds karp
-%   complexity analysis of edmonds karp
-%   refinement down to executable code. Roughly 2.5 times slower than Java. (What about OCaml)
-%     + NetCheck
-%     
-% What shines (its a Pearl)
-%   Min-Cut Max-Flow: Textboook like formal reasoning: Comprehensible proof, BUT machine checked
-%     (Present one (carefully worked) example in paperI. We could use lemma \isai{augment_flow_presv_cap})
-%     
-%   Refinement based approach: Fofu-Scheme, instantiation to EdsKa. 
-%     +1: Abstract Algo looks almost like pseudo-code you would expect in textbook.
-%     +2: Fofu-Scheme proved correct for all aug-path finders. EdsKa is instantiation of it.
-%     +3: Modularity: Fofu-scheme and pathfinder developed+proved independently of each other.
-%   
-%   Down to executable code, plugging in efficient data structures.
-%   
-% Some minor contributions:
-%   Reusable BFS algorithm
-%   Imperative matrix data structure (really minor).
-%   
-%   
-%   
-%     
-% 
-% 
-% 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%\section{Introduction}
+%\label{intro}
+%Your text comes here. Separate text sections with
+%\section{Section title}
+%\label{sec:1}
+%\subsection{Subsection title}
+%\label{sec:2}
+%as required. Don't forget to give each section
+%and subsection a unique label (see Sect.~\ref{sec:1}).
+%\paragraph{Paragraph headings} Use paragraph headings as needed.
+%\begin{equation}
+%a^2+b^2=c^2
+%\end{equation}
+%
+%% For one-column wide figures use
+%\begin{figure}
+%% Use the relevant command to insert your figure file.
+%% For example, with the graphicx package use
+%  %\includegraphics{example.eps}
+%% figure caption is below the figure
+%\caption{Please write your figure caption here}
+%\label{fig:1}       % Give a unique label
+%\end{figure}
+%%
+%% For two-column wide figures use
+%\begin{figure*}
+%% Use the relevant command to insert your figure file.
+%% For example, with the graphicx package use
+% % \includegraphics[width=0.75\textwidth]{example.eps}
+%% figure caption is below the figure
+%\caption{Please write your figure caption here}
+%\label{fig:2}       % Give a unique label
+%\end{figure*}
+%%
+%% For tables use
+%\begin{table}
+%% table caption is above the table
+%\caption{Please write your table caption here}
+%\label{tab:1}       % Give a unique label
+%% For LaTeX tables use
+%\begin{tabular}{lll}
+%\hline\noalign{\smallskip}
+%first & second & third  \\
+%\noalign{\smallskip}\hline\noalign{\smallskip}
+%number & number & number \\
+%number & number & number \\
+%\noalign{\smallskip}\hline
+%\end{tabular}
+%\end{table}
+%
+%
+%%\begin{acknowledgements}
+%%If you'd like to thank anyone, place your comments here
+%%and remove the percent signs.
+%%\end{acknowledgements}
+%
+%% BibTeX users please use one of
+%%\bibliographystyle{spbasic}      % basic style, author-year citations
+%%\bibliographystyle{spmpsci}      % mathematics and physical sciences
+%%\bibliographystyle{spphys}       % APS-like style for physics
+%%\bibliography{}   % name your BibTeX data base
+%
+%% Non-BibTeX users please use
+%%\begin{thebibliography}{}
+%%
+%% and use \bibitem to create references. Consult the Instructions
+%% for authors for reference list style.
+%%
+%%\bibitem{RefJ}
+%% Format for Journal Reference
+%%Author, Article title, Journal, Volume, page numbers (year)
+%% Format for books
+%%\bibitem{RefB}
+%%Author, Book title, page numbers. Publisher, place (year)
+%% etc
+%% \end{thebibliography}
 
 \bibliographystyle{abbrv}
 \bibliography{root}
