@@ -314,6 +314,13 @@ proof -
   thus ?thesis unfolding cf.outgoing_def cf.E_def by fastforce   
 qed      
   
+lemma finite_min_cf_outgoing[simp, intro!]: "finite {l v |v. (u, v) \<in> cf.E}"    
+proof -
+  have "{l v |v. (u, v) \<in> cf.E} = l`snd`cf.outgoing u"
+    by (auto simp: cf.outgoing_def)
+  moreover have "finite (l`snd`cf.outgoing u)" by auto
+  ultimately show ?thesis by auto
+qed  
   
 lemma 
   assumes PRE: "relabel_precond f l u"
@@ -328,13 +335,6 @@ proof -
   
   from ACTIVE have [simp]: "s\<noteq>u" using excess_s_non_pos by auto
       
-  have [simp, intro!]: "finite {l v |v. (u, v) \<in> cf.E}"    
-  proof -
-    have "{l v |v. (u, v) \<in> cf.E} = l`snd`cf.outgoing u"
-      by (auto simp: cf.outgoing_def)
-    moreover have "finite (l`snd`cf.outgoing u)" by auto
-    ultimately show ?thesis by auto
-  qed    
   from active_has_cf_outgoing[OF ACTIVE] have [simp]: "\<exists>v. (u, v) \<in> cf.E" 
     by (auto simp: cf.outgoing_def)
   
@@ -635,6 +635,14 @@ end
 context Height_Bounded_Labeling
 begin
 
+lemma push_pres_height_bound:
+  assumes "push_precond f l e"
+  shows "Height_Bounded_Labeling c s t (push_effect f e) l"  
+proof -    
+  from push_pres_Labeling[OF assms] interpret l': Labeling c s t "push_effect f e" l .
+  show ?thesis using height_bound by unfold_locales    
+qed      
+  
 (* Cormen 26.20 *)  
 lemma relabel_pres_height_bound:
   assumes "relabel_precond f l u"
@@ -819,6 +827,63 @@ proof (cases e; simp add: unsat_push_alt)
     by auto  
 qed  
 
+(* Cormen 26.27 *)  
+lemma push_adm_edges:
+  assumes "push_precond f l e"  
+  defines "f' \<equiv> push_effect f e"
+  shows "adm_edges f l - {e} \<subseteq> adm_edges f' l" and "adm_edges f' l \<subseteq> adm_edges f l"
+  unfolding f'_def 
+  using assms sat_push_decr_adm_edges[of e] unsat_push_pres_adm_edges[of e]
+  unfolding push_precond_eq_sat_or_unsat  
+  by auto  
+
+(* TODO: Move *)    
+lemma (in Network) cf_no_self_loop: "(u,u)\<notin>cfE_of f"
+proof
+  assume a1: "(u, u) \<in> cfE_of f"
+  have "(u, u) \<notin> E"
+    using no_parallel_edge by blast
+  then show False
+    using a1 unfolding Graph.E_def residualGraph_def by fastforce
+qed 
+  
+(* Cormen 26.28 *)
+lemma relabel_adm_edges:
+  assumes PRE: "relabel_precond f l u"
+  defines "l' \<equiv> relabel_effect f l u"
+  shows "adm_edges f l' \<inter> cf.outgoing u \<noteq> {}" (is ?G1)
+    and "adm_edges f l' \<inter> cf.incoming u = {}" (is ?G2)
+proof -
+  from PRE have  
+        NOT_SINK: "u\<noteq>t"
+    and ACTIVE: "excess f u > 0"
+    and NO_ADM: "\<And>v. (u,v)\<in>cf.E \<Longrightarrow> l u \<noteq> l v + 1"
+  unfolding relabel_precond_def by auto
+  
+  have NE: "{l v |v. (u, v) \<in> cf.E} \<noteq> {}"  
+    using active_has_cf_outgoing[OF ACTIVE] cf.outgoing_def by blast
+  obtain v where VUE: "(u,v)\<in>cf.E" and [simp]: "l v = Min {l v |v. (u, v) \<in> cf.E}"
+    using Min_in[OF finite_min_cf_outgoing[of u] NE] by auto
+  hence "(u,v) \<in> adm_edges f l' \<inter> cf.outgoing u"  
+    unfolding l'_def relabel_effect_def adm_edges_def cf.outgoing_def
+    by (auto simp: cf_no_self_loop)
+  thus ?G1 by blast
+
+  {
+    fix uh
+    assume "(uh,u) \<in> adm_edges f l'"  
+    hence 1: "l' uh = l' u + 1" and UHUE: "(uh,u) \<in> cf.E" unfolding adm_edges_def by auto
+    hence "uh \<noteq> u" using cf_no_self_loop by auto
+    hence [simp]: "l' uh = l uh" unfolding l'_def relabel_effect_def by simp
+    from 1 relabel_increase_u[OF PRE, folded l'_def] have "l uh > l u + 1" by simp
+    with valid[OF UHUE] have False by auto    
+  }    
+  thus ?G2 by (auto simp: cf.incoming_def)
+qed    
+  
+  
+  
+  
 end -- \<open>Labeling\<close>  
   
 (* Termination proof without complexity *)  
@@ -900,5 +965,58 @@ qed
   
 end  
     
+(* TODO: Move *)  
+context Graph begin  
+  definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
+end  
+  
+  
+  
+  
+  
+(* Relabel to front *)  
+context Network begin  
+  
+  definition "discharge f l n u \<equiv> do {  
+    while\<^sub>T (\<lambda>(f,l,n). excess f u > 0) (\<lambda>(f,l,n). do {
+      v \<leftarrow> selectp v. v\<in>n u;
+      case v of
+        None \<Rightarrow> do {
+          assert (relabel_precond f l u);
+          return (f,relabel_effect f l u,n(u := adjacent_nodes u))
+        }
+      | Some v \<Rightarrow> do {
+          if (cf_of f (u,v) > 0 \<and> l u = l v + 1) then do {
+            assert (push_precond f l (u,v));
+            return (push_effect f (u,v),l,n)
+          } else return (f,l,n( u := n u - {v} ))
+        }
+    }) (f,l,n)
+  }"
+  
+end  
+  
+locale discharge_invar = Height_Bounded_Labeling +
+  fixes n :: "node \<Rightarrow> node set"  
+  assumes neighbour_invar: "\<forall>u\<in>V. \<forall>v \<in> adjacent_nodes u - n u. excess f u > 0 \<longrightarrow> (u,v) \<notin> adm_edges f l"
+begin
+  
+  lemma push_pres_dis_invar:
+    assumes "push_precond f l e"
+    shows "discharge_invar c s t (push_effect f e) l n"  
+  proof -
+    let ?f' = "push_effect f e"
+    from push_pres_height_bound[OF assms] interpret l': Height_Bounded_Labeling c s t ?f' l .
+
+    show "discharge_invar c s t ?f' l n"
+      apply unfold_locales
+      apply auto  
+      xxx, ctd here. Just added relevant lemmas 27,28
+      
     
+    
+  
+  
+end
+  
 end
