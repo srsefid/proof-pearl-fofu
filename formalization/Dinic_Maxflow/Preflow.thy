@@ -231,6 +231,9 @@ definition "push_precond f l \<equiv> \<lambda>(u,v). excess f u > 0 \<and> (u,v
   
 definition "push_effect f \<equiv> \<lambda>(u,v). augment_edge f (u,v) (min (excess f u) (cf_of f (u,v)))"
 
+lemma push_precondI[intro?]: "\<lbrakk>excess f u > 0; (u,v)\<in>cfE_of f; l u = l v + 1\<rbrakk> \<Longrightarrow> push_precond f l (u,v)"
+  unfolding push_precond_def by auto
+  
 (* Saturating and non-saturating pushes *)    
 definition "sat_push_precond f l \<equiv> \<lambda>(u,v). excess f u > 0 \<and> excess f u \<ge> cf_of f (u,v) \<and> (u,v)\<in>cfE_of f \<and> l u = l v + 1"
 definition "unsat_push_precond f l \<equiv> \<lambda>(u,v). excess f u > 0 \<and> excess f u < cf_of f (u,v) \<and> (u,v)\<in>cfE_of f \<and> l u = l v + 1"
@@ -523,20 +526,44 @@ lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<la
   -- "Strengthen SPEC by adding trivial upper bound for result"
   by (auto simp: pw_le_iff refine_pw_simps)
   
-text \<open>Locale to relate original flow and flow where one edge was augmented.
-  We already must have proven that we preserve a valid Labeling.
-\<close>
-locale augment_edge_locale =
-  Labeling c s t f l + l': Labeling c s t "augment_edge f (u, v) \<Delta>" l
-  for c s t f l u v \<Delta> +
-  assumes uv_cf_edge: "(u,v)\<in>cf.E"
-begin  
-  abbreviation "f' \<equiv> augment_edge f (u, v) \<Delta>"
+text \<open>Locale to relate original flow and flow after a push.\<close>
+locale push_effect_locale = Labeling +
+  fixes u v
+  assumes PRE: "push_precond f l (u,v)"
+begin    
+  abbreviation "f' \<equiv> push_effect f (u,v)"
+  sublocale l': Labeling c s t f' l  
+    using push_pres_Labeling[OF PRE] .
   
+  lemma uv_cf_edge[simp, intro!]: "(u,v)\<in>cf.E" using PRE unfolding push_precond_def by auto
+  lemma excess_u_pos: "excess f u > 0" using PRE unfolding push_precond_def by auto   
+  lemma l_u_eq[simp]: "l u = l v + 1" using PRE unfolding push_precond_def by auto   
+
   lemma uv_edge_cases:
     obtains (par) "(u,v)\<in>E" "(v,u)\<notin>E" | (rev) "(v,u)\<in>E" "(u,v)\<notin>E"
     using uv_cf_edge cfE_ss_invE no_parallel_edge by blast  
-  
+
+  lemma uv_nodes[simp, intro!]: "u\<in>V" "v\<in>V" 
+    using E_ss_VxV cfE_ss_invE no_parallel_edge by auto
+      
+  lemma uv_not_eq[simp]: "u\<noteq>v" "v\<noteq>u"
+    using E_ss_VxV cfE_ss_invE[THEN set_mp, OF uv_cf_edge] no_parallel_edge by auto
+
+  definition "\<Delta> = min (excess f u) (cf_of f (u,v))"    
+    
+  lemma \<Delta>_positive: "\<Delta> > 0"  
+    unfolding \<Delta>_def 
+    using excess_u_pos uv_cf_edge[unfolded cf.E_def] resE_positive 
+    by auto
+      
+  lemma f'_alt: "f' = augment_edge f (u,v) \<Delta>" unfolding push_effect_def \<Delta>_def by auto
+      
+  lemma unsat_push_\<Delta>: "unsat_push_precond f l (u,v) \<Longrightarrow> \<Delta> = excess f u"      
+    unfolding \<Delta>_def unsat_push_precond_def by auto
+  lemma sat_push_\<Delta>: "sat_push_precond f l (u,v) \<Longrightarrow> \<Delta> = cf (u,v)"      
+    unfolding \<Delta>_def sat_push_precond_def by auto
+      
+      
   lemma excess'_u[simp]: "excess f' u = excess f u - \<Delta>"
     unfolding excess_def[where f=f']
   proof -
@@ -547,13 +574,13 @@ begin
         by (auto simp: incoming_def outgoing_def no_self_loop)
       have 1: "sum f' (incoming u) = sum f (incoming u)"    
         apply (rule sum.cong[OF refl])
-        using UV_ONI
+        using UV_ONI unfolding f'_alt
         apply (subst augment_edge_other)
         by auto  
           
       have "sum f' (outgoing u) 
         = sum f (outgoing u) + (\<Sum>x\<in>outgoing u. if x = (u, v) then \<Delta> else 0)"     
-        by (auto simp: augment_edge_def sum.distrib[symmetric] intro: sum.cong)
+        by (auto simp: f'_alt augment_edge_def sum.distrib[symmetric] intro: sum.cong)
       also have "\<dots> = sum f (outgoing u) + \<Delta>" using UV_ONI by (auto simp: sum.delta)
       finally show ?thesis using 1 unfolding excess_def by simp 
     next  
@@ -562,12 +589,12 @@ begin
         by (auto simp: incoming_def outgoing_def no_self_loop)
       have 1: "sum f' (outgoing u) = sum f (outgoing u)"    
         apply (rule sum.cong[OF refl])
-        using UV_INO
+        using UV_INO unfolding f'_alt
         apply (subst augment_edge_rev_other)  
         by (auto)
       have "sum f' (incoming u) 
         = sum f (incoming u) + (\<Sum>x\<in>incoming u. if x = (v, u) then - \<Delta> else 0)"
-        by (auto simp: sum.distrib[symmetric] augment_edge_def intro: sum.cong)
+        by (auto simp: f'_alt sum.distrib[symmetric] augment_edge_def intro: sum.cong)
       also have "\<dots> = sum f (incoming u) - \<Delta>"  
         using UV_INO by (auto simp: sum.delta)
       finally show ?thesis using 1 unfolding excess_def by auto
@@ -583,12 +610,12 @@ begin
       have UV_INO: "(u,v)\<in>incoming v - outgoing v"
         unfolding incoming_def outgoing_def by (auto simp: no_self_loop)
       have 1: "sum f' (outgoing v) = sum f (outgoing v)"    
-        using UV_INO
+        using UV_INO unfolding f'_alt
         by (auto simp: augment_edge_def intro: sum.cong)
           
       have "sum f' (incoming v) 
         = sum f (incoming v) + (\<Sum>x\<in>incoming v. if x=(u,v) then \<Delta> else 0)"    
-        using UV_INO
+        using UV_INO unfolding f'_alt
         by (auto simp: augment_edge_def sum.distrib[symmetric] intro: sum.cong)
       also have "\<dots> = sum f (incoming v) + \<Delta>" using UV_INO by (auto simp: sum.delta)
       finally show ?thesis using 1 by (auto simp: excess_def)
@@ -598,12 +625,12 @@ begin
         by (auto simp: incoming_def outgoing_def no_self_loop)
 
       have 1: "sum f' (incoming v) = sum f (incoming v)"
-        using UV_INO
+        using UV_INO unfolding f'_alt
         by (auto simp: augment_edge_def intro: sum.cong)
           
       have "sum f' (outgoing v) 
         = sum f (outgoing v) + (\<Sum>x\<in>outgoing v. if x=(v,u) then - \<Delta> else 0)"    
-        using UV_INO
+        using UV_INO unfolding f'_alt
         by (auto simp: augment_edge_def sum.distrib[symmetric] intro: sum.cong)
       also have "\<dots> = sum f (outgoing v) - \<Delta>" using UV_INO by (auto simp: sum.delta)
       finally show ?thesis using 1 by (auto simp: excess_def)
@@ -620,7 +647,7 @@ begin
     have 
       "sum f' (outgoing x) = sum f (outgoing x)"
       "sum f' (incoming x) = sum f (incoming x)"
-      by (auto simp: augment_edge_def NE split!: if_split intro: sum.cong)  
+      by (auto simp: augment_edge_def f'_alt NE split!: if_split intro: sum.cong)  
     thus ?thesis    
       unfolding excess_def by auto
   qed      
@@ -629,9 +656,9 @@ begin
     "excess f' x = (if x=u then excess f u - \<Delta> else if x=v then excess f v + \<Delta> else excess f x)"  
     by simp
     
-    
-end    
-    
+end  
+ 
+
 context Height_Bounded_Labeling
 begin
 
@@ -684,46 +711,39 @@ lemma unsat_push_decr_unsat_potential:
   shows "unsat_potential (push_effect f e) l < unsat_potential f l"  
 proof (cases e)
   case [simp]: (Pair u v)
-  then show ?thesis
-    using assms 
-  proof (simp add: unsat_push_alt)
-    let ?f'="(augment_edge f (u, v) (excess f u))"
-    from push_pres_Labeling[of e] assms push_precond_eq_sat_or_unsat[of f l e] unsat_push_alt[of f l u v]
-    interpret l': Labeling c s t ?f' l by auto
     
-    from assms have UVCFE: "(u,v) \<in> cf.E" and [simp]: "l u = l v + 1" and XU: "0 < excess f u"
-      unfolding unsat_push_precond_def by auto
-        
-    interpret augment_edge_locale c s t f l u v "excess f u" 
-      apply unfold_locales using UVCFE by auto
-  
-    have [simp]: "u\<in>V" "v\<in>V" "u\<noteq>v" "v\<noteq>u"
-      using UVCFE E_ss_VxV cfE_ss_invE no_parallel_edge by auto
-    from XU have [simp]: "u\<noteq>s" using excess_s_non_pos by auto    
+  show ?thesis 
+  proof simp  
+    interpret push_effect_locale c s t f l u v 
+      apply unfold_locales using assms 
+      by (simp add: push_precond_eq_sat_or_unsat)
+      
+    note [simp] = unsat_push_\<Delta>[OF assms[simplified]]
   
     define S where "S={x\<in>V. x\<noteq>u \<and> x\<noteq>v \<and> 0<excess f x}"
-    have S_alt: "S = {x\<in>V. x\<noteq>u \<and> x\<noteq>v \<and> 0<excess ?f' x}"  
+    have S_alt: "S = {x\<in>V. x\<noteq>u \<and> x\<noteq>v \<and> 0<excess f' x}"  
       unfolding S_def by auto
   
     have NES: "s\<notin>S" "u\<notin>S" "v\<notin>S" 
       and [simp, intro!]: "finite S" 
       unfolding S_def using excess_s_non_pos
       by auto 
-  
-    have 1: "{v\<in>V. 0 < excess ?f' v} = (if s=v then S else insert v S)"
+      
+    have 1: "{v\<in>V. 0 < excess f' v} = (if s=v then S else insert v S)"
       unfolding S_alt
-      using XU excess_non_negative' l'.excess_s_non_pos
+      using excess_u_pos excess_non_negative' l'.excess_s_non_pos
       by (auto intro!: add_nonneg_pos)
         
     have 2: "{v\<in>V. 0 < excess f v} 
       = insert u S \<union> (if excess f v>0 then {v} else {})"    
-      unfolding S_def using XU by auto  
+      unfolding S_def using excess_u_pos by auto  
   
-    show "unsat_potential ?f' l < unsat_potential f l"
+    show "unsat_potential f' l < unsat_potential f l"
       unfolding unsat_potential_def 1 2
       by (cases "s=v"; cases "0<excess f v"; auto simp: NES)
   qed      
 qed
+      
 end -- \<open>Height bound labeling\<close>
   
 context Network begin  
@@ -853,6 +873,7 @@ lemma relabel_adm_edges:
   defines "l' \<equiv> relabel_effect f l u"
   shows "adm_edges f l' \<inter> cf.outgoing u \<noteq> {}" (is ?G1)
     and "adm_edges f l' \<inter> cf.incoming u = {}" (is ?G2)
+    and "adm_edges f l' - cf.adjacent u = adm_edges f l - cf.adjacent u" (is ?G3)
 proof -
   from PRE have  
         NOT_SINK: "u\<noteq>t"
@@ -879,6 +900,12 @@ proof -
     with valid[OF UHUE] have False by auto    
   }    
   thus ?G2 by (auto simp: cf.incoming_def)
+      
+  show ?G3    
+    unfolding adm_edges_def
+    by (auto simp: l'_def relabel_effect_def cf.adjacent_def cf.incoming_def cf.outgoing_def
+        split: if_splits)
+      
 qed    
   
   
@@ -949,7 +976,7 @@ inductive_set algo_rel where
   
 definition "term_f \<equiv> \<lambda>(f,l). (sum_heights_measure l, card_adm_measure f l, unsat_potential f l)"
   
-lemma "wf algo_rel"  
+lemma wf_algo_rel[simp, intro!]: "wf algo_rel"  
 proof -
   have "algo_rel \<subseteq> inv_image (less_than <*lex*> less_than <*lex*> less_than) term_f"
     unfolding term_f_def
@@ -961,17 +988,33 @@ proof -
     by (rule_tac wf_subset; auto)
 qed  
   
+lemma algo_rel_alt: "algo_rel = 
+    { ((push_effect f e,l),(f,l)) | f e l. Height_Bounded_Labeling c s t f l \<and> push_precond f l e }
+  \<union> { ((f, relabel_effect f l u), (f,l)) | f u l. Height_Bounded_Labeling c s t f l \<and> relabel_precond f l u }"  
+  by (auto elim!: algo_rel.cases intro: algo_rel.intros simp: push_precond_eq_sat_or_unsat)
   
-  
+lemma algo_rel_pushI: "\<lbrakk>Height_Bounded_Labeling c s t f l; push_precond f l e\<rbrakk> 
+    \<Longrightarrow> ((push_effect f e,l),(f,l))\<in>algo_rel"
+  unfolding algo_rel_alt by blast
+
+lemma algo_rel_altE: 
+  assumes "xx \<in> algo_rel"
+  obtains f e l where "Height_Bounded_Labeling c s t f l" "push_precond f l e" "xx = ((push_effect f e,l),(f,l))"
+        | f u l where "Height_Bounded_Labeling c s t f l" "relabel_precond f l u" "xx = ((f, relabel_effect f l u), (f,l))"
+  using assms unfolding algo_rel_alt by blast
+    
+    
 end  
     
 (* TODO: Move *)  
 context Graph begin  
-  definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
+definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
 end  
   
-  
-  
+context Finite_Graph begin
+lemma adjacent_nodes_finite[simp, intro!]: "finite (adjacent_nodes u)"
+  unfolding adjacent_nodes_def by (auto intro: finite_Image)
+end  
   
   
 (* Relabel to front *)  
@@ -986,10 +1029,13 @@ context Network begin
           return (f,relabel_effect f l u,n(u := adjacent_nodes u))
         }
       | Some v \<Rightarrow> do {
-          if (cf_of f (u,v) > 0 \<and> l u = l v + 1) then do {
+          if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
             assert (push_precond f l (u,v));
             return (push_effect f (u,v),l,n)
-          } else return (f,l,n( u := n u - {v} ))
+          } else do {
+            assert ( (u,v) \<notin> adm_edges f l );
+            return (f,l,n( u := n u - {v} ))
+          }
         }
     }) (f,l,n)
   }"
@@ -998,25 +1044,98 @@ end
   
 locale discharge_invar = Height_Bounded_Labeling +
   fixes n :: "node \<Rightarrow> node set"  
-  assumes neighbour_invar: "\<forall>u\<in>V. \<forall>v \<in> adjacent_nodes u - n u. excess f u > 0 \<longrightarrow> (u,v) \<notin> adm_edges f l"
+  assumes neighbour_invar: "\<lbrakk>v \<in> adjacent_nodes u - n u\<rbrakk> \<Longrightarrow> (u,v) \<notin> adm_edges f l"
+  assumes neighbours_finite[simp, intro!]: "finite (n u)"  
 begin
   
+  lemma hbl_this: "Height_Bounded_Labeling c s t f l" by unfold_locales
+  
   lemma push_pres_dis_invar:
-    assumes "push_precond f l e"
+    assumes PRE: "push_precond f l e"
     shows "discharge_invar c s t (push_effect f e) l n"  
-  proof -
-    let ?f' = "push_effect f e"
-    from push_pres_height_bound[OF assms] interpret l': Height_Bounded_Labeling c s t ?f' l .
-
-    show "discharge_invar c s t ?f' l n"
-      apply unfold_locales
-      apply auto  
-      xxx, ctd here. Just added relevant lemmas 27,28
+  proof (cases e)
+    case [simp]: (Pair u v)
+    show ?thesis proof simp
+      from PRE interpret push_effect_locale c s t f l u v
+        by unfold_locales simp
+      from push_pres_height_bound[OF PRE] interpret l': Height_Bounded_Labeling c s t f' l .
+    
+      show "discharge_invar c s t f' l n"
+        apply unfold_locales
+        using push_adm_edges[OF PRE] neighbour_invar
+        by auto  
+    qed
+  qed
       
+  lemma relabel_pres_dis_invar:  
+    assumes PRE: "relabel_precond f l u"
+    shows "discharge_invar c s t f (relabel_effect f l u) (n(u:=adjacent_nodes u))"
+  proof -
+    let ?l' = "relabel_effect f l u"
+    from relabel_pres_height_bound[OF PRE] 
+    interpret l': Height_Bounded_Labeling c s t f ?l' .
     
+    show ?thesis proof (unfold_locales; clarsimp split: if_splits)
+      fix a b
+      assume A: "a\<noteq>u" "b\<in>adjacent_nodes a" "b \<notin> n a" "(a,b)\<in>adm_edges f ?l'"
+      hence "(a,b)\<in>cf.E" unfolding adm_edges_def by auto
+      with A relabel_adm_edges(2,3)[OF PRE] neighbour_invar 
+      show False 
+        apply (auto) (* TODO: Clean up this mess *)
+        by (smt DiffD2 Diff_triv adm_edges_def cf.incoming_def mem_Collect_eq prod.simps(2) 
+            relabel_preserve_other)
+    qed
+  qed  
+  
+  lemma no_neighbours_relabel_precond: 
+    assumes "n u = {}" "u\<noteq>t" "0 < excess f u"
+    shows "relabel_precond f l u"  
+    using assms neighbour_invar cfE_ss_invE 
+    unfolding relabel_precond_def adm_edges_def
+    by (auto simp: adjacent_nodes_def)
     
-  
-  
+  lemma remove_neighbour_pres_invar: "(u,v)\<notin>adm_edges f l \<Longrightarrow> discharge_invar c s t f l (n (u := n u - {v})) "
+    apply unfold_locales
+    using neighbour_invar 
+    by (auto split: if_splits)
+      
+  lemma aux_excess_pos: "\<lbrakk>u\<noteq>s; u\<in>V; \<not> 0 < excess f u\<rbrakk> \<Longrightarrow> excess f u = 0"
+    using excess_non_negative' by force
+      
 end
+
+context Network begin  
+  
+  (*
+      A label increases
+  lex an admissible edge vanishes
+  lex excess u goes to zero
+  lex neighbour set decreases
+  *)
+  
+  lemma discharge_correct:
+    assumes DINV: "discharge_invar c s t f l n"
+    assumes NOT_ST: "u\<noteq>t" "u\<noteq>s" and UIV: "u\<in>V"
+    shows "discharge f l n u \<le> SPEC (\<lambda>(f',l',n'). discharge_invar c s t f' l' n' \<and> excess f' u = 0)"  
+    unfolding discharge_def  
+    apply (refine_vcg WHILET_rule[where 
+              I="\<lambda>(f',l',n'). discharge_invar c s t f' l' n'"
+          and R="inv_image (algo_rel <*lex*> finite_psubset) 
+                  (\<lambda>(f',l',n'). ((f',l'),n' u))"]
+        )
+    apply (vc_solve 
+        solve: wf_lex_prod DINV 
+        solve: discharge_invar.no_neighbours_relabel_precond 
+        solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
+        solve: push_precondI algo_rel.relabel algo_rel_pushI
+        solve: discharge_invar.remove_neighbour_pres_invar
+        solve: discharge_invar.aux_excess_pos
+        intro: discharge_invar.hbl_this 
+        simp: NOT_ST discharge_invar.neighbours_finite UIV)
+    subgoal unfolding adm_edges_def by auto  
+    subgoal by (auto)
+    done    
+  
+end  
   
 end
