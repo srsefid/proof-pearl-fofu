@@ -1210,7 +1210,7 @@ end
 context Network begin  
   
 definition "discharge f l n u \<equiv> do {  
-  while\<^sub>T (\<lambda>(f,l,n). excess f u > 0) (\<lambda>(f,l,n). do {
+  while\<^sub>T (\<lambda>(f,l,n). excess f u \<noteq> 0) (\<lambda>(f,l,n). do {
     v \<leftarrow> selectp v. v\<in>n u;
     case v of
       None \<Rightarrow> do {
@@ -1276,12 +1276,15 @@ proof -
   qed
 qed  
 
+lemma excess_nz_iff_gz: "\<lbrakk> u\<in>V; u\<noteq>s \<rbrakk> \<Longrightarrow> excess f u \<noteq> 0 \<longleftrightarrow> excess f u > 0"  
+  using excess_non_negative' by force
+  
 lemma no_neighbors_relabel_precond: 
-  assumes "n u = {}" "u\<noteq>t" "0 < excess f u"
+  assumes "n u = {}" "u\<noteq>t" "u\<noteq>s" "u\<in>V" "excess f u \<noteq> 0"
   shows "relabel_precond f l u"  
   using assms neighbors_adm cfE_ss_invE 
   unfolding relabel_precond_def adm_edges_def
-  by (auto simp: adjacent_nodes_def)
+  by (auto simp: adjacent_nodes_def excess_nz_iff_gz)
   
 lemma remove_neighbor_pres_nbr_invar: "(u,v)\<notin>adm_edges f l \<Longrightarrow> neighbor_invar c s t f l (n (u := n u - {v}))"
   apply unfold_locales
@@ -1293,6 +1296,7 @@ end
 locale discharge_invar = neighbor_invar c s t f l n + lo: neighbor_invar c s t fo lo no
   for c s t and u :: node and fo lo no f l n +
   assumes lu_incr: "lo u \<le> l u"
+  assumes u_node: "u\<in>V-{s,t}"  
   (*assumes excess_u_decr: "excess fo u \<ge> excess f u"*)
   assumes no_relabel_adm_edges: "lo u = l u \<Longrightarrow> adm_edges f l \<subseteq> adm_edges fo lo"
   assumes no_relabel_excess: "\<lbrakk>lo u = l u; u\<noteq>v; excess fo v \<noteq> excess f v\<rbrakk> \<Longrightarrow> (u,v)\<in>adm_edges fo lo"
@@ -1300,6 +1304,9 @@ locale discharge_invar = neighbor_invar c s t f l n + lo: neighbor_invar c s t f
   assumes relabel_u_no_incoming_adm: "lo u \<noteq> l u \<Longrightarrow> (v,u)\<notin>adm_edges f l"
   assumes algo_rel: "((f,l),(fo,lo)) \<in> algo_rel\<^sup>*"  
 begin
+
+lemma u_node_simp1[simp]: "u\<noteq>s" "u\<noteq>t" "s\<noteq>u" "t\<noteq>u" using u_node by auto
+lemma u_node_simp2[simp, intro!]: "u\<in>V" using u_node by auto   
   
 lemma dis_is_hbl: "Height_Bounded_Labeling c s t f l" by unfold_locales
 lemma dis_is_nbr: "neighbor_invar c s t f l n" by unfold_locales
@@ -1318,6 +1325,7 @@ proof -
   show "discharge_invar c s t u fo lo no f' l n"
     apply unfold_locales
     subgoal using lu_incr by auto
+    subgoal by auto    
     (*subgoal using excess_u_decr \<Delta>_positive by auto*)
     subgoal using no_relabel_adm_edges push_adm_edges(2)[OF PRE] by auto  
     subgoal for v' proof -
@@ -1375,9 +1383,14 @@ proof -
     done  
 qed                                                    
   
-lemma aux_excess_pos: "\<lbrakk>u\<noteq>s; u\<in>V; \<not> 0 < excess f u\<rbrakk> \<Longrightarrow> excess f u = 0"
+(*lemma aux_excess_pos: "\<lbrakk>u\<noteq>s; u\<in>V; \<not> 0 < excess f u\<rbrakk> \<Longrightarrow> excess f u = 0"
   using excess_non_negative' by force
-      
+*)
+
+lemma push_precondI_nz: "\<lbrakk>excess f u \<noteq> 0; (u,v)\<in>cfE_of f; l u = l v + 1\<rbrakk> \<Longrightarrow> push_precond f l (u,v)"
+  unfolding push_precond_def by (auto simp: excess_nz_iff_gz)
+  
+  
 lemma remove_neighbor_pres_dis_invar: 
   assumes PRE: "(u,v)\<notin>adm_edges f l"  
   defines "n' \<equiv> n (u := n u - {v})"  
@@ -1394,7 +1407,9 @@ qed
 end  
   
 lemma (in neighbor_invar) discharge_invar_init: 
+  assumes "u\<in>V-{s,t}"
   shows "discharge_invar c s t u f l n f l n"
+  using assms  
   by unfold_locales auto  
   
   
@@ -1415,9 +1430,9 @@ lemma discharge_correct[THEN order_trans, refine_vcg]:
       solve: neighbor_invar.discharge_invar_init[OF DINV]
       solve: neighbor_invar.no_neighbors_relabel_precond 
       solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
-      solve: push_precondI algo_rel.relabel algo_rel_pushI
+      solve: discharge_invar.push_precondI_nz algo_rel.relabel algo_rel_pushI
       solve: discharge_invar.remove_neighbor_pres_dis_invar
-      solve: discharge_invar.aux_excess_pos
+      (*solve: discharge_invar.aux_excess_pos*)
       intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr 
       simp: NOT_ST neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr] UIV)
   subgoal unfolding adm_edges_def by auto  
@@ -1608,5 +1623,172 @@ lemma relabel_to_front_correct:
     
 end -- \<open>Network\<close> 
   
+
+section \<open>FIFO selection rule\<close>  
+(* Straightforward, also O(V\<^sup>3) complexity, can be combined with gap heuristics.
+  Idea: Maintain queue of active nodes, discharge node at front, add activated nodes
+        to end.
+*)
   
+  
+context Network
+begin
+
+definition "Q_invar f Q \<equiv> distinct Q \<and> set Q = { v\<in>V-{s,t}. excess f v \<noteq> 0 }"  
+definition "QD_invar u f Q \<equiv> distinct Q \<and> set Q = { v\<in>V-{s,t,u}. excess f v \<noteq> 0 }"  
+
+lemma Q_invar_when_discharged: "\<lbrakk>QD_invar u f Q; excess f u = 0\<rbrakk> \<Longrightarrow> Q_invar f Q"  
+  unfolding Q_invar_def QD_invar_def by auto
+  
+end  
+  
+context discharge_invar begin  
+  
+  lemma push_no_activate_pres_QD_invar:
+    fixes v
+    assumes INV: "QD_invar u f Q"
+    assumes PRE: "push_precond f l (u,v)"
+    assumes VC: "s=v \<or> t=v \<or> excess f v \<noteq> 0"  
+    shows "QD_invar u (push_effect f (u,v)) Q"
+  proof -
+    interpret push_effect_locale c s t f l u v 
+      using PRE by unfold_locales
+    
+    from excess_non_negative \<Delta>_positive have "excess f v + \<Delta> \<noteq> 0" if "v\<notin>{s,t}"
+      using that by force
+    thus ?thesis    
+      using VC INV
+      unfolding QD_invar_def
+      by (auto simp: excess'_if split!: if_splits)  
+  qed      
+
+  lemma push_activate_pres_QD_invar:  
+    fixes v
+    assumes INV: "QD_invar u f Q"
+    assumes PRE: "push_precond f l (u,v)"
+    assumes VC: "s\<noteq>v" "t\<noteq>v" and [simp]: "excess f v = 0"  
+    shows "QD_invar u (push_effect f (u,v)) (Q@[v])"
+  proof -
+    interpret push_effect_locale c s t f l u v 
+      using PRE by unfold_locales
+    
+    show ?thesis    
+      using VC INV \<Delta>_positive
+      unfolding QD_invar_def
+      by (auto simp: excess'_if split!: if_splits)  
+  qed      
+    
+end  
+  
+  
+context Network
+begin
+  
+definition "fifo_discharge f l n Q \<equiv> do {  
+  let u=hd Q; let Q=tl Q;
+  assert (u\<in>V \<and> u\<noteq>s \<and> u\<noteq>t);
+  while\<^sub>T (\<lambda>(f,l,n,Q). excess f u \<noteq> 0) (\<lambda>(f,l,n,Q). do {
+    v \<leftarrow> selectp v. v\<in>n u;
+    case v of
+      None \<Rightarrow> do {
+        assert (relabel_precond f l u);
+        return (f,relabel_effect f l u,n(u := adjacent_nodes u),Q)
+      }
+    | Some v \<Rightarrow> do {
+        if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
+          assert (push_precond f l (u,v));
+          let Q = (if v\<noteq>s \<and> v\<noteq>t \<and> excess f v = 0 then Q@[v] else Q);
+          return (push_effect f (u,v),l,n,Q)
+        } else do {
+          assert ( (u,v) \<notin> adm_edges f l );
+          return (f,l,n( u := n u - {v} ),Q)
+        }
+      }
+  }) (f,l,n,Q)
+}"
+
+lemma fifo_discharge_correct[THEN order_trans, refine_vcg]:
+  assumes DINV: "neighbor_invar c s t f l n"
+  assumes QINV: "Q_invar f Q" and QNE: "Q\<noteq>[]"
+  shows "fifo_discharge f l n Q \<le> SPEC (\<lambda>(f',l',n',Q'). 
+    discharge_invar c s t (hd Q) f l n f' l' n' \<and> excess f' (hd Q) = 0 \<and> Q_invar f' Q'
+  )"  
+proof -
+  from QNE obtain u Qr where [simp]: "Q=u#Qr" by (cases Q) auto
+  
+  from QINV have U: "u\<in>V-{s,t}" "QD_invar u f Qr"
+    by (auto simp: Q_invar_def QD_invar_def)    
+
+  show ?thesis
+    using U
+    unfolding fifo_discharge_def  
+    apply (refine_vcg WHILET_rule[where 
+              I="\<lambda>(f',l',n',Q'). discharge_invar c s t u f l n f' l' n' \<and> QD_invar u f' Q'"
+          and R="inv_image (algo_rel <*lex*> finite_psubset) 
+                  (\<lambda>(f',l',n',_). ((f',l'),n' u))"]
+        )
+    apply (vc_solve 
+        solve: wf_lex_prod DINV 
+        solve: neighbor_invar.discharge_invar_init[OF DINV]
+        solve: neighbor_invar.no_neighbors_relabel_precond 
+        solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
+        solve: discharge_invar.push_precondI_nz algo_rel.relabel algo_rel_pushI
+        solve: discharge_invar.remove_neighbor_pres_dis_invar
+        solve: Q_invar_when_discharged
+        intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr 
+        simp: neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr])
+    subgoal 
+      by (auto 
+          intro: discharge_invar.push_activate_pres_QD_invar 
+          intro: discharge_invar.push_no_activate_pres_QD_invar)
+    subgoal unfolding adm_edges_def by auto  
+    subgoal by (auto)
+    done
+qed  
+  
+
+definition "fifo_push_relabel \<equiv> do {
+  let f = pp_init_f;
+  let l = pp_init_l;
+  let n = rtf_init_n;
+
+  Q \<leftarrow> spec l. distinct l \<and> set l = {v\<in>V - {s,t}. excess f v \<noteq> 0}; (* TODO: This is exactly E``{s}! *)
+
+  (f,l,n,_) \<leftarrow> while\<^sub>T (\<lambda>(f,l,n,Q). Q \<noteq> []) (\<lambda>(f,l,n,Q). do {
+    fifo_discharge f l n Q
+  }) (f,l,n,Q);
+
+  return f
+}"
+  
+lemma fifo_push_relabel_correct: 
+  "fifo_push_relabel \<le> SPEC isMaxFlow"
+  unfolding fifo_push_relabel_def
+  apply (refine_vcg  
+      WHILET_rule[where I="\<lambda>(f,l,n,Q). neighbor_invar c s t f l n \<and> Q_invar f Q"
+                    and R="inv_image (algo_rel\<^sup>+) (\<lambda>(f,l,n,Q). ((f,l)))"
+        ]
+      )
+  apply (vc_solve solve: rtf_init_neighbor_invar simp: discharge_invar.dis_is_nbr)
+  subgoal by (blast intro: wf_lex_prod wf_trancl)  
+  subgoal unfolding Q_invar_def by auto    
+  subgoal for initQ f l n Q f' l' n' Q' proof -
+    assume "discharge_invar c s t (hd Q) f l n f' l' n'" 
+    then interpret discharge_invar c s t "hd Q" f l n f' l' n' .
+
+    assume "Q_invar f Q" "Q \<noteq> []" "excess f' (hd Q) = 0"
+    hence "f \<noteq> f'" unfolding Q_invar_def by (cases Q) auto 
+    with algo_rel show "((f', l'), f, l) \<in> algo_rel\<^sup>+" by (auto dest: rtranclD)
+  qed
+  subgoal for initQ f l n proof -
+    assume "neighbor_invar c s t f l n"
+    then interpret neighbor_invar c s t f l n .
+    assume "Q_invar f []"    
+    hence "\<forall>u\<in>V-{s,t}. excess f u = 0" unfolding Q_invar_def by auto
+    thus "isMaxFlow f" by (rule no_excess_imp_maxflow)    
+  qed
+  done    
+    
+end  
+    
 end
