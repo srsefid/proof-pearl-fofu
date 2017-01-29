@@ -3,13 +3,228 @@ imports Ford_Fulkerson
   Refine_Add_Fofu
   Refine_Monadic_Syntax_Sugar
 begin
-     
+
+(* TODO: Move *)  
+context Graph begin  
+definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
+end  
+  
+context Finite_Graph begin
+lemma adjacent_nodes_finite[simp, intro!]: "finite (adjacent_nodes u)"
+  unfolding adjacent_nodes_def by (auto intro: finite_Image)
+end  
+  
+  
+(* TODO: Move *)  
+lemma swap_in_iff_inv: "prod.swap p \<in> S \<longleftrightarrow> p \<in> S\<inverse>"
+  apply (cases p) by auto
+  
+  
+(* TODO: Move *)  
+lemma (in Network) card_V_ge2: "card V \<ge> 2"
+proof -
+  have "2 = card {s,t}" by auto
+  also have "{s,t} \<subseteq> V" by auto
+  hence "card {s,t} \<le> card V" by (rule_tac card_mono) auto
+  finally show ?thesis .   
+qed  
+  
+(* TODO: Move *)  
+lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<lambda>s. inres m s \<and> nofail m \<and> \<Phi> s)"
+  -- "Strengthen SPEC by adding trivial upper bound for result"
+  by (auto simp: pw_le_iff refine_pw_simps)
+
+    
+(* TODO: Move *)  
 context Network begin
   
 abbreviation "cf_of \<equiv> residualGraph c"
 abbreviation "cfE_of f \<equiv> Graph.E (cf_of f)"
 
+(* TODO: Move, should make some lemma about Preflow.cf redundant *)    
+lemma cfE_of_ss_VxV: "cfE_of f \<subseteq> V\<times>V"
+  unfolding V_def
+  unfolding residualGraph_def Graph.E_def
+  by auto  
+
+lemma cfE_of_finite[simp, intro!]: "finite (cfE_of f)"
+  using finite_subset[OF cfE_of_ss_VxV] by auto
+
+(* TODO: Move *)    
+lemma cf_no_self_loop: "(u,u)\<notin>cfE_of f"
+proof
+  assume a1: "(u, u) \<in> cfE_of f"
+  have "(u, u) \<notin> E"
+    using no_parallel_edge by blast
+  then show False
+    using a1 unfolding Graph.E_def residualGraph_def by fastforce
+qed 
+  
+    
+    
 end
+    
+  
+  
+  
+(* Auxiliary Stuff *)  
+  
+(* Topological ordering of Graphs *)  
+(* Topological ordering: TODO: Move*)  
+  
+definition "list_before_rel l \<equiv> { (a,b). \<exists>l1 l2 l3. l=l1@a#l2@b#l3 }"
+lemma list_before_irrefl_eq_distinct: "irrefl (list_before_rel l) \<longleftrightarrow> distinct l"  
+  using not_distinct_decomp[of l]
+  by (auto simp: irrefl_def list_before_rel_def)
+  
+lemma list_before_rel_alt: "list_before_rel l = { (l!i, l!j) | i j. i<j \<and> j<length l }"
+  unfolding list_before_rel_def
+  apply (rule; clarsimp)
+  subgoal for a b l1 l2 l3  
+    apply (rule exI[of _ "length l1"]; simp)
+    apply (rule exI[of _ "length l1 + Suc (length l2)"]; auto simp: nth_append)
+    done      
+  subgoal for i j
+    apply (rule exI[of _ "take i l"])
+    apply (rule exI[of _ "drop (Suc i) (take j l)"])
+    apply (rule exI[of _ "drop (Suc j) l"])
+    by (simp add: Cons_nth_drop_Suc drop_take_drop_unsplit)
+  done      
+    
+lemma list_before_trans[trans]: "distinct l \<Longrightarrow> trans (list_before_rel l)" 
+  by (clarsimp simp: trans_def list_before_rel_alt) (metis index_nth_id less_trans)    
+    
+lemma list_before_asym: "distinct l \<Longrightarrow> asym (list_before_rel l)"
+  by (meson asym.intros irrefl_def list_before_irrefl_eq_distinct list_before_trans transE)
+    
+lemma list_before_rel_empty[simp]: "list_before_rel [] = {}"    
+  unfolding list_before_rel_def by auto
+    
+lemma list_before_rel_cons: "list_before_rel (x#l) = ({x}\<times>set l) \<union> list_before_rel l"    
+  apply (intro equalityI subsetI; simp add: split_paired_all)  
+  subgoal for a b proof -
+    assume "(a,b) \<in> list_before_rel (x # l)"  
+    then obtain i j where IDX_BOUND: "i<j" "j<Suc (length l)" and [simp]: "a=(x#l)!i" "b=(x#l)!j" 
+      unfolding list_before_rel_alt by auto
+
+    {
+      assume "i=0"
+      hence "x=a" "b\<in>set l" using IDX_BOUND
+        by (auto simp: nth_Cons split: nat.splits)
+    } moreover {
+      assume "i\<noteq>0"
+      with IDX_BOUND have "a=l!(i-1)" "b=l!(j-1)" "i-1 < j-1" "j-1 < length l"
+        by auto
+      hence "(a, b) \<in> list_before_rel l" unfolding list_before_rel_alt by blast 
+    } ultimately show ?thesis by blast
+  qed
+  subgoal premises prems for a b  
+  proof -
+    {
+      assume [simp]: "a=x" and "b\<in>set l"
+      then obtain j where "b = l!j" "j<length l" by (auto simp: in_set_conv_nth)
+      hence "a=(x#l)!0" "b = (x#l)!Suc j" "0 < Suc j" "Suc j < length (x#l)" by auto
+      hence ?thesis unfolding list_before_rel_alt by blast    
+    } moreover {
+      assume "(a, b) \<in> list_before_rel l"
+      hence ?thesis unfolding list_before_rel_alt
+        by clarsimp (metis Suc_mono nth_Cons_Suc)  
+    } ultimately show ?thesis using prems by blast
+  qed
+  done  
+  
+lemma list_before_rel_on_elems: "list_before_rel l \<subseteq> set l \<times> set l" 
+  unfolding list_before_rel_def by auto
+    
+    
+definition "is_top_sorted R l \<equiv> list_before_rel l \<inter> (R\<^sup>*)\<inverse> = {}"  
+lemma is_top_sorted_alt: "is_top_sorted R l \<longleftrightarrow> (\<forall>x y. (x,y)\<in>list_before_rel l \<longrightarrow> (y,x)\<notin>R\<^sup>*)"
+  unfolding is_top_sorted_def by auto
+  
+lemma is_top_sorted_empty_rel[simp]: "is_top_sorted {} l \<longleftrightarrow> distinct l"
+  by (auto simp: is_top_sorted_def list_before_irrefl_eq_distinct[symmetric] irrefl_def)
+
+lemma is_top_sorted_empty_list[simp]: "is_top_sorted R []"
+  by (auto simp: is_top_sorted_def)
+
+lemma is_top_sorted_distinct: 
+  assumes "is_top_sorted R l" 
+  shows "distinct l"
+proof (rule ccontr)  
+  assume "\<not>distinct l"
+  with list_before_irrefl_eq_distinct[of l] obtain x where "(x,x)\<in>(list_before_rel l)"
+    by (auto simp: irrefl_def)
+  with assms show False unfolding is_top_sorted_def by auto      
+qed  
+  
+    
+lemma is_top_sorted_cons: "is_top_sorted R (x#l) \<longleftrightarrow> ({x}\<times>set l \<inter> (R\<^sup>*)\<inverse> = {}) \<and> is_top_sorted R l"
+  unfolding is_top_sorted_def
+  by (auto simp: list_before_rel_cons)
+    
+lemma is_top_sorted_append: "is_top_sorted R (l1@l2) 
+  \<longleftrightarrow> (set l1\<times>set l2 \<inter> (R\<^sup>*)\<inverse> = {}) \<and> is_top_sorted R l1 \<and> is_top_sorted R l2"    
+  by (induction l1) (auto simp: is_top_sorted_cons)
+
+lemma is_top_sorted_remove_elem: "is_top_sorted R (l1@x#l2) \<Longrightarrow> is_top_sorted R (l1@l2)"
+  by (auto simp: is_top_sorted_cons is_top_sorted_append)
+    
+lemma is_top_sorted_antimono:
+  assumes "R\<subseteq>R'"
+  assumes "is_top_sorted R' l"
+  shows "is_top_sorted R l"  
+  using assms 
+  unfolding is_top_sorted_alt  
+  by (auto dest: rtrancl_mono_mp)
+
+lemma is_top_sorted_isolated_constraint:
+  assumes "R' \<subseteq> R \<union> {x}\<times>X" "R'\<inter>UNIV\<times>{x} = {}"
+  assumes "x\<notin>set l"  
+  assumes "is_top_sorted R l"  
+  shows "is_top_sorted R' l"  
+proof -
+  {
+    fix a b
+    assume "(a,b)\<in>R'\<^sup>*" "a\<noteq>x" "b\<noteq>x"  
+    hence "(a,b)\<in>R\<^sup>*"  
+    proof (induction rule: converse_rtrancl_induct)
+      case base
+      then show ?case by simp
+    next
+      case (step y z)
+      with assms(1,2) have "z\<noteq>x" "(y,z)\<in>R" by auto  
+      with step show ?case by auto
+    qed
+  } note AUX=this
+    
+  show ?thesis
+    using assms(3,4) AUX list_before_rel_on_elems 
+    unfolding is_top_sorted_def by fastforce
+qed  
+  
+
+(* Refinement Framework VCG control:
+  Idea: Put a frame around stuff in the program where the VCG shall not look into
+    on outermost pass, and discharge the frame's content with nested vcg call.
+    Very useful with subgoal command, to set up some auxiliary context before
+    discharging, e.g., interpret locales, etc.
+ 
+*)  
+(* TODO: Make this a generic technique:
+  Problems: 
+    * Splitter will split inside VCG_FRAME (e.g., ifs)
+
+*)  
+  
+definition VCG_FRAME :: "_ nres \<Rightarrow> _ nres" where "VCG_FRAME m \<equiv> m"
+lemma VCG_FRAME_cong[cong]: "VCG_FRAME x \<equiv> VCG_FRAME x" by simp
+
+lemma vcg_intro_frame: "m \<equiv> VCG_FRAME m" unfolding VCG_FRAME_def by simp
+lemma vcg_rem_frame: "m\<le>m' \<Longrightarrow> VCG_FRAME m \<le> m'" unfolding VCG_FRAME_def by simp
+  
+  
+  
+  
   
 locale Labeling = NPreflow +
   fixes l :: "node \<Rightarrow> nat"
@@ -362,6 +577,16 @@ qed
 
 lemma relabel_preserve_other: "u\<noteq>v \<Longrightarrow> relabel_effect f l u v = l v" 
   unfolding relabel_effect_def by auto
+
+lemma no_excess_imp_maxflow:    
+  assumes "\<forall>u\<in>V-{s,t}. excess f u = 0"
+  shows "isMaxFlow f"  
+proof -    
+  from assms interpret NFlow 
+    apply unfold_locales 
+    using no_deficient_nodes unfolding excess_def by auto
+  from noAugPath_iff_maxFlow no_augmenting_path show "isMaxFlow f" by auto
+qed
   
 lemma push_relabel_term_imp_maxflow:
   assumes no_push: "\<forall>(u,v)\<in>cf.E. \<not>push_precond f l (u,v)"
@@ -372,10 +597,7 @@ proof -
     unfolding push_precond_def relabel_precond_def
     by force 
   with excess_non_negative have "\<forall>u\<in>V-{s,t}. excess f u = 0" by force
-  then interpret NFlow 
-    apply unfold_locales 
-    using no_deficient_nodes unfolding excess_def by auto
-  from noAugPath_iff_maxFlow no_augmenting_path show "isMaxFlow f" by auto
+  with no_excess_imp_maxflow show ?thesis . 
 qed      
       
 (* Cormen 26.19 *) 
@@ -521,11 +743,22 @@ proof -
   show ?thesis by unfold_locales (auto simp: pp_init_l_def)  
 qed    
     
-(* TODO: Move *)  
-lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<lambda>s. inres m s \<and> nofail m \<and> \<Phi> s)"
-  -- "Strengthen SPEC by adding trivial upper bound for result"
-  by (auto simp: pw_le_iff refine_pw_simps)
+context Network begin  
+  definition adm_edges :: "'capacity flow \<Rightarrow> (nat\<Rightarrow>nat) \<Rightarrow> _" 
+    where "adm_edges f l \<equiv> {(u,v)\<in>cfE_of f. l u = l v + 1}"
+    
+  lemma adm_edges_inv_disj: "adm_edges f l \<inter> (adm_edges f l)\<inverse> = {}"
+    unfolding adm_edges_def by auto
   
+  lemma finite_adm_edges[simp, intro!]: "finite (adm_edges f l)"
+    apply (rule finite_subset[of _ "cfE_of f"])
+    by (auto simp: adm_edges_def)
+      
+      
+end
+    
+    
+    
 text \<open>Locale to relate original flow and flow after a push.\<close>
 locale push_effect_locale = Labeling +
   fixes u v
@@ -539,6 +772,8 @@ begin
   lemma excess_u_pos: "excess f u > 0" using PRE unfolding push_precond_def by auto   
   lemma l_u_eq[simp]: "l u = l v + 1" using PRE unfolding push_precond_def by auto   
 
+  lemma uv_adm: "(u,v)\<in>adm_edges f l" unfolding adm_edges_def by auto
+      
   lemma uv_edge_cases:
     obtains (par) "(u,v)\<in>E" "(v,u)\<notin>E" | (rev) "(v,u)\<in>E" "(u,v)\<notin>E"
     using uv_cf_edge cfE_ss_invE no_parallel_edge by blast  
@@ -746,33 +981,7 @@ qed
       
 end -- \<open>Height bound labeling\<close>
   
-context Network begin  
-  definition adm_edges :: "'capacity flow \<Rightarrow> (nat\<Rightarrow>nat) \<Rightarrow> _" 
-    where "adm_edges f l \<equiv> {(u,v)\<in>cfE_of f. l u = l v + 1}"
-    
-  lemma adm_edges_inv_disj: "adm_edges f l \<inter> (adm_edges f l)\<inverse> = {}"
-    unfolding adm_edges_def by auto
-  
-  (* TODO: Move, should make some lemma about Preflow.cf redundant *)    
-  lemma cfE_of_ss_VxV: "cfE_of f \<subseteq> V\<times>V"
-    unfolding V_def
-    unfolding residualGraph_def Graph.E_def
-    by auto  
 
-  lemma cfE_of_finite[simp, intro!]: "finite (cfE_of f)"
-    using finite_subset[OF cfE_of_ss_VxV] by auto
-      
-  lemma finite_adm_edges[simp, intro!]: "finite (adm_edges f l)"
-    apply (rule finite_subset[of _ "cfE_of f"])
-    by (auto simp: adm_edges_def)
-      
-      
-end
-
-(* TODO: Move *)  
-lemma swap_in_iff_inv: "prod.swap p \<in> S \<longleftrightarrow> p \<in> S\<inverse>"
-  apply (cases p) by auto
-  
 context Labeling begin  
   
 lemma sat_push_decr_adm_edges:
@@ -857,16 +1066,6 @@ lemma push_adm_edges:
   unfolding push_precond_eq_sat_or_unsat  
   by auto  
 
-(* TODO: Move *)    
-lemma (in Network) cf_no_self_loop: "(u,u)\<notin>cfE_of f"
-proof
-  assume a1: "(u, u) \<in> cfE_of f"
-  have "(u, u) \<notin> E"
-    using no_parallel_edge by blast
-  then show False
-    using a1 unfolding Graph.E_def residualGraph_def by fastforce
-qed 
-  
 (* Cormen 26.28 *)
 lemma relabel_adm_edges:
   assumes PRE: "relabel_precond f l u"
@@ -1006,136 +1205,408 @@ lemma algo_rel_altE:
     
 end  
     
-(* TODO: Move *)  
-context Graph begin  
-definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
-end  
-  
-context Finite_Graph begin
-lemma adjacent_nodes_finite[simp, intro!]: "finite (adjacent_nodes u)"
-  unfolding adjacent_nodes_def by (auto intro: finite_Image)
-end  
-  
   
 (* Relabel to front *)  
 context Network begin  
   
-  definition "discharge f l n u \<equiv> do {  
-    while\<^sub>T (\<lambda>(f,l,n). excess f u > 0) (\<lambda>(f,l,n). do {
-      v \<leftarrow> selectp v. v\<in>n u;
-      case v of
-        None \<Rightarrow> do {
-          assert (relabel_precond f l u);
-          return (f,relabel_effect f l u,n(u := adjacent_nodes u))
+definition "discharge f l n u \<equiv> do {  
+  while\<^sub>T (\<lambda>(f,l,n). excess f u > 0) (\<lambda>(f,l,n). do {
+    v \<leftarrow> selectp v. v\<in>n u;
+    case v of
+      None \<Rightarrow> do {
+        assert (relabel_precond f l u);
+        return (f,relabel_effect f l u,n(u := adjacent_nodes u))
+      }
+    | Some v \<Rightarrow> do {
+        if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
+          assert (push_precond f l (u,v));
+          return (push_effect f (u,v),l,n)
+        } else do {
+          assert ( (u,v) \<notin> adm_edges f l );
+          return (f,l,n( u := n u - {v} ))
         }
-      | Some v \<Rightarrow> do {
-          if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
-            assert (push_precond f l (u,v));
-            return (push_effect f (u,v),l,n)
-          } else do {
-            assert ( (u,v) \<notin> adm_edges f l );
-            return (f,l,n( u := n u - {v} ))
-          }
-        }
-    }) (f,l,n)
-  }"
+      }
+  }) (f,l,n)
+}"
   
 end  
   
-locale discharge_invar = Height_Bounded_Labeling +
+locale neighbor_invar = Height_Bounded_Labeling +
   fixes n :: "node \<Rightarrow> node set"  
-  assumes neighbour_invar: "\<lbrakk>v \<in> adjacent_nodes u - n u\<rbrakk> \<Longrightarrow> (u,v) \<notin> adm_edges f l"
-  assumes neighbours_finite[simp, intro!]: "finite (n u)"  
+  assumes neighbors_adm: "\<lbrakk>v \<in> adjacent_nodes u - n u\<rbrakk> \<Longrightarrow> (u,v) \<notin> adm_edges f l"
+  assumes neighbors_finite[simp, intro!]: "finite (n u)"  
 begin
   
-  lemma hbl_this: "Height_Bounded_Labeling c s t f l" by unfold_locales
-  
-  lemma push_pres_dis_invar:
-    assumes PRE: "push_precond f l e"
-    shows "discharge_invar c s t (push_effect f e) l n"  
-  proof (cases e)
-    case [simp]: (Pair u v)
-    show ?thesis proof simp
-      from PRE interpret push_effect_locale c s t f l u v
-        by unfold_locales simp
-      from push_pres_height_bound[OF PRE] interpret l': Height_Bounded_Labeling c s t f' l .
-    
-      show "discharge_invar c s t f' l n"
-        apply unfold_locales
-        using push_adm_edges[OF PRE] neighbour_invar
-        by auto  
-    qed
-  qed
-      
-  lemma relabel_pres_dis_invar:  
-    assumes PRE: "relabel_precond f l u"
-    shows "discharge_invar c s t f (relabel_effect f l u) (n(u:=adjacent_nodes u))"
-  proof -
-    let ?l' = "relabel_effect f l u"
-    from relabel_pres_height_bound[OF PRE] 
-    interpret l': Height_Bounded_Labeling c s t f ?l' .
-    
-    show ?thesis proof (unfold_locales; clarsimp split: if_splits)
-      fix a b
-      assume A: "a\<noteq>u" "b\<in>adjacent_nodes a" "b \<notin> n a" "(a,b)\<in>adm_edges f ?l'"
-      hence "(a,b)\<in>cf.E" unfolding adm_edges_def by auto
-      with A relabel_adm_edges(2,3)[OF PRE] neighbour_invar 
-      show False 
-        apply (auto) (* TODO: Clean up this mess *)
-        by (smt DiffD2 Diff_triv adm_edges_def cf.incoming_def mem_Collect_eq prod.simps(2) 
-            relabel_preserve_other)
-    qed
-  qed  
-  
-  lemma no_neighbours_relabel_precond: 
-    assumes "n u = {}" "u\<noteq>t" "0 < excess f u"
-    shows "relabel_precond f l u"  
-    using assms neighbour_invar cfE_ss_invE 
-    unfolding relabel_precond_def adm_edges_def
-    by (auto simp: adjacent_nodes_def)
-    
-  lemma remove_neighbour_pres_invar: "(u,v)\<notin>adm_edges f l \<Longrightarrow> discharge_invar c s t f l (n (u := n u - {v})) "
-    apply unfold_locales
-    using neighbour_invar 
-    by (auto split: if_splits)
-      
-  lemma aux_excess_pos: "\<lbrakk>u\<noteq>s; u\<in>V; \<not> 0 < excess f u\<rbrakk> \<Longrightarrow> excess f u = 0"
-    using excess_non_negative' by force
-      
-end
+lemma nbr_is_hbl: "Height_Bounded_Labeling c s t f l" by unfold_locales
 
+lemma push_pres_nbr_invar:
+  assumes PRE: "push_precond f l e"
+  shows "neighbor_invar c s t (push_effect f e) l n"  
+proof (cases e)
+  case [simp]: (Pair u v)
+  show ?thesis proof simp
+    from PRE interpret push_effect_locale c s t f l u v
+      by unfold_locales simp
+    from push_pres_height_bound[OF PRE] interpret l': Height_Bounded_Labeling c s t f' l .
+  
+    show "neighbor_invar c s t f' l n"
+      apply unfold_locales
+      using push_adm_edges[OF PRE] neighbors_adm
+      by auto  
+  qed
+qed
+    
+lemma relabel_pres_nbr_invar:  
+  assumes PRE: "relabel_precond f l u"
+  shows "neighbor_invar c s t f (relabel_effect f l u) (n(u:=adjacent_nodes u))"
+proof -
+  let ?l' = "relabel_effect f l u"
+  from relabel_pres_height_bound[OF PRE] 
+  interpret l': Height_Bounded_Labeling c s t f ?l' .
+  
+  show ?thesis proof (unfold_locales; clarsimp split: if_splits)
+    fix a b
+    assume A: "a\<noteq>u" "b\<in>adjacent_nodes a" "b \<notin> n a" "(a,b)\<in>adm_edges f ?l'"
+    hence "(a,b)\<in>cf.E" unfolding adm_edges_def by auto
+    with A relabel_adm_edges(2,3)[OF PRE] neighbors_adm 
+    show False 
+      apply (auto) (* TODO: Clean up this mess *)
+      by (smt DiffD2 Diff_triv adm_edges_def cf.incoming_def mem_Collect_eq prod.simps(2) 
+          relabel_preserve_other)
+  qed
+qed  
+
+lemma no_neighbors_relabel_precond: 
+  assumes "n u = {}" "u\<noteq>t" "0 < excess f u"
+  shows "relabel_precond f l u"  
+  using assms neighbors_adm cfE_ss_invE 
+  unfolding relabel_precond_def adm_edges_def
+  by (auto simp: adjacent_nodes_def)
+  
+lemma remove_neighbor_pres_nbr_invar: "(u,v)\<notin>adm_edges f l \<Longrightarrow> neighbor_invar c s t f l (n (u := n u - {v}))"
+  apply unfold_locales
+  using neighbors_adm 
+  by (auto split: if_splits)
+    
+end
+  
+locale discharge_invar = neighbor_invar c s t f l n + lo: neighbor_invar c s t fo lo no
+  for c s t and u :: node and fo lo no f l n +
+  assumes lu_incr: "lo u \<le> l u"
+  (*assumes excess_u_decr: "excess fo u \<ge> excess f u"*)
+  assumes no_relabel_adm_edges: "lo u = l u \<Longrightarrow> adm_edges f l \<subseteq> adm_edges fo lo"
+  assumes no_relabel_excess: "\<lbrakk>lo u = l u; u\<noteq>v; excess fo v \<noteq> excess f v\<rbrakk> \<Longrightarrow> (u,v)\<in>adm_edges fo lo"
+  assumes adm_edges_leaving_u: "(u',v)\<in>adm_edges f l - adm_edges fo lo \<Longrightarrow> u'=u"
+  assumes relabel_u_no_incoming_adm: "lo u \<noteq> l u \<Longrightarrow> (v,u)\<notin>adm_edges f l"
+  assumes algo_rel: "((f,l),(fo,lo)) \<in> algo_rel\<^sup>*"  
+begin
+  
+lemma dis_is_hbl: "Height_Bounded_Labeling c s t f l" by unfold_locales
+lemma dis_is_nbr: "neighbor_invar c s t f l n" by unfold_locales
+  
+lemma new_adm_imp_relabel: "(u',v)\<in>adm_edges f l - adm_edges fo lo \<Longrightarrow> lo u \<noteq> l u"
+  using no_relabel_adm_edges adm_edges_leaving_u by auto
+  
+lemma push_pres_dis_invar:
+  assumes PRE: "push_precond f l (u,v)"
+  shows "discharge_invar c s t u fo lo no (push_effect f (u,v)) l n"
+proof -  
+  from PRE interpret push_effect_locale by unfold_locales
+  
+  from push_pres_nbr_invar[OF PRE] interpret neighbor_invar c s t f' l n .
+    
+  show "discharge_invar c s t u fo lo no f' l n"
+    apply unfold_locales
+    subgoal using lu_incr by auto
+    (*subgoal using excess_u_decr \<Delta>_positive by auto*)
+    subgoal using no_relabel_adm_edges push_adm_edges(2)[OF PRE] by auto  
+    subgoal for v' proof -
+      assume LOU: "lo u = l u"
+      assume EXNE: "excess fo v' \<noteq> excess f' v'"
+      assume UNV': "u\<noteq>v'"  
+      {
+        assume "excess fo v' \<noteq> excess f v'"
+        from no_relabel_excess[OF LOU UNV' this] have ?thesis .
+      } moreover {
+        assume "excess fo v' = excess f v'"
+        with EXNE have "excess f v' \<noteq> excess f' v'" by simp
+        hence "v'=v" using UNV' by (auto simp: excess'_if split: if_splits)
+        hence ?thesis using no_relabel_adm_edges[OF LOU] uv_adm by auto
+      } ultimately show ?thesis by blast
+    qed
+    subgoal by (meson Diff_iff push_adm_edges(2)[OF PRE] adm_edges_leaving_u subsetCE)  
+    subgoal using push_adm_edges(2)[OF PRE] relabel_u_no_incoming_adm by blast
+    subgoal using converse_rtrancl_into_rtrancl[OF algo_rel_pushI[OF dis_is_hbl PRE] algo_rel] .
+    done
+qed
+      
+lemma relabel_pres_dis_invar:
+  assumes PRE: "relabel_precond f l u"
+  shows "discharge_invar c s t u fo lo no f (relabel_effect f l u) (n(u := adjacent_nodes u))"
+proof -  
+  let ?l' = "relabel_effect f l u"
+  let ?n' = "n(u := adjacent_nodes u)"  
+  from relabel_pres_nbr_invar[OF PRE] interpret l': neighbor_invar c s t f ?l' ?n' .
+    
+  note lu_incr also note relabel_increase_u[OF PRE] finally have INCR: "lo u < ?l' u" .
+      
+  show ?thesis    
+    apply unfold_locales
+    using INCR  
+    apply simp_all
+    subgoal for u' v 
+    proof clarsimp
+      assume IN': "(u', v) \<in> adm_edges f ?l'" and NOT_INO: "(u', v) \<notin> adm_edges fo lo"
+      {
+        assume IN: "(u', v) \<in> adm_edges f l"
+        with adm_edges_leaving_u NOT_INO have "u'=u" by auto
+      } moreover {
+        assume NOT_IN: "(u', v) \<notin> adm_edges f l"
+        with IN' relabel_adm_edges[OF PRE] have "u'=u" 
+          unfolding cf.incoming_def cf.outgoing_def cf.adjacent_def
+          by auto  
+      } ultimately show ?thesis by blast
+    qed      
+    subgoal 
+      using relabel_adm_edges(2)[OF PRE] 
+      unfolding adm_edges_def cf.incoming_def 
+      by fastforce  
+    subgoal using converse_rtrancl_into_rtrancl[OF relabel[OF dis_is_hbl PRE] algo_rel] .
+    done  
+qed                                                    
+  
+lemma aux_excess_pos: "\<lbrakk>u\<noteq>s; u\<in>V; \<not> 0 < excess f u\<rbrakk> \<Longrightarrow> excess f u = 0"
+  using excess_non_negative' by force
+      
+lemma remove_neighbor_pres_dis_invar: 
+  assumes PRE: "(u,v)\<notin>adm_edges f l"  
+  defines "n' \<equiv> n (u := n u - {v})"  
+  shows "discharge_invar c s t u fo lo no f l n'"
+proof -
+  from remove_neighbor_pres_nbr_invar[OF PRE] interpret neighbor_invar c s t f l n' unfolding n'_def .
+  show ?thesis 
+    apply unfold_locales
+    using lu_incr no_relabel_adm_edges no_relabel_excess adm_edges_leaving_u 
+      relabel_u_no_incoming_adm algo_rel
+    by auto  
+qed  
+    
+end  
+  
+lemma (in neighbor_invar) discharge_invar_init: 
+  shows "discharge_invar c s t u f l n f l n"
+  by unfold_locales auto  
+  
+  
 context Network begin  
   
-  (*
-      A label increases
-  lex an admissible edge vanishes
-  lex excess u goes to zero
-  lex neighbour set decreases
-  *)
-  
-  lemma discharge_correct:
-    assumes DINV: "discharge_invar c s t f l n"
-    assumes NOT_ST: "u\<noteq>t" "u\<noteq>s" and UIV: "u\<in>V"
-    shows "discharge f l n u \<le> SPEC (\<lambda>(f',l',n'). discharge_invar c s t f' l' n' \<and> excess f' u = 0)"  
-    unfolding discharge_def  
-    apply (refine_vcg WHILET_rule[where 
-              I="\<lambda>(f',l',n'). discharge_invar c s t f' l' n'"
-          and R="inv_image (algo_rel <*lex*> finite_psubset) 
-                  (\<lambda>(f',l',n'). ((f',l'),n' u))"]
-        )
-    apply (vc_solve 
-        solve: wf_lex_prod DINV 
-        solve: discharge_invar.no_neighbours_relabel_precond 
-        solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
-        solve: push_precondI algo_rel.relabel algo_rel_pushI
-        solve: discharge_invar.remove_neighbour_pres_invar
-        solve: discharge_invar.aux_excess_pos
-        intro: discharge_invar.hbl_this 
-        simp: NOT_ST discharge_invar.neighbours_finite UIV)
-    subgoal unfolding adm_edges_def by auto  
-    subgoal by (auto)
-    done    
+lemma discharge_correct[THEN order_trans, refine_vcg]:
+  assumes DINV: "neighbor_invar c s t f l n"
+  assumes NOT_ST: "u\<noteq>t" "u\<noteq>s" and UIV: "u\<in>V"
+  shows "discharge f l n u \<le> SPEC (\<lambda>(f',l',n'). discharge_invar c s t u f l n f' l' n' \<and> excess f' u = 0)"  
+  unfolding discharge_def  
+  apply (refine_vcg WHILET_rule[where 
+            I="\<lambda>(f',l',n'). discharge_invar c s t u f l n f' l' n'"
+        and R="inv_image (algo_rel <*lex*> finite_psubset) 
+                (\<lambda>(f',l',n'). ((f',l'),n' u))"]
+      )
+  apply (vc_solve 
+      solve: wf_lex_prod DINV 
+      solve: neighbor_invar.discharge_invar_init[OF DINV]
+      solve: neighbor_invar.no_neighbors_relabel_precond 
+      solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
+      solve: push_precondI algo_rel.relabel algo_rel_pushI
+      solve: discharge_invar.remove_neighbor_pres_dis_invar
+      solve: discharge_invar.aux_excess_pos
+      intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr 
+      simp: NOT_ST neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr] UIV)
+  subgoal unfolding adm_edges_def by auto  
+  subgoal by (auto)
+  done
   
 end  
+  
+context Network begin  
+  
+definition "rtf_init_n u \<equiv> if u\<in>V-{s,t} then adjacent_nodes u else {}"
+
+lemma rtf_init_n_finite[simp, intro!]: "finite (rtf_init_n u)"
+  unfolding rtf_init_n_def
+  by auto  
+  
+lemma init_no_adm_edges[simp]: "adm_edges pp_init_f pp_init_l = {}"  
+  unfolding adm_edges_def pp_init_l_def
+  using card_V_ge2  
+  by auto  
+
+lemma rtf_init_neighbor_invar: "neighbor_invar c s t pp_init_f pp_init_l rtf_init_n"
+proof -
+  from pp_init_height_bound interpret Height_Bounded_Labeling c s t pp_init_f pp_init_l .
+  show ?thesis by unfold_locales auto  
+qed
+
+
+definition "relabel_to_front \<equiv> do {
+  let f = pp_init_f;
+  let l = pp_init_l;
+  let n = rtf_init_n;
+
+  let L_left=[];
+  L_right \<leftarrow> spec l. distinct l \<and> set l = V - {s,t};
+
+  (f,l,n,L_left,L_right) \<leftarrow> while\<^sub>T (\<lambda>(f,l,n,L_left,L_right). L_right \<noteq> []) (\<lambda>(f,l,n,L_left,L_right). do {
+    let u = hd L_right;
+    let old_lu = l u;
+
+    (f,l,n) \<leftarrow> discharge f l n u;
+
+    if (l u \<noteq> old_lu) then do {
+      (* Move u to front of l, and restart scanning L *)
+      let (L_left,L_right) = ([u],L_left @ tl L_right);
+      return (f,l,n,L_left,L_right)
+    } else do {
+      (* Goto next node in l *)
+      let (L_left,L_right) = (L_left@[u], tl L_right);
+      return (f,l,n,L_left,L_right)
+    }
+
+  }) (f,l,n,L_left,L_right);
+
+  return f
+}"
+  
+  
+end  
+  
+  
+    
+    
+locale rtf_invar = neighbor_invar +
+  fixes L_left L_right :: "node list"
+  assumes left_no_excess: "\<forall>u\<in>set (L_left). excess f u = 0"  
+  assumes L_sorted: "is_top_sorted (adm_edges f l) (L_left @ L_right)"
+  assumes L_set: "set L_left \<union> set L_right = V-{s,t}"  
+begin    
+  lemma rtf_is_nbr: "neighbor_invar c s t f l n" by unfold_locales
+      
+  lemma L_distinct: "distinct (L_left @ L_right)" using is_top_sorted_distinct[OF L_sorted] .
+  
+  lemma terminated_imp_maxflow: 
+    assumes [simp]: "L_right = []"   
+    shows "isMaxFlow f" 
+  proof -
+    from L_set left_no_excess have "\<forall>u\<in>V-{s,t}. excess f u = 0" by auto
+    with no_excess_imp_maxflow show ?thesis .    
+  qed        
+      
+      
+end  
+
+context Network begin  
+lemma rtf_init_invar: 
+  assumes DIS: "distinct L_left" and L_set: "set L_left = V-{s,t}"
+  shows "rtf_invar c s t pp_init_f pp_init_l rtf_init_n [] L_left"  
+proof -
+  from rtf_init_neighbor_invar interpret neighbor_invar c s t pp_init_f pp_init_l rtf_init_n .
+  show ?thesis using DIS L_set by unfold_locales auto  
+qed  
+  
+lemma relabel_to_front_correct: 
+  "relabel_to_front \<le> SPEC isMaxFlow"
+  unfolding relabel_to_front_def
+  apply (rewrite in "while\<^sub>T _ \<hole>" vcg_intro_frame)
+  apply (refine_vcg  
+      WHILET_rule[where I="\<lambda>(f,l,n,L_left,L_right). rtf_invar c s t f l n L_left L_right"
+                    and R="inv_image (algo_rel\<^sup>+ <*lex*> less_than) (\<lambda>(f,l,n,L_left,L_right). ((f,l),length L_right))"
+        ]
+      )
+  apply (vc_solve simp: rtf_init_invar rtf_invar.rtf_is_nbr)
+  subgoal by (blast intro: wf_lex_prod wf_trancl)  
+  subgoal for _ f l n L_left L_right proof -
+    assume "rtf_invar c s t f l n L_left L_right"
+    then interpret rtf_invar c s t f l n L_left L_right .
+        
+    assume "L_right \<noteq> []" then obtain u L_right' where [simp]: "L_right = u#L_right'" by (cases L_right) auto
+        
+    from L_set have [simp]: "u\<in>V" "u\<noteq>s" "u\<noteq>t" "s\<noteq>u" "t\<noteq>u" by auto
+        
+    from L_distinct have [simp]: "u\<notin>set L_left" "u\<notin>set L_right'" by auto
+        
+    show ?thesis
+      apply (rule vcg_rem_frame)
+      apply (rewrite in "do {(_,_,_) \<leftarrow> discharge _ _ _ _; \<hole>}" vcg_intro_frame)  
+      apply refine_vcg
+      apply (vc_solve simp: rtf_is_nbr split del: if_split)
+      subgoal for f' l' n' proof -
+        assume "discharge_invar c s t u f l n f' l' n'"
+        then interpret l': discharge_invar c s t u f l n f' l' n' .
+      
+        assume [simp]: "excess f' u = 0"
+  
+        show ?thesis 
+          apply (rule vcg_rem_frame)
+          apply refine_vcg
+          apply (vc_solve)
+          subgoal proof -
+            assume RELABEL: "l' u \<noteq> l u"
+              
+            have AUX1: "x=u" if "(x, u) \<in> (adm_edges f' l')\<^sup>*" for x
+              using that l'.relabel_u_no_incoming_adm[OF RELABEL[symmetric]]
+              by (auto elim: rtranclE)
+              
+            have TS1: "is_top_sorted (adm_edges f l) (L_left @ L_right')"
+              using L_sorted by (auto intro: is_top_sorted_remove_elem)
+
+            (* intuition: 
+                new edges come from u, but u has no incoming edges, nor is it in L_left@L_right'.
+                thus, these new edges cannot add effective constraints. 
+            *)
+            from l'.adm_edges_leaving_u l'.relabel_u_no_incoming_adm[OF RELABEL[symmetric]]
+            have "adm_edges f' l' \<subseteq> adm_edges f l \<union> {u}\<times>UNIV" and "adm_edges f' l' \<inter> UNIV\<times>{u}={}" by auto
+            from is_top_sorted_isolated_constraint[OF this _ TS1]    
+            have AUX2: "is_top_sorted (adm_edges f' l') (L_left @ L_right')" by simp   
+                
+            show "rtf_invar c s t f' l' n' [u] (L_left @ L_right')"
+              apply unfold_locales
+              subgoal by simp  
+              subgoal using AUX2 by (auto simp: is_top_sorted_cons dest!: AUX1)
+              subgoal using L_set by auto
+              done    
+          qed  
+          subgoal using l'.algo_rel by (auto dest: rtranclD)
+          subgoal proof -
+            assume NO_RELABEL[simp]: "l' u = l u"
+            (*Intuition: non-zero excess would imply an admissible edge contrary to top_sorted.*)
+            have AUX: "excess f' v = 0" if "v\<in>set L_left" for v
+            proof (rule ccontr)
+              from that \<open>u\<notin>set L_left\<close> have "u \<noteq> v" by blast 
+              moreover assume "excess f' v \<noteq> 0"
+              moreover from that left_no_excess have "excess f v = 0" by auto
+              ultimately have "(u,v)\<in>adm_edges f l"    
+                using l'.no_relabel_excess[OF NO_RELABEL[symmetric]] 
+                by auto
+              
+              with L_sorted that show False
+                by (auto simp: is_top_sorted_append is_top_sorted_cons)
+            qed      
+            show "rtf_invar c s t f' l' n' (L_left @ [u]) L_right'"  
+              apply unfold_locales
+              subgoal by (auto simp: AUX)  
+              subgoal 
+                apply (rule is_top_sorted_antimono[OF l'.no_relabel_adm_edges[OF NO_RELABEL[symmetric]]])
+                using L_sorted by simp  
+              subgoal using L_set by auto
+              done
+          qed
+          subgoal using l'.algo_rel by (auto dest: rtranclD)
+          done    
+      qed
+      done  
+  qed
+  subgoal by (auto intro: rtf_invar.terminated_imp_maxflow)  
+  done
+    
+end -- \<open>Network\<close> 
+  
   
 end
