@@ -147,6 +147,145 @@ proof -
   thus ?thesis by auto
 qed  
 
-end -- \<open>Network with flow\<close>
+  
+definition (in Network) "flow_of_cf cf e \<equiv> (if (e\<in>E) then c e - cf e else 0)"
+
+(* TODO: We have proved/used this fact already for Edka-Analysis! (uE) *)  
+lemma (in NPreflow) E_ss_cfinvE: "E \<subseteq> Graph.E cf \<union> (Graph.E cf)\<inverse>"
+  unfolding residualGraph_def Graph.E_def
+  apply (clarsimp)
+  using no_parallel_edge (* Speed optimization: Adding this directly takes very long *)
+  unfolding E_def
+  apply (simp add: )
+  done
+  
+  
+end -- \<open>Network with preflow\<close>
+  
+  
+locale RPreGraph -- \<open>Locale that characterizes a residual graph of a network\<close>
+= Network +
+  fixes cf
+  assumes EX_RPG: "\<exists>f. NPreflow c s t f \<and> cf = residualGraph c f"
+begin  
+
+  lemma this_loc_rpg: "RPreGraph c s t cf"
+    by unfold_locales
+
+  definition "f \<equiv> flow_of_cf cf"
+
+  lemma f_unique:
+    assumes "NPreflow c s t f'"
+    assumes A: "cf = residualGraph c f'"
+    shows "f' = f"
+  proof -
+    interpret f': NPreflow c s t f' by fact
+    
+    show ?thesis
+      unfolding f_def[abs_def] flow_of_cf_def[abs_def]
+      unfolding A residualGraph_def
+      apply (rule ext)
+      using f'.capacity_const unfolding E_def
+      apply (auto split: prod.split)
+      by (metis antisym)
+  qed
+
+  lemma is_NPreflow: "NPreflow c s t (flow_of_cf cf)"
+    apply (fold f_def)
+    using EX_RPG f_unique by metis
+    
+  sublocale f: NPreflow c s t f unfolding f_def by (rule is_NPreflow)
+
+  lemma rg_is_cf[simp]: "residualGraph c f = cf"
+    using EX_RPG f_unique by auto
+
+  lemma rg_fo_inv[simp]: "residualGraph c (flow_of_cf cf) = cf"  
+    using rg_is_cf
+    unfolding f_def
+    .
+    
+
+  sublocale cf: Graph cf .
+
+  lemma resV_netV[simp]: "cf.V = V"
+    using f.resV_netV by simp
+
+  sublocale cf: Finite_Graph cf 
+    apply unfold_locales
+    apply simp
+    done
+
+  (*lemma finite_cf: "finite (cf.V)" by simp*)
+
+  lemma E_ss_cfinvE: "E \<subseteq> cf.E \<union> cf.E\<inverse>"  
+    using f.E_ss_cfinvE by simp
+
+  lemma cfE_ss_invE: "cf.E \<subseteq> E \<union> E\<inverse>"
+    using f.cfE_ss_invE by simp
+    
+  lemma resE_nonNegative: "cf e \<ge> 0"  
+    using f.resE_nonNegative by auto
+
+end
+
+context NPreflow begin
+  lemma is_RPreGraph: "RPreGraph c s t cf"
+    apply unfold_locales
+    apply (rule exI[where x=f])
+    apply (safe; unfold_locales)
+    done
+
+  lemma fo_rg_inv: "flow_of_cf cf = f"  
+    unfolding flow_of_cf_def[abs_def]
+    unfolding residualGraph_def
+    apply (rule ext)
+    using capacity_const unfolding E_def
+    apply (clarsimp split: prod.split)
+    by (metis antisym)
+
+end    
+
+(* For snippet*)
+lemma (in NPreflow)
+  "flow_of_cf (residualGraph c f) = f"
+  by (rule fo_rg_inv)
+
+
+locale RGraph -- \<open>Locale that characterizes a residual graph of a network\<close>
+= Network +
+  fixes cf
+  assumes EX_RG: "\<exists>f. NFlow c s t f \<and> cf = residualGraph c f"
+begin  
+  sublocale RPreGraph 
+  proof    
+    from EX_RG obtain f where "NFlow c s t f" and [simp]: "cf = residualGraph c f" by auto
+    then interpret NFlow c s t f by simp    
+
+    show "\<exists>f. NPreflow c s t f \<and> cf = residualGraph c f"
+      apply (rule exI[where x="f"])
+      apply simp
+      by unfold_locales  
+  qed  
+
+  lemma this_loc: "RGraph c s t cf"
+    by unfold_locales
+  lemma this_loc_rpg: "RPreGraph c s t cf"
+    by unfold_locales
+    
+  lemma is_NFlow: "NFlow c s t (flow_of_cf cf)"
+    using EX_RG f_unique is_NPreflow NFlow.axioms(1)
+    apply (fold f_def) by force  
+    
+  sublocale f: NFlow c s t f unfolding f_def by (rule is_NFlow)
+end        
+      
+context NFlow begin
+  lemma is_RGraph: "RGraph c s t cf"
+    apply unfold_locales
+    apply (rule exI[where x=f])
+    apply (safe; unfold_locales)
+    done
+end
+  
   
 end -- \<open>Theory\<close>
