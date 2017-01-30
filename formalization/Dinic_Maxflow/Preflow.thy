@@ -1789,5 +1789,59 @@ lemma fifo_push_relabel_correct:
   done    
     
 end  
+
+(* Gap Heuristics *)
+  
+context Labeling begin 
+  text \<open>A path to the sink implies that there is no gap in the labels.\<close>
+  lemma UNUSED_path_to_sink_imp_no_gap:
+    assumes "(u,t)\<in>cf.E\<^sup>*"
+    shows "\<forall>x\<le>l u. \<exists>v\<in>V. l v = x"
+    using assms  
+  proof (induction rule: converse_rtrancl_induct)
+    case base
+    then show ?case 
+      apply clarsimp 
+      using lab_sink by blast
+  next
+    case (step y z)
+    from step.hyps have "y\<in>V" "z\<in>V" using cfE_ss_invE E_ss_VxV by auto
+        
+    show ?case 
+    proof (cases "l y \<le> l z")
+      case True
+      with step.IH show ?thesis by auto
+    next
+      case False
+      with valid[OF \<open>(y,z)\<in>cf.E\<close>] have "l y = l z + 1" by auto
+      with \<open>y\<in>V\<close> step.IH show ?thesis using le_Suc_eq by auto
+    qed    
+  qed    
+  
+  definition (in Network) "gap_relabel_precond l k \<equiv> \<forall>v\<in>V. l v \<noteq> k"
+  definition (in Network) "gap_relabel_effect l k 
+    \<equiv> \<lambda>v. if k<l v \<and> l v < card V then card V + 1 else l v"
     
+  lemma gap_relabel_correct:
+    assumes PRE: "gap_relabel_precond l k"
+    defines "l' \<equiv> gap_relabel_effect l k"
+    shows "Labeling c s t f l'"
+  proof    
+    from lab_src show "l' s = card V" unfolding l'_def gap_relabel_effect_def by auto
+    from lab_sink show "l' t = 0" unfolding l'_def gap_relabel_effect_def by auto
+    
+    have l'_incr: "l' v \<ge> l v" for v unfolding l'_def gap_relabel_effect_def by auto
+        
+    fix u v
+    assume A: "(u,v) \<in> cf.E"  
+    hence "u\<in>V" "v\<in>V" using cfE_ss_invE E_ss_VxV by auto  
+    thus "l' u \<le> l' v + 1"  
+      unfolding l'_def gap_relabel_effect_def
+      using valid[OF A] PRE 
+      unfolding gap_relabel_precond_def 
+      by auto
+  qed  
+  
+end  
+  
 end
