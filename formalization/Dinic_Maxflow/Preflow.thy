@@ -1201,10 +1201,23 @@ lemma algo_rel_altE:
   obtains f e l where "Height_Bounded_Labeling c s t f l" "push_precond f l e" "xx = ((push_effect f e,l),(f,l))"
         | f u l where "Height_Bounded_Labeling c s t f l" "relabel_precond f l u" "xx = ((f, relabel_effect f l u), (f,l))"
   using assms unfolding algo_rel_alt by blast
+  
+
+definition "RR \<equiv> { ((f, relabel_effect f l u), (f,l)) | f u l. Height_Bounded_Labeling c s t f l \<and> relabel_precond f l u }"
     
+lemma "RR \<subseteq> measure (\<lambda>(f,l). sum_heights_measure l)"
+  unfolding RR_def 
+  apply auto
+  using Height_Bounded_Labeling.relabel_measure 
+  by blast    
+  
     
 end  
-    
+
+
+  
+  
+  
   
 (* Relabel to front *)  
 context Network begin  
