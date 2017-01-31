@@ -288,6 +288,11 @@ next
       
 qed    
 
+lemma pp_init_f_preflow: "NPreflow c s t pp_init_f" 
+proof -  
+  from pp_init_invar interpret Labeling c s t pp_init_f pp_init_l .
+  show ?thesis by unfold_locales    
+qed  
   
 definition augment_edge :: "'capacity flow \<Rightarrow> _" where "augment_edge f \<equiv> \<lambda>(u,v) \<Delta>. 
   if (u,v)\<in>E then f( (u,v) := f (u,v) + \<Delta> )
@@ -1208,18 +1213,33 @@ end
 (* Relabel to front *)  
 context Network begin  
   
+definition "relabel f l u \<equiv> do {
+  assert (Labeling c s t f l);
+  assert (relabel_precond f l u);
+  assert (u\<in>V-{s,t});
+  return (relabel_effect f l u)
+}"
+  
+definition "push f l e \<equiv> do {
+  assert (Labeling c s t f l);
+  assert (push_precond f l e);
+  return (push_effect f e)
+}"
+  
 definition "discharge f l n u \<equiv> do {  
+  assert (u \<in> V);
   while\<^sub>T (\<lambda>(f,l,n). excess f u \<noteq> 0) (\<lambda>(f,l,n). do {
     v \<leftarrow> selectp v. v\<in>n u;
     case v of
       None \<Rightarrow> do {
-        assert (relabel_precond f l u);
-        return (f,relabel_effect f l u,n(u := adjacent_nodes u))
+        l \<leftarrow> relabel f l u;
+        return (f,l,n(u := adjacent_nodes u))
       }
     | Some v \<Rightarrow> do {
+        assert (v\<in>V);
         if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
-          assert (push_precond f l (u,v));
-          return (push_effect f (u,v),l,n)
+          f \<leftarrow> push f l (u,v);
+          return (f,l,n)
         } else do {
           assert ( (u,v) \<notin> adm_edges f l );
           return (f,l,n( u := n u - {v} ))
@@ -1233,6 +1253,7 @@ end
 locale neighbor_invar = Height_Bounded_Labeling +
   fixes n :: "node \<Rightarrow> node set"  
   assumes neighbors_adm: "\<lbrakk>v \<in> adjacent_nodes u - n u\<rbrakk> \<Longrightarrow> (u,v) \<notin> adm_edges f l"
+  assumes neighbors_adj: "n u \<subseteq> adjacent_nodes u"  
   assumes neighbors_finite[simp, intro!]: "finite (n u)"  
 begin
   
@@ -1250,7 +1271,7 @@ proof (cases e)
   
     show "neighbor_invar c s t f' l n"
       apply unfold_locales
-      using push_adm_edges[OF PRE] neighbors_adm
+      using push_adm_edges[OF PRE] neighbors_adm neighbors_adj
       by auto  
   qed
 qed
@@ -1263,11 +1284,13 @@ proof -
   from relabel_pres_height_bound[OF PRE] 
   interpret l': Height_Bounded_Labeling c s t f ?l' .
   
-  show ?thesis proof (unfold_locales; clarsimp split: if_splits)
+  show ?thesis 
+    using neighbors_adj
+  proof (unfold_locales; clarsimp split: if_splits)
     fix a b
     assume A: "a\<noteq>u" "b\<in>adjacent_nodes a" "b \<notin> n a" "(a,b)\<in>adm_edges f ?l'"
     hence "(a,b)\<in>cf.E" unfolding adm_edges_def by auto
-    with A relabel_adm_edges(2,3)[OF PRE] neighbors_adm 
+    with A relabel_adm_edges(2,3)[OF PRE] neighbors_adm
     show False 
       apply (auto) (* TODO: Clean up this mess *)
       by (smt DiffD2 Diff_triv adm_edges_def cf.incoming_def mem_Collect_eq prod.simps(2) 
@@ -1287,7 +1310,7 @@ lemma no_neighbors_relabel_precond:
   
 lemma remove_neighbor_pres_nbr_invar: "(u,v)\<notin>adm_edges f l \<Longrightarrow> neighbor_invar c s t f l (n (u := n u - {v}))"
   apply unfold_locales
-  using neighbors_adm 
+  using neighbors_adm neighbors_adj
   by (auto split: if_splits)
     
 end
@@ -1307,6 +1330,7 @@ begin
 lemma u_node_simp1[simp]: "u\<noteq>s" "u\<noteq>t" "s\<noteq>u" "t\<noteq>u" using u_node by auto
 lemma u_node_simp2[simp, intro!]: "u\<in>V" using u_node by auto   
   
+lemma dis_is_lbl: "Labeling c s t f l" by unfold_locales
 lemma dis_is_hbl: "Height_Bounded_Labeling c s t f l" by unfold_locales
 lemma dis_is_nbr: "neighbor_invar c s t f l n" by unfold_locales
   
@@ -1403,6 +1427,10 @@ proof -
     by auto  
 qed  
     
+lemma neighbors_in_V: "v\<in>n u \<Longrightarrow> v\<in>V"  
+  using neighbors_adj[of u] E_ss_VxV unfolding adjacent_nodes_def by auto
+  
+  
 end  
   
 lemma (in neighbor_invar) discharge_invar_init: 
@@ -1418,7 +1446,7 @@ lemma discharge_correct[THEN order_trans, refine_vcg]:
   assumes DINV: "neighbor_invar c s t f l n"
   assumes NOT_ST: "u\<noteq>t" "u\<noteq>s" and UIV: "u\<in>V"
   shows "discharge f l n u \<le> SPEC (\<lambda>(f',l',n'). discharge_invar c s t u f l n f' l' n' \<and> excess f' u = 0)"  
-  unfolding discharge_def  
+  unfolding discharge_def push_def relabel_def
   apply (refine_vcg WHILET_rule[where 
             I="\<lambda>(f',l',n'). discharge_invar c s t u f l n f' l' n'"
         and R="inv_image (algo_rel <*lex*> finite_psubset) 
@@ -1431,8 +1459,9 @@ lemma discharge_correct[THEN order_trans, refine_vcg]:
       solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
       solve: discharge_invar.push_precondI_nz algo_rel.relabel algo_rel_pushI
       solve: discharge_invar.remove_neighbor_pres_dis_invar
+      solve: discharge_invar.neighbors_in_V
       (*solve: discharge_invar.aux_excess_pos*)
-      intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr 
+      intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr solve: discharge_invar.dis_is_lbl
       simp: NOT_ST neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr] UIV)
   subgoal unfolding adm_edges_def by auto  
   subgoal by (auto)
@@ -1456,7 +1485,11 @@ lemma init_no_adm_edges[simp]: "adm_edges pp_init_f pp_init_l = {}"
 lemma rtf_init_neighbor_invar: "neighbor_invar c s t pp_init_f pp_init_l rtf_init_n"
 proof -
   from pp_init_height_bound interpret Height_Bounded_Labeling c s t pp_init_f pp_init_l .
-  show ?thesis by unfold_locales auto  
+
+  have [simp]: "rtf_init_n u \<subseteq> adjacent_nodes u" for u
+    by (auto simp: rtf_init_n_def)
+      
+  show ?thesis by unfold_locales auto
 qed
 
 
@@ -1485,6 +1518,8 @@ definition "relabel_to_front \<equiv> do {
     }
 
   }) (f,l,n,L_left,L_right);
+
+  assert (neighbor_invar c s t f l n);
 
   return f
 }"
@@ -1791,6 +1826,11 @@ lemma fifo_push_relabel_correct:
 end  
 
 (* Gap Heuristics *)
+(*
+  TODO: Reported to be ineffective with FIFO rule by 
+    Cherkassky & Goldberg: On Implementing the Push—Relabel Method for the Maximum Flow Problem
+
+*)  
   
 context Labeling begin 
   text \<open>A path to the sink implies that there is no gap in the labels.\<close>
@@ -1822,7 +1862,7 @@ context Labeling begin
   definition (in Network) "gap_relabel_effect l k 
     \<equiv> \<lambda>v. if k<l v \<and> l v < card V then card V + 1 else l v"
     
-  lemma gap_relabel_correct:
+  lemma gap_relabel_pres_Labeling:
     assumes PRE: "gap_relabel_precond l k"
     defines "l' \<equiv> gap_relabel_effect l k"
     shows "Labeling c s t f l'"
@@ -1843,5 +1883,18 @@ context Labeling begin
   qed  
   
 end  
+  
+lemma (in Height_Bounded_Labeling) 
+  assumes PRE: "gap_relabel_precond l k"
+  defines "l' \<equiv> gap_relabel_effect l k"
+  shows "Height_Bounded_Labeling c s t f l'"  
+proof -  
+  from gap_relabel_pres_Labeling[OF PRE] interpret Labeling c s t f l'
+    unfolding l'_def .
+  
+  show ?thesis    
+    apply unfold_locales
+    unfolding l'_def gap_relabel_effect_def using height_bound by auto
+qed  
   
 end
