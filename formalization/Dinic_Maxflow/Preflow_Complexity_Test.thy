@@ -2,47 +2,7 @@ theory Preflow_Complexity_Test
 imports Preflow
 begin
   
-context Height_Bounded_Labeling begin
-lemma relabel_adm_measure_change:
-  assumes "relabel_precond f l u"
-  shows "card_adm_measure f (relabel_effect f l u) \<le> card V + card_adm_measure f l"
-proof -
-  let ?l' = "relabel_effect f l u"
-  {
-    have "adm_edges f l \<inter> cf.outgoing u = {}" using assms 
-      unfolding relabel_precond_def adm_edges_def cf.E_def cf.outgoing_def by auto
-    moreover note edge_changes = relabel_adm_edges[OF assms]
-    ultimately have "adm_edges f ?l' - cf.outgoing u = adm_edges f l - cf.incoming u" 
-      unfolding cf.adjacent_def by auto
-  } note fct = this
-
-  have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f ?l' - cf.outgoing u)"
-    by (simp add: card_adm_measure_def diff_card_le_card_Diff)
-  then have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f l - cf.incoming u)"
-    using fct by auto
-  moreover have "\<dots> \<le> card (adm_edges f l)"
-    by (simp add: Diff_subset card_mono)
-  moreover have "card (cf.outgoing u) \<le> card cf.V" using cf.outgoing_alt
-    by (metis (mono_tags) card_image_le card_mono cf.succ_ss_V finite_V finite_subset le_trans resV_netV)
-  ultimately have "card_adm_measure f ?l' - card cf.V \<le> card (adm_edges f l)"
-    by auto
-  thus ?thesis using card_adm_measure_def by auto
-qed
-  
-lemma relabel_measure_height_adm:
-  assumes "relabel_precond f l u"
-  shows "card V * sum_heights_measure (relabel_effect f l u) + card_adm_measure f (relabel_effect f l u)
-   \<le> card V * sum_heights_measure l + card_adm_measure f l" (is "?L1 + ?L2 \<le> _")
-proof -
-  have "?L1 + ?L2 \<le> ?L1 + card V + card_adm_measure f l"
-    using relabel_adm_measure_change[OF assms] by auto
-  also have "card V * sum_heights_measure (relabel_effect f l u) + card V = 
-    card V * (sum_heights_measure (relabel_effect f l u) + 1)" by auto
-  also have "sum_heights_measure (relabel_effect f l u) + 1 \<le> sum_heights_measure l"
-    using relabel_measure[OF assms] by auto
-  finally show ?thesis by auto
-qed
-  
+context Height_Bounded_Labeling begin 
 lemma sum_arb:
   assumes A_fin: "finite A"
       and x_mem: "x \<in> A" 
@@ -175,6 +135,7 @@ proof -
   qed
 qed
   
+(* 26.23 part I *)
 lemma sat_push_unsat_potential:
   assumes "sat_push_precond f l e"
   shows "unsat_potential (push_effect f e) l \<le> 2 * card V + unsat_potential f l"
@@ -262,6 +223,74 @@ proof -
     by auto
   finally show ?thesis by auto
 qed
+  
+(* 26.23 part II *)
+lemma relable_unsat_potential:
+  assumes "relabel_precond f l u"
+  shows "unsat_potential f (relabel_effect f l u) \<le> 2 * card V + unsat_potential f l"
+proof -  
+  interpret l': Height_Bounded_Labeling c s t f "(relabel_effect f l u)"
+    using relabel_pres_height_bound[OF assms] .
+      
+  have f0: "u \<in> V" using assms excess_nodes_only relabel_precond_def by auto
+  have f1: "finite {v \<in> V. 0 < excess f v}" using finite_V by auto
+  have f2: "u \<in> {v \<in> V. 0 < excess f v}" using assms excess_nodes_only relabel_precond_def by auto
+  have f3: "\<forall>y\<in>{v \<in> V. 0 < excess f v}. y \<noteq> u \<longrightarrow> l y = l y" by auto
+  have f4: "\<forall>y\<in>{v \<in> V. 0 < excess f v}. y \<noteq> u \<longrightarrow> 
+    (relabel_effect f l u) y = (relabel_effect f l u) y" by auto
+  
+  note sum_arb[OF f1 f2 f4]
+  moreover have "sum (relabel_effect f l u) ({v \<in> V. 0 < excess f v} - {u}) =
+     sum l ({v \<in> V. 0 < excess f v} - {u})" using relabel_preserve_other by auto
+  moreover note sum_arb[OF f1 f2 f3, symmetric]
+  ultimately have fct: "unsat_potential f (relabel_effect f l u) = 
+    unsat_potential f l + relabel_effect f l u u - l u" unfolding unsat_potential_def by auto  
+  
+  have "l u \<le> 2 * card V - 1" using f0 height_bound by auto
+  moreover have "relabel_effect f l u u \<le> 2 * card V - 1" using  f0 l'.height_bound by auto
+  ultimately show ?thesis using fct by auto
+qed
+  
+lemma relabel_adm_measure:
+  assumes "relabel_precond f l u"
+  shows "card_adm_measure f (relabel_effect f l u) \<le> card V + card_adm_measure f l"
+proof -
+  let ?l' = "relabel_effect f l u"
+  {
+    have "adm_edges f l \<inter> cf.outgoing u = {}" using assms 
+      unfolding relabel_precond_def adm_edges_def cf.E_def cf.outgoing_def by auto
+    moreover note edge_changes = relabel_adm_edges[OF assms]
+    ultimately have "adm_edges f ?l' - cf.outgoing u = adm_edges f l - cf.incoming u" 
+      unfolding cf.adjacent_def by auto
+  } note fct = this
+
+  have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f ?l' - cf.outgoing u)"
+    by (simp add: card_adm_measure_def diff_card_le_card_Diff)
+  then have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f l - cf.incoming u)"
+    using fct by auto
+  moreover have "\<dots> \<le> card (adm_edges f l)"
+    by (simp add: Diff_subset card_mono)
+  moreover have "card (cf.outgoing u) \<le> card cf.V" using cf.outgoing_alt
+    by (metis (mono_tags) card_image_le card_mono cf.succ_ss_V finite_V finite_subset le_trans resV_netV)
+  ultimately have "card_adm_measure f ?l' - card cf.V \<le> card (adm_edges f l)"
+    by auto
+  thus ?thesis using card_adm_measure_def by auto
+qed
+  
+lemma relabel_sum_height_card_adm_measure:
+  assumes "relabel_precond f l u"
+  shows "card V * sum_heights_measure (relabel_effect f l u) + card_adm_measure f (relabel_effect f l u)
+   \<le> card V * sum_heights_measure l + card_adm_measure f l" (is "?L1 + ?L2 \<le> _")
+proof -
+  have "?L1 + ?L2 \<le> ?L1 + card V + card_adm_measure f l"
+    using relabel_adm_measure[OF assms] by auto
+  also have "card V * sum_heights_measure (relabel_effect f l u) + card V = 
+    card V * (sum_heights_measure (relabel_effect f l u) + 1)" by auto
+  also have "sum_heights_measure (relabel_effect f l u) + 1 \<le> sum_heights_measure l"
+    using relabel_measure[OF assms] by auto
+  finally show ?thesis by auto
+qed
+  
 end  
   
 context Network begin    
@@ -297,6 +326,11 @@ lemma
   apply auto
   done  
 
+(*
+  Cormen bounds this by |V||E| instead of |V|\<^sup>3, so later he can use it to build the measure for
+  un-saturating pushes (a |V| multiplier is added). We have to make this smaller, or come up with
+  a new measure for un-sturated pushes.
+*)
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
   shows "length (filter (op= SAT_PUSH) p) < card V * sum_heights_measure (snd fxl) + card_adm_measure (fst fxl) (snd fxl) + 1"
@@ -305,7 +339,7 @@ lemma
   apply (auto elim!: algo_rel'.cases)  
   apply (drule (1) Height_Bounded_Labeling.sat_push_measure; auto)
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(1); auto)
-  apply (drule (1) Height_Bounded_Labeling.relabel_measure_height_adm; auto)
+  apply (drule (1) Height_Bounded_Labeling.relabel_sum_height_card_adm_measure; auto)
   done
 
 lemma
@@ -316,13 +350,7 @@ lemma
   apply (auto elim!: algo_rel'.cases)
   apply (frule (1) Height_Bounded_Labeling.unsat_push_measure(1))
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(2); auto)
-  prefer 2
-  subgoal
-    apply 
-  using Height_Bounded_Labeling.unsat_push_measure(1) apply clarsimp
-  
-  apply auto
-  done 
+  oops
     
     
 end
