@@ -294,7 +294,7 @@ qed
 end  
   
 context Network begin    
-definition "RR \<equiv> 
+(*definition "RR \<equiv> 
   { ((f, relabel_effect f l u), (f,l)) | f u l. Height_Bounded_Labeling c s t f l \<and> relabel_precond f l u }
 \<union> { ((push_effect f e,l),(f,l)) | f e l. Height_Bounded_Labeling c s t f l \<and> sat_push_precond f l e }
 "
@@ -304,14 +304,14 @@ lemma "RR \<subseteq> measure (\<lambda>(f,l). (sum_heights_measure l + 1) * car
   apply auto
   using Height_Bounded_Labeling.relabel_measure Height_Bounded_Labeling.unsat_push_measure
   apply auto
-  oops
+  oops*)
     
-datatype op_type = RELABEL | UNSAT_PUSH | SAT_PUSH    
+datatype op_type = RELABEL | UNSAT_PUSH | SAT_PUSH edge   
 inductive_set algo_rel' where
   unsat_push': "\<lbrakk>Height_Bounded_Labeling c s t f l; unsat_push_precond f l e\<rbrakk> 
     \<Longrightarrow> ((f,l),UNSAT_PUSH,(push_effect f e,l))\<in>algo_rel'"
 | sat_push': "\<lbrakk>Height_Bounded_Labeling c s t f l; sat_push_precond f l e\<rbrakk> 
-    \<Longrightarrow> ((f,l),SAT_PUSH,(push_effect f e,l))\<in>algo_rel'"
+    \<Longrightarrow> ((f,l),SAT_PUSH e,(push_effect f e,l))\<in>algo_rel'"
 | relabel': "\<lbrakk>Height_Bounded_Labeling c s t f l; relabel_precond f l u \<rbrakk>
     \<Longrightarrow> ((f,l),RELABEL,(f,relabel_effect f l u))\<in>algo_rel'"
     
@@ -333,7 +333,7 @@ lemma
 *)
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= SAT_PUSH) p) < card V * sum_heights_measure (snd fxl) + card_adm_measure (fst fxl) (snd fxl) + 1"
+  shows "length (filter (\<lambda>x. \<exists>e. x = SAT_PUSH e) p) < card V * sum_heights_measure (snd fxl) + card_adm_measure (fst fxl) (snd fxl) + 1"
   using assms
   apply (induction rule: trcl.induct)
   apply (auto elim!: algo_rel'.cases)  
@@ -352,6 +352,92 @@ lemma
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(2); auto)
   oops
     
+lemma
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+      and "u \<in> V"
+  shows "(snd fxl) u \<le> (snd fxl') u"
+  using assms
+  apply (induction rule: trcl.induct)
+   apply (auto elim!: algo_rel'.cases)
+  subgoal for _ _ _ _ _ u
+  apply (drule (1) Height_Bounded_Labeling.relabel_measure)
+  apply auto
+  done      
     
+    find_theorems "relabel_effect"
+    
+    
+    (*
+    
+datatype zz_type = ZIG | ZAG
+    
+inductive_set zigzag_rel :: "nat \<Rightarrow> nat \<Rightarrow> (nat, zz_type list) LTS" for start max where
+  z_flt[simp]: "\<lbrakk>start \<le> max\<rbrakk> \<Longrightarrow> (start, [], start) \<in> (zigzag_rel start max)"
+| z_rhs[simp]: "\<lbrakk>(a, [], a) \<in> (zigzag_rel start max); a + 1 \<le> max\<rbrakk> 
+              \<Longrightarrow> (a, [ZIG], a + 1) \<in> (zigzag_rel start max)"
+| z_lhs[simp]: "\<lbrakk>(a, [], a) \<in> (zigzag_rel start max); a + 1 \<le> max\<rbrakk> 
+              \<Longrightarrow> (a + 1, [ZAG], a) \<in> (zigzag_rel start max)"    
+| z_zig[simp]: "\<lbrakk>(a + 1, p, a) \<in> (zigzag_rel start max); hd p = ZAG; a + 2 \<le> max\<rbrakk> 
+              \<Longrightarrow> (a + 1, ZIG#p, a + 2) \<in> (zigzag_rel start max)"
+| z_zag[simp]: "\<lbrakk>(a, p, a + 1) \<in> (zigzag_rel start max); hd p = ZIG; a + 2 \<le> max\<rbrakk> 
+              \<Longrightarrow> (a + 2, ZAG#p, a + 1) \<in> (zigzag_rel start max)"
+  
+lemma 
+  assumes "(a, p, b) \<in> (zigzag_rel st mx)"
+  shows "(p = [] \<and> a = b \<and> a = st) \<or> (p \<noteq> [] \<and> ((a = b + 1) \<or> (b = a + 1)))"
+    and "st \<le> a" and "a \<le> mx" and "st \<le> b" and "b \<le> mx"
+  using assms
+  by (induction rule: zigzag_rel.induct) auto
+    
+lemma
+  assumes "x = y + 1"
+      and "x \<le> mx" and "st \<le> y"
+    obtains p where "(x, p, y) \<in> (zigzag_rel st mx)"
+  apply (auto elim:zigzag_rel.cases)
+      sledgehammer
+proof -
+qed
+  
+  
+  
+  
+inductive_set zigzag_chn :: "nat \<Rightarrow> nat \<Rightarrow> (nat, zz_type list) LTS" for start max where
+  empty[simp]: "\<lbrakk>start \<le> max\<rbrakk> \<Longrightarrow>(start, [], start) \<in> (zigzag_chn start max)"
+  zrgt
+| cons1[simp]: "\<lbrakk> (a,ZIG,b) \<in> (zigzag_rel start max); (a',xs,ab'') \<in> (zigzag_chn start max); \<rbrakk>
+                \<Longrightarrow> (ab,x#xs,ab'') \<in> (zigzag_chn start max)"
+  
+lemma arb1:
+  assumes "((a, b), lbl, (a', b')) \<in> (zigzag_rel st mx)"
+    shows "a' \<ge> a" and "b' \<ge> b"
+  using assms
+  by (induction rule: zigzag_rel.induct) auto
+    
+lemma arb1':
+  assumes "((a, b), lbl, (a', b')) \<in> (zigzag_rel st mx)"
+    shows "st \<le> a" and "b' \<le> mx"
+  using assms
+  by (induction rule: zigzag_rel.induct) auto
+    
+lemma arb2:
+  assumes "(ab, P, ab') \<in> (zigzag_chn st mx)"
+  shows "fst ab \<le> fst ab'" and "snd ab \<le> snd ab'"
+  using assms 
+   apply (induction rule: zigzag_chn.induct)
+    apply (auto elim: zigzag_chn.cases)
+   apply (drule arb1; simp)
+  by (drule arb1; simp)
+    
+lemma arb2':
+  assumes "(ab, P, ab') \<in> (zigzag_chn st mx)"
+  shows "st \<le> fst ab" and "snd ab' \<le> mx"    
+  using assms 
+   apply (induction rule: zigzag_chn.induct)
+     apply (auto elim: zigzag_chn.cases) 
+  by (drule arb1', simp)
+    
+
+  
+    *)
 end
 end
