@@ -293,6 +293,17 @@ qed
   
 end  
   
+context Labeling begin  
+  
+  lemma relabel_mono: "relabel_precond f l u \<Longrightarrow> l u' \<le> relabel_effect f l u u'"  
+    apply (cases "u=u'")
+    using relabel_preserve_other relabel_increase_u  
+    apply force+
+    done  
+    
+  
+end  
+  
 context Network begin    
 (*definition "RR \<equiv> 
   { ((f, relabel_effect f l u), (f,l)) | f u l. Height_Bounded_Labeling c s t f l \<and> relabel_precond f l u }
@@ -342,6 +353,141 @@ lemma
   apply (drule (1) Height_Bounded_Labeling.relabel_sum_height_card_adm_measure; auto)
   done
 
+    
+lemma relabel_path_mono:
+  assumes "((f,l),p,(f',l')) \<in> trcl algo_rel'"
+  shows "l u \<le> l' u"
+  using assms 
+proof (induction p arbitrary: f l)  
+  case Nil thus ?case by (auto elim!: algo_rel'.cases)
+next
+  case (Cons a as) 
+  
+  from Cons.prems Cons.IH show ?case
+    apply (auto dest!: trcl_uncons elim!: algo_rel'.cases)
+  proof -
+    assume "Height_Bounded_Labeling c s t f l"
+    then interpret Height_Bounded_Labeling c s t f l .  
+    fix u'
+    assume PRE: "relabel_precond f l u'"
+    let ?l' = "relabel_effect f l u'"
+      
+    have "l u \<le> ?l' u" using relabel_mono[OF PRE] .
+    also 
+    assume "((f, ?l'), as, f', l') \<in> trcl algo_rel'"
+    note Cons.IH[OF this]
+    finally show ?case .
+  qed        
+qed    
+    
+    
+    
+lemma next_sat_push_at_increased_labeling:
+  assumes "l u = l v + 1"
+  assumes "cf_of f (u,v) = 0"  
+  assumes "( (f,l), p@[SAT_PUSH (u,v)], (fE,lE) ) \<in> trcl algo_rel'"  
+  shows "l u + l v < lE u + lE v" 
+  using assms(3,1-2)    
+proof (induction p arbitrary: f l)  
+  case Nil thus ?case by (auto elim!: algo_rel'.cases simp: sat_push_precond_def Graph.E_def)
+next
+  case (Cons a as) 
+  
+  from Cons.prems(1) show ?case
+    apply (auto dest!: trcl_uncons elim!: algo_rel'.cases)
+  proof -
+    assume "Height_Bounded_Labeling c s t f l"
+    then interpret Height_Bounded_Labeling c s t f l .  
+    
+    {
+      fix u' v'
+      assume A: "unsat_push_precond f l (u', v')"  
+
+      from A have NEQ: "(u',v')\<noteq>(u,v) \<and> (u',v')\<noteq>(v,u)"  
+        using Cons.prems(2,3) unfolding unsat_push_precond_def
+        using cfE_ss_invE unfolding Graph.E_def
+        by auto
+        
+      from A interpret push_effect_locale c s t f l u' v'  
+        apply unfold_locales using push_precond_eq_sat_or_unsat by auto
+        
+      have 1: "cf_of f' (u,v) = 0" using NEQ
+        by (auto simp: unsat_push_alt[OF A] Cons.prems(3))
+
+      assume 2: "((f', l), as @ [SAT_PUSH (u, v)], fE, lE) \<in> trcl algo_rel'"    
+          
+      from Cons.IH[OF 2 \<open>l u = l v + 1\<close> 1] show ?case .
+    }    
+      
+    {
+      fix u' v'
+      assume A: "sat_push_precond f l (u', v')"  
+
+      from A have NEQ: "(u',v')\<noteq>(u,v) \<and> (u',v')\<noteq>(v,u)"  
+        using Cons.prems(2,3) unfolding sat_push_precond_def
+        using cfE_ss_invE unfolding Graph.E_def
+        by auto
+        
+      from A interpret push_effect_locale c s t f l u' v'  
+        apply unfold_locales using push_precond_eq_sat_or_unsat by auto
+        
+      have 1: "cf_of f' (u,v) = 0" using NEQ
+        by (auto simp: sat_push_alt[OF A] Cons.prems(3))
+
+      assume 2: "((f', l), as @ [SAT_PUSH (u, v)], fE, lE) \<in> trcl algo_rel'"    
+          
+      from Cons.IH[OF 2 \<open>l u = l v + 1\<close> 1] show ?case .
+    }    
+      
+    {
+      fix u'
+      let ?l' = "relabel_effect f l u'"
+        
+      assume PRE: "relabel_precond f l u'"  
+        
+      assume PATH: "((f, ?l'), as @ [SAT_PUSH (u, v)], fE, lE) \<in> trcl algo_rel'"  
+        
+      have U'_HEIGHT_INCR: "?l' u' > l u'" using relabel_increase_u[OF PRE] .
+        
+      {
+        assume "u'\<in>{u,v}"
+        with U'_HEIGHT_INCR have ?case 
+          using relabel_path_mono[OF PATH, of u] relabel_path_mono[OF PATH, of v] 
+          using relabel_mono[OF PRE]  
+          apply auto
+          apply (metis add_increasing2 add_less_le_mono le0 le_Suc_ex less_le_trans)
+          by (metis add_le_less_mono le_Suc_ex less_le_trans trans_le_add1)
+      } moreover {
+        assume "u'\<notin>{u,v}"
+        with relabel_preserve_other have L'EQ: "?l' u = l u" "?l' v = l v"
+          by auto
+        with Cons.prems(2) have "?l' u = ?l' v + 1" by simp  
+        from Cons.IH[OF PATH this \<open>cf (u, v) = 0\<close>] have ?case by (simp add:  L'EQ)
+      } ultimately show ?case by blast
+    }  
+  qed
+qed    
+      
+lemma    
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter (op= (SAT_PUSH (u,v))) p) \<le> l u + l v"
+    
+oops induction on length of p  
+  p contains \<le> one SAT_PUSH (u,v): Done
+  
+  p = prefix@SAT_PUSH (u,v)#sfx@SAT_PUSH (u,v)#sfx2
+    and sfx,sfx2 do not contain SAT_PUSH
+    
+    fxl --prefix@SAT_PUSH (u,v)\<rightarrow> (fh, lh) --sfx@[SAT_PUSH (u,v)]\<rightarrow> (ft, lt) --sfx2\<rightarrow> fxl'
+    
+    with IH: #sat pushes in prefix + 1 is bounded by lh
+    with next_sat_push_at_increased_labeling on sfx@[SAT_PUSH (u,v)], lt > lh   
+    combined: done
+    
+    
+    subgoal for u' v'  
+    
+    
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
   shows "length (filter (op= UNSAT_PUSH) p) <  card_adm_measure (fst fxl) (snd fxl) + unsat_potential (fst fxl) (snd fxl) + 1"
