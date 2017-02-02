@@ -43,6 +43,10 @@ abbreviation "cf_of \<equiv> residualGraph c"
 abbreviation "cfE_of f \<equiv> Graph.E (cf_of f)"
 
 (* TODO: Move, should make some lemma about Preflow.cf redundant *)    
+lemma cfE_of_ss_invE: "cfE_of cf \<subseteq> E \<union> E\<inverse>"
+  unfolding residualGraph_def Graph.E_def
+  by auto
+  
 lemma cfE_of_ss_VxV: "cfE_of f \<subseteq> V\<times>V"
   unfolding V_def
   unfolding residualGraph_def Graph.E_def
@@ -1217,6 +1221,7 @@ definition "relabel f l u \<equiv> do {
   assert (Labeling c s t f l);
   assert (relabel_precond f l u);
   assert (u\<in>V-{s,t});
+  (*assert (\<exists>v. (u,v)\<in>cfE_of f);*)
   return (relabel_effect f l u)
 }"
   
@@ -1227,7 +1232,7 @@ definition "push f l e \<equiv> do {
 }"
   
 definition "discharge f l n u \<equiv> do {  
-  assert (u \<in> V);
+  assert (u \<in> V - {s,t});
   while\<^sub>T (\<lambda>(f,l,n). excess f u \<noteq> 0) (\<lambda>(f,l,n). do {
     v \<leftarrow> selectp v. v\<in>n u;
     case v of
@@ -1236,7 +1241,7 @@ definition "discharge f l n u \<equiv> do {
         return (f,l,n(u := adjacent_nodes u))
       }
     | Some v \<Rightarrow> do {
-        assert (v\<in>V);
+        assert (v\<in>V \<and> (u,v)\<in>E\<union>E\<inverse>);
         if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
           f \<leftarrow> push f l (u,v);
           return (f,l,n)
@@ -1429,7 +1434,17 @@ qed
     
 lemma neighbors_in_V: "v\<in>n u \<Longrightarrow> v\<in>V"  
   using neighbors_adj[of u] E_ss_VxV unfolding adjacent_nodes_def by auto
-  
+
+lemma neighbors_in_E: "v\<in>n u \<Longrightarrow> (u,v)\<in>E\<union>E\<inverse>"  
+  using neighbors_adj[of u] E_ss_VxV unfolding adjacent_nodes_def by auto
+    
+    
+lemma relabeled_node_has_outgoing: 
+  assumes "relabel_precond f l u"
+  shows "\<exists>v. (u,v)\<in>cfE_of f"  
+  using assms unfolding relabel_precond_def  
+  using active_has_cf_outgoing unfolding cf.outgoing_def by auto
+    
   
 end  
   
@@ -1460,9 +1475,11 @@ lemma discharge_correct[THEN order_trans, refine_vcg]:
       solve: discharge_invar.push_precondI_nz algo_rel.relabel algo_rel_pushI
       solve: discharge_invar.remove_neighbor_pres_dis_invar
       solve: discharge_invar.neighbors_in_V
+      solve: discharge_invar.relabeled_node_has_outgoing
       (*solve: discharge_invar.aux_excess_pos*)
       intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr solve: discharge_invar.dis_is_lbl
       simp: NOT_ST neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr] UIV)
+  subgoal by (auto dest: discharge_invar.neighbors_in_E)  
   subgoal unfolding adm_edges_def by auto  
   subgoal by (auto)
   done
@@ -1503,6 +1520,7 @@ definition "relabel_to_front \<equiv> do {
 
   (f,l,n,L_left,L_right) \<leftarrow> while\<^sub>T (\<lambda>(f,l,n,L_left,L_right). L_right \<noteq> []) (\<lambda>(f,l,n,L_left,L_right). do {
     let u = hd L_right;
+    assert (u \<in> V);
     let old_lu = l u;
 
     (f,l,n) \<leftarrow> discharge f l n u;
