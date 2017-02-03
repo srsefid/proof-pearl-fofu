@@ -3,232 +3,8 @@ imports Ford_Fulkerson
   Refine_Add_Fofu
   Refine_Monadic_Syntax_Sugar
   "$AFP/Program-Conflict-Analysis/LTS"
+  Graph_Topological_Ordering
 begin
-
-(* TODO: Move *)  
-context Graph begin  
-definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
-end  
-  
-context Finite_Graph begin
-lemma adjacent_nodes_finite[simp, intro!]: "finite (adjacent_nodes u)"
-  unfolding adjacent_nodes_def by (auto intro: finite_Image)
-end  
-  
-  
-(* TODO: Move *)  
-lemma swap_in_iff_inv: "prod.swap p \<in> S \<longleftrightarrow> p \<in> S\<inverse>"
-  apply (cases p) by auto
-  
-  
-(* TODO: Move *)  
-lemma (in Network) card_V_ge2: "card V \<ge> 2"
-proof -
-  have "2 = card {s,t}" by auto
-  also have "{s,t} \<subseteq> V" by auto
-  hence "card {s,t} \<le> card V" by (rule_tac card_mono) auto
-  finally show ?thesis .   
-qed  
-  
-(* TODO: Move *)  
-lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<lambda>s. inres m s \<and> nofail m \<and> \<Phi> s)"
-  -- "Strengthen SPEC by adding trivial upper bound for result"
-  by (auto simp: pw_le_iff refine_pw_simps)
-
-    
-(* TODO: Move *)  
-context Network begin
-  
-abbreviation "cf_of \<equiv> residualGraph c"
-abbreviation "cfE_of f \<equiv> Graph.E (cf_of f)"
-
-(* TODO: Move, should make some lemma about Preflow.cf redundant *)    
-lemma cfE_of_ss_invE: "cfE_of cf \<subseteq> E \<union> E\<inverse>"
-  unfolding residualGraph_def Graph.E_def
-  by auto
-  
-lemma cfE_of_ss_VxV: "cfE_of f \<subseteq> V\<times>V"
-  unfolding V_def
-  unfolding residualGraph_def Graph.E_def
-  by auto  
-
-lemma cfE_of_finite[simp, intro!]: "finite (cfE_of f)"
-  using finite_subset[OF cfE_of_ss_VxV] by auto
-
-(* TODO: Move *)    
-lemma cf_no_self_loop: "(u,u)\<notin>cfE_of f"
-proof
-  assume a1: "(u, u) \<in> cfE_of f"
-  have "(u, u) \<notin> E"
-    using no_parallel_edge by blast
-  then show False
-    using a1 unfolding Graph.E_def residualGraph_def by fastforce
-qed 
-  
-    
-    
-end
-    
-  
-  
-  
-(* Auxiliary Stuff *)  
-  
-(* Topological ordering of Graphs *)  
-(* Topological ordering: TODO: Move*)  
-  
-definition "list_before_rel l \<equiv> { (a,b). \<exists>l1 l2 l3. l=l1@a#l2@b#l3 }"
-lemma list_before_irrefl_eq_distinct: "irrefl (list_before_rel l) \<longleftrightarrow> distinct l"  
-  using not_distinct_decomp[of l]
-  by (auto simp: irrefl_def list_before_rel_def)
-  
-lemma list_before_rel_alt: "list_before_rel l = { (l!i, l!j) | i j. i<j \<and> j<length l }"
-  unfolding list_before_rel_def
-  apply (rule; clarsimp)
-  subgoal for a b l1 l2 l3  
-    apply (rule exI[of _ "length l1"]; simp)
-    apply (rule exI[of _ "length l1 + Suc (length l2)"]; auto simp: nth_append)
-    done      
-  subgoal for i j
-    apply (rule exI[of _ "take i l"])
-    apply (rule exI[of _ "drop (Suc i) (take j l)"])
-    apply (rule exI[of _ "drop (Suc j) l"])
-    by (simp add: Cons_nth_drop_Suc drop_take_drop_unsplit)
-  done      
-    
-lemma list_before_trans[trans]: "distinct l \<Longrightarrow> trans (list_before_rel l)" 
-  by (clarsimp simp: trans_def list_before_rel_alt) (metis index_nth_id less_trans)    
-    
-lemma list_before_asym: "distinct l \<Longrightarrow> asym (list_before_rel l)"
-  by (meson asym.intros irrefl_def list_before_irrefl_eq_distinct list_before_trans transE)
-    
-lemma list_before_rel_empty[simp]: "list_before_rel [] = {}"    
-  unfolding list_before_rel_def by auto
-    
-lemma list_before_rel_cons: "list_before_rel (x#l) = ({x}\<times>set l) \<union> list_before_rel l"    
-  apply (intro equalityI subsetI; simp add: split_paired_all)  
-  subgoal for a b proof -
-    assume "(a,b) \<in> list_before_rel (x # l)"  
-    then obtain i j where IDX_BOUND: "i<j" "j<Suc (length l)" and [simp]: "a=(x#l)!i" "b=(x#l)!j" 
-      unfolding list_before_rel_alt by auto
-
-    {
-      assume "i=0"
-      hence "x=a" "b\<in>set l" using IDX_BOUND
-        by (auto simp: nth_Cons split: nat.splits)
-    } moreover {
-      assume "i\<noteq>0"
-      with IDX_BOUND have "a=l!(i-1)" "b=l!(j-1)" "i-1 < j-1" "j-1 < length l"
-        by auto
-      hence "(a, b) \<in> list_before_rel l" unfolding list_before_rel_alt by blast 
-    } ultimately show ?thesis by blast
-  qed
-  subgoal premises prems for a b  
-  proof -
-    {
-      assume [simp]: "a=x" and "b\<in>set l"
-      then obtain j where "b = l!j" "j<length l" by (auto simp: in_set_conv_nth)
-      hence "a=(x#l)!0" "b = (x#l)!Suc j" "0 < Suc j" "Suc j < length (x#l)" by auto
-      hence ?thesis unfolding list_before_rel_alt by blast    
-    } moreover {
-      assume "(a, b) \<in> list_before_rel l"
-      hence ?thesis unfolding list_before_rel_alt
-        by clarsimp (metis Suc_mono nth_Cons_Suc)  
-    } ultimately show ?thesis using prems by blast
-  qed
-  done  
-  
-lemma list_before_rel_on_elems: "list_before_rel l \<subseteq> set l \<times> set l" 
-  unfolding list_before_rel_def by auto
-    
-    
-definition "is_top_sorted R l \<equiv> list_before_rel l \<inter> (R\<^sup>*)\<inverse> = {}"  
-lemma is_top_sorted_alt: "is_top_sorted R l \<longleftrightarrow> (\<forall>x y. (x,y)\<in>list_before_rel l \<longrightarrow> (y,x)\<notin>R\<^sup>*)"
-  unfolding is_top_sorted_def by auto
-  
-lemma is_top_sorted_empty_rel[simp]: "is_top_sorted {} l \<longleftrightarrow> distinct l"
-  by (auto simp: is_top_sorted_def list_before_irrefl_eq_distinct[symmetric] irrefl_def)
-
-lemma is_top_sorted_empty_list[simp]: "is_top_sorted R []"
-  by (auto simp: is_top_sorted_def)
-
-lemma is_top_sorted_distinct: 
-  assumes "is_top_sorted R l" 
-  shows "distinct l"
-proof (rule ccontr)  
-  assume "\<not>distinct l"
-  with list_before_irrefl_eq_distinct[of l] obtain x where "(x,x)\<in>(list_before_rel l)"
-    by (auto simp: irrefl_def)
-  with assms show False unfolding is_top_sorted_def by auto      
-qed  
-  
-    
-lemma is_top_sorted_cons: "is_top_sorted R (x#l) \<longleftrightarrow> ({x}\<times>set l \<inter> (R\<^sup>*)\<inverse> = {}) \<and> is_top_sorted R l"
-  unfolding is_top_sorted_def
-  by (auto simp: list_before_rel_cons)
-    
-lemma is_top_sorted_append: "is_top_sorted R (l1@l2) 
-  \<longleftrightarrow> (set l1\<times>set l2 \<inter> (R\<^sup>*)\<inverse> = {}) \<and> is_top_sorted R l1 \<and> is_top_sorted R l2"    
-  by (induction l1) (auto simp: is_top_sorted_cons)
-
-lemma is_top_sorted_remove_elem: "is_top_sorted R (l1@x#l2) \<Longrightarrow> is_top_sorted R (l1@l2)"
-  by (auto simp: is_top_sorted_cons is_top_sorted_append)
-    
-lemma is_top_sorted_antimono:
-  assumes "R\<subseteq>R'"
-  assumes "is_top_sorted R' l"
-  shows "is_top_sorted R l"  
-  using assms 
-  unfolding is_top_sorted_alt  
-  by (auto dest: rtrancl_mono_mp)
-
-lemma is_top_sorted_isolated_constraint:
-  assumes "R' \<subseteq> R \<union> {x}\<times>X" "R'\<inter>UNIV\<times>{x} = {}"
-  assumes "x\<notin>set l"  
-  assumes "is_top_sorted R l"  
-  shows "is_top_sorted R' l"  
-proof -
-  {
-    fix a b
-    assume "(a,b)\<in>R'\<^sup>*" "a\<noteq>x" "b\<noteq>x"  
-    hence "(a,b)\<in>R\<^sup>*"  
-    proof (induction rule: converse_rtrancl_induct)
-      case base
-      then show ?case by simp
-    next
-      case (step y z)
-      with assms(1,2) have "z\<noteq>x" "(y,z)\<in>R" by auto  
-      with step show ?case by auto
-    qed
-  } note AUX=this
-    
-  show ?thesis
-    using assms(3,4) AUX list_before_rel_on_elems 
-    unfolding is_top_sorted_def by fastforce
-qed  
-  
-
-(* Refinement Framework VCG control:
-  Idea: Put a frame around stuff in the program where the VCG shall not look into
-    on outermost pass, and discharge the frame's content with nested vcg call.
-    Very useful with subgoal command, to set up some auxiliary context before
-    discharging, e.g., interpret locales, etc.
- 
-*)  
-(* TODO: Make this a generic technique:
-  Problems: 
-    * Splitter will split inside VCG_FRAME (e.g., ifs)
-
-*)  
-  
-definition VCG_FRAME :: "_ nres \<Rightarrow> _ nres" where "VCG_FRAME m \<equiv> m"
-lemma VCG_FRAME_cong[cong]: "VCG_FRAME x \<equiv> VCG_FRAME x" by simp
-
-lemma vcg_intro_frame: "m \<equiv> VCG_FRAME m" unfolding VCG_FRAME_def by simp
-lemma vcg_rem_frame: "m\<le>m' \<Longrightarrow> VCG_FRAME m \<le> m'" unfolding VCG_FRAME_def by simp
-  
-  
-  
   
   
 locale Labeling = NPreflow +
@@ -255,9 +31,6 @@ begin
     with cf.simplePath_length_less_V[OF _ SP] show False by auto 
   qed
 end
-
-(*lemma "\<forall>x\<in>A. f x=(0::'a::comm_monoid_add) \<Longrightarrow> sum f A = 0"*)
-  
   
 context Network 
 begin  
@@ -1324,7 +1097,6 @@ locale discharge_invar = neighbor_invar c s t f l n + lo: neighbor_invar c s t f
   for c s t and u :: node and fo lo no f l n +
   assumes lu_incr: "lo u \<le> l u"
   assumes u_node: "u\<in>V-{s,t}"  
-  (*assumes excess_u_decr: "excess fo u \<ge> excess f u"*)
   assumes no_relabel_adm_edges: "lo u = l u \<Longrightarrow> adm_edges f l \<subseteq> adm_edges fo lo"
   assumes no_relabel_excess: "\<lbrakk>lo u = l u; u\<noteq>v; excess fo v \<noteq> excess f v\<rbrakk> \<Longrightarrow> (u,v)\<in>adm_edges fo lo"
   assumes adm_edges_leaving_u: "(u',v)\<in>adm_edges f l - adm_edges fo lo \<Longrightarrow> u'=u"
@@ -1354,7 +1126,6 @@ proof -
     apply unfold_locales
     subgoal using lu_incr by auto
     subgoal by auto    
-    (*subgoal using excess_u_decr \<Delta>_positive by auto*)
     subgoal using no_relabel_adm_edges push_adm_edges(2)[OF PRE] by auto  
     subgoal for v' proof -
       assume LOU: "lo u = l u"
@@ -1410,10 +1181,6 @@ proof -
     subgoal using converse_rtrancl_into_rtrancl[OF relabel[OF dis_is_hbl PRE] algo_rel] .
     done  
 qed                                                    
-  
-(*lemma aux_excess_pos: "\<lbrakk>u\<noteq>s; u\<in>V; \<not> 0 < excess f u\<rbrakk> \<Longrightarrow> excess f u = 0"
-  using excess_non_negative' by force
-*)
 
 lemma push_precondI_nz: "\<lbrakk>excess f u \<noteq> 0; (u,v)\<in>cfE_of f; l u = l v + 1\<rbrakk> \<Longrightarrow> push_precond f l (u,v)"
   unfolding push_precond_def by (auto simp: excess_nz_iff_gz)
@@ -1476,7 +1243,6 @@ lemma discharge_correct[THEN order_trans, refine_vcg]:
       solve: discharge_invar.remove_neighbor_pres_dis_invar
       solve: discharge_invar.neighbors_in_V
       solve: discharge_invar.relabeled_node_has_outgoing
-      (*solve: discharge_invar.aux_excess_pos*)
       intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr solve: discharge_invar.dis_is_lbl
       simp: NOT_ST neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr] UIV)
   subgoal by (auto dest: discharge_invar.neighbors_in_E)  
@@ -1843,7 +1609,7 @@ lemma fifo_push_relabel_correct:
     
 end  
 
-(* Gap Heuristics *)
+section \<open>Gap Heuristics\<close>
 (*
   TODO: Reported to be ineffective with FIFO rule by 
     Cherkassky & Goldberg: On Implementing the Push—Relabel Method for the Maximum Flow Problem

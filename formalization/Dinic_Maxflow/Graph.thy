@@ -55,6 +55,9 @@ where "adjacent' k \<equiv> incoming' k \<union> outgoing' k"
 definition is_adj_map :: "(node \<Rightarrow> node list) \<Rightarrow> bool" where
   "is_adj_map ps \<equiv> (\<forall>u. distinct (ps u) \<and> set (ps u) = E``{u} \<union> E\<inverse>``{u})"
 
+definition "adjacent_nodes u \<equiv> E``{u} \<union> E\<inverse>``{u}"
+  
+  
 end -- \<open>Graph\<close>
 
 subsubsection \<open>Finite Graphs\<close>
@@ -124,6 +127,9 @@ lemma V_alt: "V = fst`E \<union> snd`E" unfolding V_def by force
 
 lemma E_ss_VxV: "E \<subseteq> V\<times>V" by (auto simp: V_def)
 
+lemma adjacent_nodes_ss_V: "adjacent_nodes u \<subseteq> V"  
+  unfolding adjacent_nodes_def using E_ss_VxV by auto
+    
 lemma Vfin_imp_Efin[simp, intro]: assumes "finite V" shows "finite E"
   using E_ss_VxV assms by (auto intro: finite_subset)
 
@@ -161,8 +167,7 @@ lemma
   by (auto 
     intro: finite_subset[OF incoming'_edges] 
     intro: finite_subset[OF outgoing'_edges])
-
-
+  
 subsubsection \<open>Summations over Edges and Nodes\<close>  
 text \<open>We provide useful alternative characterizations for summation over 
     all incoming or outgoing edges.\<close>
@@ -227,6 +232,9 @@ lemma (in Graph) Finite_Graph_EI: "finite E \<Longrightarrow> Finite_Graph c"
   apply unfold_locales
   by (rule Efin_imp_Vfin)
   
+lemma (in Finite_Graph) adjacent_nodes_finite[simp, intro!]: "finite (adjacent_nodes u)"
+  unfolding adjacent_nodes_def by (auto intro: finite_Image)
+    
 subsubsection \<open>Paths\<close>
 
 named_theorems split_path_simps \<open>Simplification lemmas to split paths\<close>

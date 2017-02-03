@@ -3,9 +3,54 @@ imports Fofu_Impl_Base Refine_Monadic_Syntax_Sugar
   "$AFP/DFS_Framework/Misc/DFS_Framework_Refine_Aux"
 begin
 
+(* TODO: Move to Misc *)  
+lemma swap_in_iff_inv: "prod.swap p \<in> S \<longleftrightarrow> p \<in> S\<inverse>"
+  apply (cases p) by auto
+  
+    
+    
   notation Heap_Monad.return ("return")
 
+  (* TODO: Move to Refine_Basic convenience *)  
 
+  lemma strengthen_SPEC': "m \<le> SPEC \<Phi> \<Longrightarrow> m \<le> SPEC(\<lambda>s. inres m s \<and> nofail m \<and> \<Phi> s)"
+    -- "Strengthen SPEC by adding trivial upper bound for result"
+    by (auto simp: pw_le_iff refine_pw_simps)
+
+lemma (in -) refine2spec_aux:
+  "a \<le> \<Down>R b \<longleftrightarrow> ( (nofail b \<longrightarrow> a \<le> SPEC ( \<lambda>r. (\<exists>x. inres b x \<and> (r,x)\<in>R) )) )"
+  by (auto simp: pw_le_iff refine_pw_simps)
+  
+lemma (in -) refine2specI:
+  assumes "nofail b \<Longrightarrow> a \<le> SPEC (\<lambda>r. (\<exists>x. inres b x \<and> (r,x)\<in>R) )"
+  shows "a \<le> \<Down>R b"  
+  using assms by (simp add: refine2spec_aux)  
+  
+
+
+(* Refinement Framework VCG control:
+  Idea: Put a frame around stuff in the program where the VCG shall not look into
+    on outermost pass, and discharge the frame's content with nested vcg call.
+    Very useful with subgoal command, to set up some auxiliary context before
+    discharging, e.g., interpret locales, etc.
+ 
+*)  
+(* TODO: Make this a generic technique:
+  Problems: 
+    * Splitter will split inside VCG_FRAME (e.g., ifs)
+
+*)  
+  
+definition VCG_FRAME :: "_ nres \<Rightarrow> _ nres" where "VCG_FRAME m \<equiv> m"
+lemma VCG_FRAME_cong[cong]: "VCG_FRAME x \<equiv> VCG_FRAME x" by simp
+
+lemma vcg_intro_frame: "m \<equiv> VCG_FRAME m" unfolding VCG_FRAME_def by simp
+lemma vcg_rem_frame: "m\<le>m' \<Longrightarrow> VCG_FRAME m \<le> m'" unfolding VCG_FRAME_def by simp
+  
+  
+  
+      
+      
 
   (* TODO: Integrate into Refinement Framework! *)
 
@@ -134,38 +179,6 @@ lemma setsum_imp_correct:
   done
 
 
-
-    (* TODO: Move *)
-
-
-
-    (* TODO: Move. Should this replace hn_refine_cons? *)
-      
-    
-
-
-
-  (* TODO: This messes up code generation with some odd error msg! Why?  
-  (* TODO: Move to imperative-HOL. Or at least to imp-hol-add *)
-  context begin
-    setup_lifting type_definition_integer 
-  
-    lift_definition integer_encode :: "integer \<Rightarrow> nat" is int_encode .
-  
-    lemma integer_encode_eq: "integer_encode x = integer_encode y \<longleftrightarrow> x = y"
-      apply transfer
-      by (rule inj_int_encode [THEN inj_eq])
-
-    lifting_update integer.lifting
-    lifting_forget integer.lifting
-  end  
-
-  instance integer :: countable
-    by (rule countable_classI [of integer_encode]) (simp add: integer_encode_eq)
-
-  instance integer :: heap ..
-  *)
-
   lemma int_of_integer_less_iff: "int_of_integer x < int_of_integer y \<longleftrightarrow> x<y"
     by (simp add: less_integer_def)
 
@@ -173,25 +186,16 @@ lemma setsum_imp_correct:
     unfolding nat_of_integer.rep_eq
     by (auto simp: int_of_integer_less_iff nat_less_eq_zless int_of_integer_less_iff[of 0, simplified])
     
-  (*(* TODO: Move *)
-  lemma param_integer[param]:
-    "(0, 0::integer) \<in> Id"
-    "(1, 1::integer) \<in> Id"
-    "(numeral n::integer,numeral n::integer) \<in> Id"
-    "(op <, op <::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
-    "(op \<le>, op \<le>::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
-    "(op =, op =::integer \<Rightarrow> _) \<in> Id \<rightarrow> Id \<rightarrow> Id"
-    "(op +::integer\<Rightarrow>_,op +)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-    "(op -::integer\<Rightarrow>_,op -)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-    "(op *::integer\<Rightarrow>_,op * )\<in>Id\<rightarrow>Id\<rightarrow>Id"
-    "(op div::integer\<Rightarrow>_,op div)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-    "(op mod::integer\<Rightarrow>_,op mod)\<in>Id\<rightarrow>Id\<rightarrow>Id"
-    by auto
+      
+(* TODO: Move *)  
   
-  lemmas [sepref_import_param] = param_integer  
+lemma uminus_hnr[sepref_import_param]: "(uminus,uminus)\<in>int_rel \<rightarrow> int_rel" by auto  
   
-  lemmas [id_rules] = 
-    itypeI[Pure.of 0 "TYPE (integer)"]
-  *)  
+  (* TODO: Move *)  
+  lemma (in -) rev_append_hnr[param,sepref_import_param]:
+    "(rev_append, rev_append) \<in> \<langle>A\<rangle>list_rel \<rightarrow> \<langle>A\<rangle>list_rel \<rightarrow> \<langle>A\<rangle>list_rel"
+    unfolding rev_append_def by parametricity
+    
+      
 
 end
