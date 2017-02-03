@@ -1,7 +1,6 @@
 theory Preflow_Push_Impl
 imports 
-  "../../../../isafol/DRAT/Synth_Definition"
-  "../../../../isafol/DRAT/DRAT_Misc"
+  "ext_libs/DRAT_Misc"
   "$AFP/Refine_Imperative_HOL/IICF/IICF"
   Preflow Graph_Impl NetCheck
 begin
