@@ -19,6 +19,38 @@ where "residualGraph c f \<equiv> \<lambda>(u, v).
   else
     0"
 
+context Network begin
+  
+abbreviation "cf_of \<equiv> residualGraph c"
+abbreviation "cfE_of f \<equiv> Graph.E (cf_of f)"
+
+text \<open>The edges of the residual graph are either parallel or reverse 
+  to the edges of the network.\<close>
+lemma cfE_of_ss_invE: "cfE_of cf \<subseteq> E \<union> E\<inverse>"
+  unfolding residualGraph_def Graph.E_def
+  by auto
+  
+lemma cfE_of_ss_VxV: "cfE_of f \<subseteq> V\<times>V"
+  unfolding V_def
+  unfolding residualGraph_def Graph.E_def
+  by auto  
+
+lemma cfE_of_finite[simp, intro!]: "finite (cfE_of f)"
+  using finite_subset[OF cfE_of_ss_VxV] by auto
+
+lemma cf_no_self_loop: "(u,u)\<notin>cfE_of f"
+proof
+  assume a1: "(u, u) \<in> cfE_of f"
+  have "(u, u) \<notin> E"
+    using no_parallel_edge by blast
+  then show False
+    using a1 unfolding Graph.E_def residualGraph_def by fastforce
+qed 
+  
+end
+  
+  
+  
 text \<open>Let's fix a network with a preflow @{term f} on it\<close>
 context NPreflow
 begin
@@ -29,11 +61,10 @@ begin
 
 subsection \<open>Properties\<close>
 
-text \<open>The edges of the residual graph are either parallel or reverse 
-  to the edges of the network.\<close>
-lemma cfE_ss_invE: "Graph.E cf \<subseteq> E \<union> E\<inverse>"
+lemmas cfE_ss_invE = cfE_of_ss_invE[of f]  
+(*lemma cfE_ss_invE: "Graph.E cf \<subseteq> E \<union> E\<inverse>"
   unfolding residualGraph_def Graph.E_def
-  by auto
+  by auto*)
 
 text \<open>The nodes of the residual graph are exactly the nodes of the network.\<close>
 lemma resV_netV[simp]: "cf.V = V"

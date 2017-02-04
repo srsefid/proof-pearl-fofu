@@ -95,6 +95,11 @@ begin
   lemma no_self_loop: "\<forall>u. (u, u) \<notin> E"
     using no_parallel_edge by auto
 
+  lemma adjacent_not_self[simp, intro!]: "v \<notin> adjacent_nodes v"
+    unfolding adjacent_nodes_def using no_self_loop 
+    by auto
+    
+
   text \<open>A flow is maximal, if it has a maximal value\<close>  
   definition isMaxFlow :: "_ flow \<Rightarrow> bool" 
   where "isMaxFlow f \<equiv> Flow c s t f \<and> 
@@ -112,7 +117,6 @@ context Network begin
 
 definition excess :: "'capacity flow \<Rightarrow> node \<Rightarrow> 'capacity" where
   "excess f v \<equiv> (\<Sum>e\<in>incoming v. f e) - (\<Sum>e\<in>outgoing v. f e)"
-  
 end
   
 locale NPreflow = Network c s t + Preflow c s t f 
@@ -242,6 +246,15 @@ lemma cap_positive: "e \<in> E \<Longrightarrow> c e > 0"
 
 lemma V_not_empty: "V\<noteq>{}" using s_node by auto
 lemma E_not_empty: "E\<noteq>{}" using V_not_empty by (auto simp: V_def)
+    
+lemma card_V_ge2: "card V \<ge> 2"
+proof -
+  have "2 = card {s,t}" by auto
+  also have "{s,t} \<subseteq> V" by auto
+  hence "card {s,t} \<le> card V" by (rule_tac card_mono) auto
+  finally show ?thesis .   
+qed  
+    
     
 end -- \<open>Network\<close>
 

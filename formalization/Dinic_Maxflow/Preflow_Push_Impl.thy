@@ -1,9 +1,8 @@
 theory Preflow_Push_Impl
 imports 
-  "../../../../isafol/DRAT/Synth_Definition"
-  "../../../../isafol/DRAT/DRAT_Misc"
-  Preflow Graph_Impl
+  "ext_libs/DRAT_Misc"
   "$AFP/Refine_Imperative_HOL/IICF/IICF"
+  Preflow Graph_Impl NetCheck
 begin
 
 (* TODO: Move *)  
@@ -55,23 +54,11 @@ lemma monadic_WHILEIT_comb[sepref_monadify_comb]:
     )"
   by (simp)
 
-  
-(*locale Network_with_Adjm = Network c s t for c :: "'capacity::linordered_idom flow" and s t +
-  fixes am assumes am_is_adj_map: "is_adj_map am"
-begin  
-
-  lemma am_in_rel: "(am,adjacent_nodes) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel"
-    using am_is_adj_map unfolding is_adj_map_def
-    by (auto simp: adjacent_nodes_def list_set_rel_def in_br_conv)  
-  
-  lemma am_out_V_empty[simp]: "v\<notin>V \<Longrightarrow> am v = []"
-    using am_is_adj_map[unfolded is_adj_map_def, THEN spec, of v] E_ss_VxV by auto
-*)
-  
 context Network 
 begin  
   
-(* Custom operations *)  
+(* Basic operations *)  
+(* TODO: Also abstract over queue this way! *)  
   
 (* Residual Graph *)  
   
@@ -222,12 +209,6 @@ definition "pp_init_xcf2_aux \<equiv> do {
     return (x,cf)
   }) (x,cf)
 }"
-
-(* TODO: Move *)  
-lemma adjacent_not_self[simp, intro!]: "v \<notin> adjacent_nodes v"
-  unfolding adjacent_nodes_def using no_self_loop 
-  by auto
-  
   
 lemma pp_init_xcf2_aux_spec: 
   shows "pp_init_xcf2_aux \<le> SPEC (\<lambda>(x,cf). x=pp_init_x \<and> cf = pp_init_cf)"
@@ -415,9 +396,6 @@ definition (in Network) "min_adj_label_aux cf l u \<equiv> do {
   return (the x)
 }"
     
-(* TODO: Move *)  
-lemma (in Network) adjacent_nodes_ss_V: "adjacent_nodes u \<subseteq> V"  
-  unfolding adjacent_nodes_def using E_ss_VxV by auto
 
 lemma (in -) set_filter_xform_aux: 
   "{ f x | x. ( x = a \<or> x\<in>S \<and> x\<notin>it ) \<and> P x } = (if P a then {f a} else {}) \<union> {f x | x. x\<in>S-it \<and> P x}"    
@@ -679,16 +657,6 @@ definition "relabel_to_front2 N am \<equiv> do {
   return cf
 }"
   
-(* TODO: Move to Refine_Basic convenience *)  
-lemma (in -) refine2spec_aux:
-  "a \<le> \<Down>R b \<longleftrightarrow> ( (nofail b \<longrightarrow> a \<le> SPEC ( \<lambda>r. (\<exists>x. inres b x \<and> (r,x)\<in>R) )) )"
-  by (auto simp: pw_le_iff refine_pw_simps)
-  
-lemma (in -) refine2specI:
-  assumes "nofail b \<Longrightarrow> a \<le> SPEC (\<lambda>r. (\<exists>x. inres b x \<and> (r,x)\<in>R) )"
-  shows "a \<le> \<Down>R b"  
-  using assms by (simp add: refine2spec_aux)  
-  
     
 lemma relabel_to_front2_refine[refine]: 
   assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
@@ -768,12 +736,8 @@ begin
       
 end
 
-(* TODO: Move *)  
   
-lemma uminus_hnr[sepref_import_param]: "(uminus,uminus)\<in>int_rel \<rightarrow> int_rel" by auto  
-  
-  
-(* TODO: Duplicated from EdmondsKarp_Impl! *)  
+(* TODO: Duplicated from EdmondsKarp_Impl! Merge! *)  
 locale Network_Impl = Network c s t for c :: "capacity_impl graph" and s t +
   fixes N :: nat
   assumes V_ss: "V\<subseteq>{0..<N}"
@@ -788,11 +752,11 @@ begin
 
   lemma mtx_nonzeroN: "mtx_nonzero c \<subseteq> {0..<N}\<times>{0..<N}" using E_ss by simp
 
-  lemma [simp]: "(u,v) \<in> mtx_nonzero c \<Longrightarrow> u<N \<and> v<N" using mtx_nonzeroN by auto   
+  lemma in_mtx_nonzeroN[simp]: "(u,v) \<in> mtx_nonzero c \<Longrightarrow> u<N \<and> v<N" using mtx_nonzeroN by auto   
       
-  lemma [simp]: "v\<in>V \<Longrightarrow> v<N" using V_ss by auto
+  lemma inV_less_N[simp]: "v\<in>V \<Longrightarrow> v<N" using V_ss by auto
   
-  lemma [simp]: "e\<in>E \<or> e\<in>E\<inverse> \<Longrightarrow> case e of (u,v) \<Rightarrow> u<N \<and> v<N"    
+  lemma inEIE_lessN[simp]: "e\<in>E \<or> e\<in>E\<inverse> \<Longrightarrow> case e of (u,v) \<Rightarrow> u<N \<and> v<N"    
     using E_ss by auto
   lemmas [simp] = nested_case_prod_simp
       
@@ -1010,12 +974,6 @@ begin
   concrete_definition (in -) init_CQ_impl uses Network_Impl.init_CQ_impl.refine_raw is "(uncurry ?f,_)\<in>_"
   lemmas [sepref_fr_rules] = init_CQ_impl.refine[OF nwi_this]    
     
-    
-  (* TODO: Move *)  
-  lemma (in -) rev_append_hnr[param,sepref_import_param]:
-    "(rev_append, rev_append) \<in> \<langle>A\<rangle>list_rel \<rightarrow> \<langle>A\<rangle>list_rel \<rightarrow> \<langle>A\<rangle>list_rel"
-    unfolding rev_append_def by parametricity
-    
   sepref_register relabel_to_front2
   sepref_thm relabel_to_front_impl is 
     "uncurry (PR_CONST relabel_to_front2)" :: "[\<lambda>(x,_). x=N]\<^sub>a nat_assn\<^sup>k *\<^sub>a am_assn\<^sup>k \<rightarrow> cf_assn"  
@@ -1035,15 +993,14 @@ export_code relabel_to_front_impl in SML_imp module_name Relabel_To_Front
 thm relabel_to_front_impl_def  
   
 context Network_Impl begin
-  (*xxx, ctd here: Move this to Network locale! Define xxx_assn outside locales!?*)
   
-  theorem relabel_to_front_impl_correct: 
+  theorem relabel_to_front_impl_correct[sep_heap_rules]: 
     assumes VN: "Graph.V c \<subseteq> {0..<N}"
     assumes ABS_PS: "is_adj_map am"
     shows "
       <am_assn am ami> 
         relabel_to_front_impl c s t N N ami
-      <\<lambda>cfi. \<exists>\<^sub>Acf. cf_assn cf cfi * \<up>(isMaxFlow (flow_of_cf cf))>\<^sub>t"
+      <\<lambda>cfi. \<exists>\<^sub>Acf. cf_assn cf cfi * \<up>(isMaxFlow (flow_of_cf cf) \<and> RPreGraph c s t cf)>\<^sub>t"
   proof -
     have AM: "(am, adjacent_nodes) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel"
       using ABS_PS
@@ -1065,9 +1022,74 @@ context Network_Impl begin
   qed
 end    
 
+definition "relabel_to_front_impl_tab_am c s t N am \<equiv> do {
+  ami \<leftarrow> Array.make N am;  (* TODO/DUP: Called init_ps in Edmonds-Karp impl *)
+  relabel_to_front_impl c s t N N ami
+}"  
+  
+theorem relabel_to_front_impl_tab_am_correct[sep_heap_rules]: 
+  assumes NW: "Network c s t"
+  assumes VN: "Graph.V c \<subseteq> {0..<N}"
+  assumes ABS_PS: "Graph.is_adj_map c am"
+  shows "
+    <emp> 
+      relabel_to_front_impl_tab_am c s t N am
+    <\<lambda>cfi. \<exists>\<^sub>Acf. 
+        asmtx_assn N id_assn cf cfi 
+      * \<up>(Network.isMaxFlow c s t (Network.flow_of_cf c cf)
+        \<and> RPreGraph c s t cf
+        )>\<^sub>t"
+proof -
+  interpret Network c s t by fact
+  interpret Network_Impl c s t N using VN by unfold_locales    
+  
+  from ABS_PS have [simp]: "am u = []" if "u\<ge>N" for u
+    unfolding is_adj_map_def
+    using E_ss_VxV VN that 
+    apply (subgoal_tac "u\<notin>V") 
+    by (auto simp del: inV_less_N)
+  
+  show ?thesis
+    unfolding relabel_to_front_impl_tab_am_def 
+    apply vcg
+    apply (rule Hoare_Triple.cons_rule[OF _ _ relabel_to_front_impl_correct[OF VN ABS_PS]])
+    subgoal unfolding am_assn_def is_nf_def by sep_auto
+    subgoal unfolding cf_assn_def by sep_auto
+    done  
+qed        
+  
+definition "relabel_to_front el s t \<equiv> do {
+  case prepareNet el s t of
+    None \<Rightarrow> return None
+  | Some (c,am,N) \<Rightarrow> do {
+      cf \<leftarrow> relabel_to_front_impl_tab_am c s t N am;
+      return (Some (c,am,N,cf))
+  }
+}"
+export_code relabel_to_front checking SML
 
-  
-  
-  
+text \<open>
+  Main correctness statement:
+  If \<open>relabel_to_front\<close> returns \<open>None\<close>, the edge list was invalid or described an invalid network.
+  If it returns \<open>Some (c,am,N,cfi)\<close>, then the edge list is valid and describes a valid network.
+  Moreover, \<open>cfi\<close> is an integer square matrix of dimension \<open>N\<close>, which describes a valid residual graph
+  in the network, whose corresponding flow is maximal.
+  Finally, \<open>am\<close> is a valid adjacency map of the graph, and the nodes of the graph are integers less than \<open>N\<close>.
+\<close>  
+theorem relabel_to_front_correct:
+  "<emp>
+  relabel_to_front el s t
+  <\<lambda>
+    None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
+  | Some (c,am,N,cfi) \<Rightarrow> 
+      \<up>(c = ln_\<alpha> el \<and> ln_invar el \<and> Network c s t) 
+    * (\<exists>\<^sub>Acf. asmtx_assn N int_assn cf cfi 
+          * \<up>(RPreGraph c s t cf \<and> Network.isMaxFlow c s t (Network.flow_of_cf c cf))) 
+    * \<up>(Graph.is_adj_map c am \<and> Graph.V c \<subseteq> {0..<N})
+  >\<^sub>t
+  "
+  unfolding relabel_to_front_def
+  using prepareNet_correct[of el s t]
+  by (sep_auto simp: ln_rel_def in_br_conv)
   
 end
