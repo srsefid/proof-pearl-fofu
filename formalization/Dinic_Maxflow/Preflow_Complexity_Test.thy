@@ -852,6 +852,115 @@ lemma unsat_push_action_count:
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(2); auto)
   apply (drule (1) Height_Bounded_Labeling.unsat_push_action_count_AUX; auto)  
   done
+
+(***********************
+************************
+*******Complexity*******
+************************
+******** O(V\<^sup>2E) ********) 
+theorem algo_rel'_complexity:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length p \<le> 
+    2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V)) + 8 * card V * card E"
+proof (cases "p = []")
+  case True
+  then show ?thesis by auto
+next
+  case False
+  let ?set_abs = "\<lambda>P. {i. i < length p \<and> P (p ! i)}"
+  
+  have "length p = length (filter (\<lambda>_. True) p)" by auto
+  also have "\<dots> = length (filter (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v))) p)" 
+    by (metis op_type.exhaust prod_decode_aux.cases)
+  also have "\<dots> = card (?set_abs (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v))))"
+    using length_filter_conv_card by auto
+  also have "\<dots> \<le> card (?set_abs (op= RELABEL)) + card (?set_abs (op= UNSAT_PUSH)) +
+    card (?set_abs (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)))" (is "?C0 \<le> ?C1 + ?C2 + ?C3")
+  proof -
+    have "?set_abs (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v))) = 
+      ?set_abs (\<lambda>a. a = RELABEL) \<union> ?set_abs (\<lambda>a. a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v)))" 
+      (is "?SL = ?SR1 \<union> ?SR2") by auto
+    then have fct1: "card ?SL \<le> card ?SR1 + card?SR2" by (simp add: card_Un_le)
+    
+    have "?SR2 = ?set_abs (\<lambda>a. a = UNSAT_PUSH) \<union> ?set_abs (\<lambda>a. \<exists> u v. a = SAT_PUSH (u, v))"
+      (is "_ = ?SR21 \<union> ?SR22") by auto
+    then have fct2: "card ?SR2 \<le> card ?SR21 + card ?SR22" by (simp add: card_Un_le)
+  
+    note fct1 fct2  
+    then have "?C0 \<le> card ?SR1 + card ?SR21 + card ?SR22" by auto
+    moreover have "card ?SR1 = ?C1" by metis
+    moreover have "card ?SR21 = ?C2" by metis
+    moreover have "card ?SR22 = ?C3" by metis
+    ultimately show ?thesis by metis
+  qed
+  also have "?C1 = length (filter (op= RELABEL) p)" using length_filter_conv_card[symmetric] by auto
+  also have "?C2 = length (filter (op= UNSAT_PUSH) p)" using length_filter_conv_card[symmetric] by auto
+  also have "?C3 = length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p)" 
+    using length_filter_conv_card[symmetric, of p "\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)"] by auto
+  finally have p_spl:"length p \<le> length (filter (op= RELABEL) p) + length (filter (op= UNSAT_PUSH) p) +
+    length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p)" by auto
+  
+  {
+    have f1: "sum_heights_measure l \<le> 2 * card V * card V" for l
+      unfolding  sum_heights_measure_def
+    proof -
+      have "2 * card V - l v \<le> 2 * card V" for v by auto
+      then have "(\<Sum>v\<in>V. 2 * card V - l v) \<le> (\<Sum>v\<in>V. 2 * card V)" by (meson sum_mono)
+      also have "(\<Sum>v\<in>V. 2 * card V) = card V * (2 * card V)" using finite_V by auto
+      finally show "(\<Sum>v\<in>V. 2 * card V - l v) \<le> 2 * card V * card V" by auto
+    qed
+    
+    have f2: "unsat_potential (fst fxl) (snd fxl) \<le> 2 * card V * card V "
+    proof -
+      obtain a as where "p = a # as" using False by (cases p) auto
+      then obtain fli where "(fxl, a, fli) \<in> algo_rel'" using assms by (meson trcl_uncons_cases)
+      moreover obtain f l f' l' where "fxl = (f, l)" and "fli = (f', l')" by (cases fxl, cases fli) auto
+      ultimately have "Height_Bounded_Labeling c s t f l" using algo_rel'_Height_Bounded_Labeling_fst by auto
+      
+      then interpret Height_Bounded_Labeling c s t f l .
+      have "unsat_potential (fst fxl) (snd fxl) = (\<Sum>v\<in>{v \<in> V. 0 < excess f v}. l v)" 
+        unfolding unsat_potential_def using `fxl = (f, l)` by auto
+      also have "\<dots> \<le> (\<Sum>v\<in>V. l v)"
+      proof -
+        have f1:"{v \<in> V. 0 < excess f v} \<subseteq> V" by auto
+        thus ?thesis using sum.subset_diff[OF f1 finite_V, of l] by auto
+      qed
+      also have "\<dots>  \<le> (\<Sum>v\<in>V. 2 * card V - 1)" using height_bound by (meson sum_mono)
+      also have "\<dots> = card V * (2 * card V - 1)" by auto
+      also have "card V * (2 * card V - 1) \<le> 2 * card V * card V" by auto
+      finally show ?thesis .
+    qed
+    
+    note f1 f2
+  } note sum_abs = this
+    
+  note p_spl 
+  also {
+    have "length (filter (op = UNSAT_PUSH) p) \<le> 2 * card V * card V +
+    2 * card V * length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) +
+    2 * card V * (sum_heights_measure (snd fxl))"
+      using unsat_push_action_count[OF assms] sum_abs(2) by auto
+    also have "\<dots> = 2 * card V * (card V + 
+      length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) + (sum_heights_measure (snd fxl)))"
+      by (simp add: add_mult_distrib2)
+    also have "length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) \<le> 8 * card V * card E"
+      using sat_push_action_count[OF assms] by auto
+    also note sum_abs(1)[of "snd fxl"]
+    also have "2 * card V * (card V + 8 * card V * card E + 2 * card V * card V) = 
+       2 * card V * card V * (1 + 8 * card E + 2 * card V)" using add_mult_distrib2 by auto
+    finally have "length (filter (op = UNSAT_PUSH) p) \<le>
+       2 * card V * card V * (1 + 8 * card E + 2 * card V)" by auto
+  }
+  also have "length (filter (op = RELABEL) p) \<le> 2 * card V * card V" 
+    using relabel_action_count[OF assms] sum_abs(1)[of "snd fxl"] by auto
+  also have "length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) \<le> 8 * card V * card E"
+    using sat_push_action_count[OF assms] by auto
+  also have "2 * card V * card V + 2 * card V * card V * (1 + 8 * card E + 2 * card V) =
+     2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V))" by simp
+  finally have "length p  \<le> 
+    2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V)) + 8 * card V * card E" by auto
+  thus ?thesis by blast
+qed
     
 end
 end
