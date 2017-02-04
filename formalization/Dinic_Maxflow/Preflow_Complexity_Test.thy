@@ -865,7 +865,7 @@ lemma unsat_push_action_count:
 theorem algo_rel'_complexity:
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
   shows "length p \<le> 
-    2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V)) + 8 * card V * card E"
+           4 * (card V)^2 + 8 * card V * card E +  4 * (card V)^3  + 16 *(card V)^2 * card E"
 proof (cases "p = []")
   case True
   then show ?thesis by auto
@@ -961,9 +961,14 @@ next
     using sat_push_action_count[OF assms] by auto
   also have "2 * card V * card V + 2 * card V * card V * (1 + 8 * card E + 2 * card V) =
      2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V))" by simp
-  finally have "length p  \<le> 
-    2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V)) + 8 * card V * card E" by auto
-  thus ?thesis by blast
+  also have "1 + (1 + 8 * card E + 2 * card V) = 2 * (1 + card V + 4 * card E)" by auto
+  also have "2 * card V * card V * (2 * (1 + card V + 4 * card E)) = 
+    4 * card V * card V * (1 + card V + 4 * card E)" by auto
+  also have "\<dots> = 4 * card V * card V + 4 * card V * card V * card V + 4 * card V * card V * 4 * card E"
+    by (simp add: distrib_left)
+  also have "\<dots> = 4 * (card V)^2 + 4 * (card V)^3 + 16 *(card V)^2 * (card E)"
+    by (simp add: power2_eq_square power3_eq_cube)
+  finally show ?thesis by auto
 qed
     
 end
