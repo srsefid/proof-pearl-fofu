@@ -318,7 +318,31 @@ context Labeling begin
     apply force+
     done 
   
-end  
+end
+
+
+lemma card_Union_Sum_le:
+  assumes "finite A"
+    shows "card (\<Union>x\<in>A. S x) \<le> (\<Sum>x\<in>A. card (S x))"
+  using assms 
+proof (induction "card A" arbitrary: A)
+  case 0
+  then show ?case by auto
+next
+  case (Suc x)
+  obtain a A' where obt1:"card A' = x" and obt2:"A = insert a A'" 
+    using Suc.prems Suc.hyps(2) by (metis card_Suc_eq)
+
+  have "(\<Union>x\<in>A. S x) = S a \<union> (\<Union>x\<in>A'. S x)" using obt2 by auto
+  then have "card (\<Union>x\<in>A. S x) \<le> card (S a) + card (\<Union>x\<in>A'. S x)" using card_Un_le by auto
+  also have "card (\<Union>x\<in>A'. S x) \<le> (\<Sum>x\<in>A'. card (S x))" 
+    using Suc.prems obt1[symmetric] obt2 Suc.hyps(1) by auto
+  also have "card (S a) + (\<Sum>x\<in>A'. card (S x)) = (\<Sum>x\<in>A. card (S x))"
+    by (metis Suc.hyps(2) Suc.prems card_insert_if finite_insert n_not_Suc_n obt1 obt2 sum.insert)
+  finally show ?case by auto
+qed
+
+  
   
 context Network begin    
     
@@ -698,9 +722,7 @@ next
     then have ?thesis using sat_push_no_vertex_chain_length[OF assms] by auto
   }
   ultimately show ?thesis by blast
-qed
-
-  
+qed  
   
 (*************************************************************************************************
 *****************************************NEW BOUNDS***********************************************
@@ -713,17 +735,96 @@ lemma relabel_action_count:
   apply (auto elim!: algo_rel'.cases)  
   apply (drule (1) Height_Bounded_Labeling.relabel_measure)
   apply auto
-  done  
+  done
 
-
+lemma sat_push_action_count: 
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)) p) \<le> 8 * card V * card E" (is "?L \<le> ?R")
+proof -
+  let ?set_abs = "\<lambda>P. {i. i < length p \<and> P (p ! i)}"
+  
+  have "?L = card (?set_abs (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)))" using length_filter_conv_card by auto
+  also {
+    have "?set_abs (\<lambda>a.\<exists>u v. a=SAT_PUSH (u,v)) = (?set_abs (\<lambda>a.\<exists>u v.((u,v)\<notin>E\<and>(v,u)\<notin>E) \<and> a=SAT_PUSH (u,v)))
+      \<union> (?set_abs (\<lambda>a. \<exists>u v. ((u,v)\<in>E\<or>(v,u)\<in>E) \<and> a = SAT_PUSH (u,v)))" (is "?SL = ?SR1 \<union> ?SR2") by auto
+    then have fct1: "card ?SL \<le> card ?SR1 + card?SR2" by (simp add: card_Un_le)
+    
+    have "?SR2 = (?set_abs (\<lambda>a. \<exists>u v. (u,v)\<in>E \<and> a = SAT_PUSH (u,v)))
+    \<union> (?set_abs (\<lambda>a. \<exists>u v. (v,u)\<in>E \<and> a = SAT_PUSH (u,v)))" (is "_ = ?SR21 \<union> ?SR22") by auto
+    then have fct2: "card ?SR2 \<le> card ?SR21 + card ?SR22" by (simp add: card_Un_le)
+  
+    
+    note fct1 fct2
+    then have "card ?SL \<le> card ?SR1 + card ?SR21 + card ?SR22" by auto      
+    also have "card ?SR1 = length (filter (\<lambda>a.\<exists>u v.((u,v)\<notin>E\<and>(v,u)\<notin>E) \<and> a=SAT_PUSH (u,v)) p)"
+      using length_filter_conv_card[symmetric, of p] by auto
+    also have "\<dots> = 0"
+      using assms 
+      apply(induction rule:trcl.induct)
+      apply (auto elim!: algo_rel'.cases simp add:sat_push_precond_def)
+      using cfE_of_ss_invE by blast
+    also have "card ?SR21 \<le> (\<Sum>(u,v)\<in>E. length (filter (op= (SAT_PUSH (u,v))) p))"
+    proof -
+      have "?SR21 = (\<Union>(u, v)\<in>E. {i. i < length p \<and>  p ! i = SAT_PUSH (u, v)})" by auto
+      then have "card ?SR21 \<le> (\<Sum>(u,v)\<in>E. card {i. i < length p \<and>  p ! i = SAT_PUSH (u, v)})" using
+        card_Union_Sum_le[OF finite_E, of "\<lambda>(u,v). {i. i < length p \<and>  p ! i = SAT_PUSH (u,v)}"]
+        by auto
+      also have "\<dots> = (\<Sum>(u,v)\<in>E. length (filter (op= (SAT_PUSH (u,v))) p))"
+      proof -
+        have "card {i. i < length p \<and>  p ! i = SAT_PUSH (u, v)} = 
+          length (filter (op= (SAT_PUSH (u,v))) p)" for u v
+          using length_filter_conv_card[symmetric, of p "\<lambda>a. a= SAT_PUSH (u,v)"] 
+          by (metis (mono_tags, lifting) filter_cong)
+        thus ?thesis by simp
+      qed
+      finally show ?thesis .
+    qed  
+    also have "card ?SR22 \<le> (\<Sum>(v,u)\<in>E. length (filter (op= (SAT_PUSH (u,v))) p))"
+    proof -
+      have "?SR22 = (\<Union>(v, u)\<in>E. {i. i < length p \<and>  p ! i = SAT_PUSH (u, v)})" by auto
+      then have "card ?SR22 \<le> (\<Sum>(v,u)\<in>E. card {i. i < length p \<and>  p ! i = SAT_PUSH (u, v)})" using
+        card_Union_Sum_le[OF finite_E, of "\<lambda>(v,u). {i. i < length p \<and>  p ! i = SAT_PUSH (u,v)}"]
+        by (metis (no_types, lifting) case_prod_conv cond_case_prod_eta) 
+      also have "\<dots> = (\<Sum>(v,u)\<in>E. length (filter (op= (SAT_PUSH (u,v))) p))"
+      proof -
+        have "card {i. i < length p \<and>  p ! i = SAT_PUSH (u, v)} = 
+          length (filter (op= (SAT_PUSH (u,v))) p)" for v u
+          using length_filter_conv_card[symmetric, of p "\<lambda>a. a= SAT_PUSH (u,v)"] 
+          by (metis (mono_tags, lifting) filter_cong)
+        thus ?thesis by simp
+      qed
+      finally show ?thesis .
+    qed
+    finally have "card ?SL \<le> (\<Sum>(u,v)\<in>E. length (filter (op= (SAT_PUSH (u,v))) p)) + 
+      (\<Sum>(v,u)\<in>E. length (filter (op= (SAT_PUSH (u,v))) p))" by auto
+  }
+  also have "(\<Sum>(u, v)\<in>E. length (filter (op = (SAT_PUSH (u, v))) p)) \<le> 4 * card E * card V"
+  proof -
+    have "length (filter (op = (SAT_PUSH (u, v))) p) \<le> 4 * card V" for u v
+      using sat_push_edge_chain_length[OF assms] by simp
+    then have "(\<Sum>(u, v)\<in>E. length (filter (op = (SAT_PUSH (u, v))) p)) \<le> (\<Sum>(u, v)\<in>E. 4 * card V)"
+      by (metis (no_types, lifting) case_prodE2 nat_le_linear old.prod.case sum_mono)
+    thus ?thesis by auto
+  qed
+  also have "(\<Sum>(v, u)\<in>E. length (filter (op = (SAT_PUSH (u, v))) p)) \<le> 4 * card E * card V"
+  proof -
+    have "length (filter (op = (SAT_PUSH (u, v))) p) \<le> 4 * card V" for u v
+      using sat_push_edge_chain_length[OF assms] by simp
+    then have "(\<Sum>(v, u)\<in>E. length (filter (op = (SAT_PUSH (u, v))) p)) \<le> (\<Sum>(v, u)\<in>E. 4 * card V)"
+      by (metis (no_types, lifting) case_prodE2 nat_le_linear old.prod.case sum_mono)
+    thus ?thesis by auto
+  qed
+  finally show ?thesis by auto
+qed
     
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= UNSAT_PUSH) p) <  card_adm_measure (fst fxl) (snd fxl) + unsat_potential (fst fxl) (snd fxl) + 1"
+  shows "length (filter (op= UNSAT_PUSH) p) < length (filter (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)) p)
+     + unsat_potential (fst fxl) (snd fxl) + 1"
   using assms
   apply (induction rule: trcl.induct)
   apply (auto elim!: algo_rel'.cases)
-  apply (frule (1) Height_Bounded_Labeling.unsat_push_measure(1))
+  apply (frule (3) Height_Bounded_Labeling.unsat_push_measure(1))
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(2); auto)
   oops
     
