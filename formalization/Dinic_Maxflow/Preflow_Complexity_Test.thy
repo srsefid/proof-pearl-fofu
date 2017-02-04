@@ -415,6 +415,10 @@ next
   qed        
 qed    
     
+  
+(* When proving sat_push_no_vertex_chain_length lemma,
+   I thought maybe it is possible to prove it without
+   this lemma, however, I did not look into it. TODO *)  
 lemma next_sat_push_at_increased_labeling:
   assumes "l u = l v + 1"
   assumes "cf_of f (u,v) = 0"  
