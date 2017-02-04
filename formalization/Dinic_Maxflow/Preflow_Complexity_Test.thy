@@ -3,6 +3,12 @@ imports Preflow
 begin
   
 context Height_Bounded_Labeling begin 
+(***********************
+************************
+**TODO: Clean up *******
+************************
+************************)  
+(* TODO: Used in the following lemmas which both look to be redundant *)
 lemma sum_arb:
   assumes A_fin: "finite A"
       and x_mem: "x \<in> A" 
@@ -14,7 +20,8 @@ proof -
   moreover note sum.cong[of "A - {x}" "A - {x}" g h]
   ultimately show ?thesis using A_fin x_dif by auto
 qed
-  
+
+(* TODO: I think there was already a similar lemma, adapt 26.23 part I and II to that lemma *)
 lemma push_excess_out:
   assumes "(u, v) \<in> cf.E"
   defines X_def:"X \<equiv> min (excess f u) (cf (u,v))"  
@@ -75,6 +82,7 @@ proof -
   qed
 qed
   
+(* TODO: I think there was already a similar lemma, adapt 26.23 part I and II to that lemma *)
 lemma push_excess_in:
   assumes "(u, v) \<in> cf.E"
   defines X_def:"X \<equiv> min (excess f u) (cf (u,v))"  
@@ -135,7 +143,55 @@ proof -
   qed
 qed
   
-(* 26.23 part I *)
+(*TODO: used in lemma before which is not required any more. *)  
+lemma relabel_adm_measure:
+  assumes "relabel_precond f l u"
+  shows "card_adm_measure f (relabel_effect f l u) \<le> card V + card_adm_measure f l"
+proof -
+  let ?l' = "relabel_effect f l u"
+  {
+    have "adm_edges f l \<inter> cf.outgoing u = {}" using assms 
+      unfolding relabel_precond_def adm_edges_def cf.E_def cf.outgoing_def by auto
+    moreover note edge_changes = relabel_adm_edges[OF assms]
+    ultimately have "adm_edges f ?l' - cf.outgoing u = adm_edges f l - cf.incoming u" 
+      unfolding cf.adjacent_def by auto
+  } note fct = this
+
+  have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f ?l' - cf.outgoing u)"
+    by (simp add: card_adm_measure_def diff_card_le_card_Diff)
+  then have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f l - cf.incoming u)"
+    using fct by auto
+  moreover have "\<dots> \<le> card (adm_edges f l)"
+    by (simp add: Diff_subset card_mono)
+  moreover have "card (cf.outgoing u) \<le> card cf.V" using cf.outgoing_alt
+    by (metis (mono_tags) card_image_le card_mono cf.succ_ss_V finite_V finite_subset le_trans resV_netV)
+  ultimately have "card_adm_measure f ?l' - card cf.V \<le> card (adm_edges f l)"
+    by auto
+  thus ?thesis using card_adm_measure_def by auto
+qed
+  
+(*TODO: used for old measure on saturating push giving V^3 complexity, not required any more. *)  
+lemma relabel_sum_height_card_adm_measure:
+  assumes "relabel_precond f l u"
+  shows "card V * sum_heights_measure (relabel_effect f l u) + card_adm_measure f (relabel_effect f l u)
+   \<le> card V * sum_heights_measure l + card_adm_measure f l" (is "?L1 + ?L2 \<le> _")
+proof -
+  have "?L1 + ?L2 \<le> ?L1 + card V + card_adm_measure f l"
+    using relabel_adm_measure[OF assms] by auto
+  also have "card V * sum_heights_measure (relabel_effect f l u) + card V = 
+    card V * (sum_heights_measure (relabel_effect f l u) + 1)" by auto
+  also have "sum_heights_measure (relabel_effect f l u) + 1 \<le> sum_heights_measure l"
+    using relabel_measure[OF assms] by auto
+  finally show ?thesis by auto
+qed
+(***********************
+************************
+******* END TODO *******
+************************
+************************)  
+  
+  
+(* Cormen 26.23 part I *)
 lemma sat_push_unsat_potential:
   assumes "sat_push_precond f l e"
   shows "unsat_potential (push_effect f e) l \<le> 2 * card V + unsat_potential f l"
@@ -224,7 +280,7 @@ proof -
   finally show ?thesis by auto
 qed
   
-(* 26.23 part II *)
+(* Cormen 26.23 part II *)
 lemma relable_unsat_potential:
   assumes "relabel_precond f l u"
   shows "unsat_potential f (relabel_effect f l u) \<le> 2 * card V + unsat_potential f l"
@@ -249,47 +305,8 @@ proof -
   have "l u \<le> 2 * card V - 1" using f0 height_bound by auto
   moreover have "relabel_effect f l u u \<le> 2 * card V - 1" using  f0 l'.height_bound by auto
   ultimately show ?thesis using fct by auto
-qed
+qed  
   
-lemma relabel_adm_measure:
-  assumes "relabel_precond f l u"
-  shows "card_adm_measure f (relabel_effect f l u) \<le> card V + card_adm_measure f l"
-proof -
-  let ?l' = "relabel_effect f l u"
-  {
-    have "adm_edges f l \<inter> cf.outgoing u = {}" using assms 
-      unfolding relabel_precond_def adm_edges_def cf.E_def cf.outgoing_def by auto
-    moreover note edge_changes = relabel_adm_edges[OF assms]
-    ultimately have "adm_edges f ?l' - cf.outgoing u = adm_edges f l - cf.incoming u" 
-      unfolding cf.adjacent_def by auto
-  } note fct = this
-
-  have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f ?l' - cf.outgoing u)"
-    by (simp add: card_adm_measure_def diff_card_le_card_Diff)
-  then have "card_adm_measure f ?l' - card (cf.outgoing u) \<le> card (adm_edges f l - cf.incoming u)"
-    using fct by auto
-  moreover have "\<dots> \<le> card (adm_edges f l)"
-    by (simp add: Diff_subset card_mono)
-  moreover have "card (cf.outgoing u) \<le> card cf.V" using cf.outgoing_alt
-    by (metis (mono_tags) card_image_le card_mono cf.succ_ss_V finite_V finite_subset le_trans resV_netV)
-  ultimately have "card_adm_measure f ?l' - card cf.V \<le> card (adm_edges f l)"
-    by auto
-  thus ?thesis using card_adm_measure_def by auto
-qed
-  
-lemma relabel_sum_height_card_adm_measure:
-  assumes "relabel_precond f l u"
-  shows "card V * sum_heights_measure (relabel_effect f l u) + card_adm_measure f (relabel_effect f l u)
-   \<le> card V * sum_heights_measure l + card_adm_measure f l" (is "?L1 + ?L2 \<le> _")
-proof -
-  have "?L1 + ?L2 \<le> ?L1 + card V + card_adm_measure f l"
-    using relabel_adm_measure[OF assms] by auto
-  also have "card V * sum_heights_measure (relabel_effect f l u) + card V = 
-    card V * (sum_heights_measure (relabel_effect f l u) + 1)" by auto
-  also have "sum_heights_measure (relabel_effect f l u) + 1 \<le> sum_heights_measure l"
-    using relabel_measure[OF assms] by auto
-  finally show ?thesis by auto
-qed
   
 end  
   
@@ -299,23 +316,11 @@ context Labeling begin
     apply (cases "u=u'")
     using relabel_preserve_other relabel_increase_u  
     apply force+
-    done  
-    
+    done 
   
 end  
   
 context Network begin    
-(*definition "RR \<equiv> 
-  { ((f, relabel_effect f l u), (f,l)) | f u l. Height_Bounded_Labeling c s t f l \<and> relabel_precond f l u }
-\<union> { ((push_effect f e,l),(f,l)) | f e l. Height_Bounded_Labeling c s t f l \<and> sat_push_precond f l e }
-"
-    
-lemma "RR \<subseteq> measure (\<lambda>(f,l). (sum_heights_measure l + 1) * card_adm_measure f l)"
-  unfolding RR_def 
-  apply auto
-  using Height_Bounded_Labeling.relabel_measure Height_Bounded_Labeling.unsat_push_measure
-  apply auto
-  oops*)
     
 datatype op_type = RELABEL | UNSAT_PUSH | SAT_PUSH edge   
 inductive_set algo_rel' where
@@ -325,23 +330,13 @@ inductive_set algo_rel' where
     \<Longrightarrow> ((f,l),SAT_PUSH e,(push_effect f e,l))\<in>algo_rel'"
 | relabel': "\<lbrakk>Height_Bounded_Labeling c s t f l; relabel_precond f l u \<rbrakk>
     \<Longrightarrow> ((f,l),RELABEL,(f,relabel_effect f l u))\<in>algo_rel'"
-    
- 
-lemma
-  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= RELABEL) p) < sum_heights_measure (snd fxl) + 1"
-  using assms
-  apply (induction rule: trcl.induct)
-  apply (auto elim!: algo_rel'.cases)  
-  apply (drule (1) Height_Bounded_Labeling.relabel_measure)
-  apply auto
-  done  
-
-(*
+  
+(*************************************************************************************************
+  TODO: Remove! old bound
   Cormen bounds this by |V||E| instead of |V|\<^sup>3, so later he can use it to build the measure for
   un-saturating pushes (a |V| multiplier is added). We have to make this smaller, or come up with
   a new measure for un-sturated pushes.
-*)
+*************************************************************************************************)
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
   shows "length (filter (\<lambda>x. \<exists>e. x = SAT_PUSH e) p) < card V * sum_heights_measure (snd fxl) + card_adm_measure (fst fxl) (snd fxl) + 1"
@@ -351,8 +346,24 @@ lemma
   apply (drule (1) Height_Bounded_Labeling.sat_push_measure; auto)
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(1); auto)
   apply (drule (1) Height_Bounded_Labeling.relabel_sum_height_card_adm_measure; auto)
-  done
+  done  
+(*************************************************************************************************
+*************************************************************************************************)  
+  
+  
+  
+ 
+lemma algo_rel'_Height_Bounded_Labeling_fst:
+  assumes "((f, l), a, (f', l')) \<in> algo_rel'"
+  shows "Height_Bounded_Labeling c s t f l"
+  using assms by (auto elim!:algo_rel'.cases)
 
+lemma algo_rel'_Height_Bounded_Labeling_snd:
+  assumes "((f, l), a, (f', l')) \<in> algo_rel'"
+  shows "Height_Bounded_Labeling c s t f' l'"
+  using assms 
+  by (auto elim!:algo_rel'.cases simp add: push_precond_def sat_push_precond_def unsat_push_precond_def
+    Height_Bounded_Labeling.push_pres_height_bound Height_Bounded_Labeling.relabel_pres_height_bound)    
     
 lemma relabel_path_mono:
   assumes "((f,l),p,(f',l')) \<in> trcl algo_rel'"
@@ -379,8 +390,6 @@ next
     finally show ?case .
   qed        
 qed    
-    
-    
     
 lemma next_sat_push_at_increased_labeling:
   assumes "l u = l v + 1"
@@ -466,27 +475,247 @@ next
       } ultimately show ?case by blast
     }  
   qed
-qed    
-      
-lemma    
-  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= (SAT_PUSH (u,v))) p) \<le> l u + l v"
-    
-oops induction on length of p  
-  p contains \<le> one SAT_PUSH (u,v): Done
+qed
   
-  p = prefix@SAT_PUSH (u,v)#sfx@SAT_PUSH (u,v)#sfx2
-    and sfx,sfx2 do not contain SAT_PUSH
+lemma arb_list_obtain:
+  assumes "length LST \<ge> 2"
+  obtains X' x1 x2 where "LST = X' @ [x1, x2]"
+proof -
+  have "\<exists> X' x1 x2. LST = X' @ [x1, x2]"
+  using assms proof (induction LST)
+    case Nil
+    then show ?case by auto
+  next
+    case (Cons a X)
+    show ?case
+    proof (cases "length X \<ge> 2")
+      case True
+      then show ?thesis using Cons.IH by auto
+    next
+      case False  
+      have "length X \<ge> 1" using Cons.prems by auto
+      then have "length X = 1" using False by linarith
+      then obtain b where "X = [b]" by (cases X) auto
+      thus ?thesis by auto
+    qed
+  qed
+  then obtain X' x1 x2 where "LST = X' @ [x1, x2]" by blast
+  thus ?thesis ..
+qed
+  
+lemma arb_filter_append:
+  assumes "filter P C = A @ B"
+  obtains C1 C2 where "C = C1 @ C2 \<and> filter P C1 = A \<and> filter P C2 = B"
+proof -
+  have "\<exists>C1 C2. C = C1 @ C2 \<and> filter P C1 = A \<and> filter P C2 = B"
+  using assms proof (induction C arbitrary: A B)
+    case Nil
+    then show ?case by auto
+  next
+    case (Cons a C)  
+    show ?case
+    proof (cases "P a")
+      case True                
+      {
+        assume "A = []"
+        then have "a # C = [] @ (a # C) \<and> filter P [] = A \<and> filter P (a # C) = B"
+          using Cons.prems True by auto
+        then have ?thesis by blast
+      }
+      moreover {
+        assume "A \<noteq> []"
+        then obtain A' where "filter P (a # C) = a # A' @ B" and "a # A' = A"
+          and "filter P C = A' @ B" using Cons.prems True
+          by (metis filter.simps(2) list_Cons_eq_append_cases)
+        then obtain C1 C2 where "C = C1 @ C2" and "filter P C1 = A'" and "filter P C2 = B" 
+          using Cons.IH[of A' B] by auto
+            
+        have "a # C = (a # C1) @ C2 \<and> filter P (a # C1) = A \<and> filter P C2 = B"
+          using `C = C1 @ C2` `filter P C1 = A'` `a # A' = A` `filter P C2 = B` True by auto
+        then have ?thesis by blast
+      } 
+      ultimately show ?thesis by blast
+    next
+      case False
+      then have "filter P C = A @ B" using Cons.prems by simp
+      then obtain C1 C2 where "C = C1 @ C2" and "filter P C1 = A" and "filter P C2 = B" 
+        using Cons.IH[of A B] by auto
+      
+      have "filter P (a # C1) = A" using False `filter P C1 = A` by simp
+      moreover have "(a # C) = (a # C1) @ C2" using `C = C1 @ C2` by simp
+      ultimately show ?thesis using `filter P C2 = B` `filter P C1 = A` `C = C1 @ C2` by metis
+    qed
+  qed
+  then obtain C1 C2 where "C = C1 @ C2 \<and> filter P C1 = A \<and> filter P C2 = B" by blast
+  thus ?thesis ..
+qed   
+      
+lemma sat_push_no_vertex_chain_length:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  assumes "u \<notin> V \<or> v \<notin> V"
+  shows "length (filter (op= (SAT_PUSH (u,v))) p) = 0"  
+  using assms proof (induction rule: trcl.induct)
+  case (empty c)
+  then show ?case by auto
+next
+  case (cons c a c' w c'')
+  show ?case
+  proof (cases "a=SAT_PUSH (u, v)")
+    case True
+    obtain e where "e = (u, v)" by auto
+    then have "(c, SAT_PUSH e, c') \<in> algo_rel'" using cons.hyps(1) True by simp
+    then have "sat_push_precond (fst c) (snd c) e"  
+      using Network.algo_rel'p.simps Network_axioms algo_rel'_def by fastforce
+    then have "(u, v) \<in> cfE_of (fst c)" unfolding sat_push_precond_def `e = (u, v)` by auto
+    then have "u \<in> V \<and> v \<in> V"  using cfE_of_ss_VxV by blast
+    then show ?thesis using cons.prems by auto
+  next
+    case False
+    then show ?thesis using cons.IH[OF cons.prems] by auto
+  qed
+qed  
+  
+lemma sat_push_edge_chain_height_sum:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter (op= (SAT_PUSH (u,v))) p) \<le> (snd fxl') u + (snd fxl') v + 2"
+  using assms
+proof (induction "length (filter (op= (SAT_PUSH (u,v))) p)" arbitrary: p fxl fxl')
+  case 0
+  then show ?case by auto
+next
+  case (Suc x)
+  show ?case
+  proof (cases "length (filter (op= (SAT_PUSH (u,v))) p) < 2")
+    case True
+    then show ?thesis by simp
+  next
+    case False
+    let ?L = "filter (op= (SAT_PUSH (u,v))) p"
+      
+    note arb_list_obtain [of ?L]
+    moreover have "2 \<le> length ?L" using False by simp
+    moreover have "\<forall>a\<in>set ?L. a= SAT_PUSH (u,v)" by auto
+    moreover have "A = A' @ [a, b] \<Longrightarrow> (a \<in> set A \<and> b \<in> set A)" for A A' a b by auto
+    ultimately obtain L' where L_split: "?L = L' @ [SAT_PUSH (u,v), SAT_PUSH (u,v)]" by metis
     
-    fxl --prefix@SAT_PUSH (u,v)\<rightarrow> (fh, lh) --sfx@[SAT_PUSH (u,v)]\<rightarrow> (ft, lt) --sfx2\<rightarrow> fxl'
+    obtain P1 P2 where p_spl1:"p = P1 @ P2" and p_spl2: "filter (op = (SAT_PUSH (u, v))) P1 = L'" 
+      and p_spl3: "filter (op = (SAT_PUSH (u, v))) P2 = [SAT_PUSH (u, v), SAT_PUSH (u, v)]"
+      using arb_filter_append[OF L_split] by metis
+    then obtain P21 P22 where p_spl4: "P2 = P21 @ SAT_PUSH (u, v) # P22" and
+      p_spl5: "(\<forall>ua\<in>set P21. SAT_PUSH (u, v) \<noteq> ua)" and
+      "filter (op = (SAT_PUSH (u, v))) P22 = [SAT_PUSH (u, v)]" 
+      using filter_eq_Cons_iff[of "op = (SAT_PUSH (u, v))" P2 "SAT_PUSH (u, v)"] by auto
+    then obtain P22_1 P22_2 where p_spl6: "P22 = P22_1 @ SAT_PUSH (u, v) # P22_2" and 
+      "(\<forall>ua\<in>set P22_1. SAT_PUSH (u, v) \<noteq> ua)" and
+      p_spl8: "filter (op = (SAT_PUSH (u, v))) P22_2 = []"
+      using filter_eq_Cons_iff[of "op = (SAT_PUSH (u, v))"] by auto
+        
+    obtain p1 p2 p3 where "p = (p1 @ [SAT_PUSH (u, v)]) @ (p2 @ (SAT_PUSH (u, v) # p3))"
+      and "p1 = P1 @ P21" and "p2 = P22_1" and "p3=P22_2"
+      and "filter (op = (SAT_PUSH (u, v))) p1 = L'"
+      and "filter (op = (SAT_PUSH (u, v))) p2 = []"
+      and "filter (op = (SAT_PUSH (u, v))) p3 = []"
+      using p_spl1 p_spl2 p_spl3 p_spl4 p_spl5 p_spl6 p_spl8 by auto
+    note p_split= this(1, 5-7)
+            
+    let ?p_app1 = "p1 @ [SAT_PUSH (u, v)]"
+    let ?p_app2 = "(p2 @ (SAT_PUSH (u, v) # p3))"
+    let ?L_app = "filter (op = (SAT_PUSH (u, v))) ?p_app1"    
+      
+    obtain fli where 
+      trcl1: "(fxl,?p_app1,fli)\<in>trcl algo_rel'" and trcl1':"(fli,?p_app2,fxl')\<in>trcl algo_rel'"
+      using trcl_unconcat[of fxl ?p_app1 ?p_app2 fxl' algo_rel'] p_split(1) Suc.prems by auto
+    obtain fli' where trcl2: "(fli, p2 @ [SAT_PUSH (u, v)], fli') \<in> trcl algo_rel'"
+        and trcl3: "(fli', p3, fxl') \<in> trcl algo_rel'"
+      using trcl_unconcat[of fli "p2 @ [SAT_PUSH (u, v)]" p3 fxl' algo_rel'] trcl1' by auto
+    obtain fi li where fli_def: "fli = (fi, li)" by (cases fli) auto
     
-    with IH: #sat pushes in prefix + 1 is bounded by lh
-    with next_sat_push_at_increased_labeling on sfx@[SAT_PUSH (u,v)], lt > lh   
-    combined: done
-    
-    
-    subgoal for u' v'  
-    
+    {
+      have "x = length ?L_app" using p_split(2) Suc.hyps L_split by auto    
+      then have "length (filter (op = (SAT_PUSH (u, v))) ?p_app1) \<le> li u + li v + 2" 
+        using Suc.hyps(1)[of ?p_app1 fxl fli] trcl1 fli_def by auto    
+      then have "length (filter (op = (SAT_PUSH (u, v))) p) \<le> li u + li v + 3" 
+        using p_split(2) L_split by auto
+    }          
+    also {
+      obtain flb where "(flb, SAT_PUSH (u, v), fli) \<in> algo_rel'
+        "using trcl_rev_uncons[OF trcl1] by blast
+      moreover obtain fb lb where "flb = (fb, lb)" by (cases flb) auto
+      ultimately have pe1: "Height_Bounded_Labeling c s t fb lb" and pe2:"sat_push_precond fb lb (u, v)"
+        and pe3:"fi = (push_effect fb (u, v))" and pe4:"li = lb" using fli_def by (auto elim!: algo_rel'.cases)
+      
+      {
+        interpret Height_Bounded_Labeling c s t fb lb using `Height_Bounded_Labeling c s t fb lb` .
+        have "(u, v) \<notin> adm_edges fi lb" using sat_push_decr_adm_edges[OF pe2] pe3[symmetric] by auto
+        moreover have "lb u = lb v + 1" using pe2 unfolding sat_push_precond_def by auto
+        ultimately have "cf_of fi (u, v) = 0" unfolding adm_edges_def Graph.E_def by auto
+      }
+      then have "cf_of fi (u, v) = 0" and "li u = li v + 1" 
+        using pe2 pe4 unfolding sat_push_precond_def by auto
+      moreover note next_sat_push_at_increased_labeling[of li u v fi p2 "fst fli'" "snd fli'"]
+      ultimately have "li u + li v < snd fli' u + snd fli' v" using trcl2 fli_def by auto
+    }
+    also {
+      obtain fi' li' f' l' where 
+        "fli' = (fi', li')" and "fxl' = (f', l')" by (cases fli', cases fxl') auto
+      then have "snd fli' u + snd fli' v \<le> snd fxl' u + snd fxl' v" using trcl3
+        relabel_path_mono[of fi' li' p3 f' l' u] relabel_path_mono[of fi' li' p3 f' l' v] by auto
+    }
+    finally show ?thesis by auto
+  qed
+qed
+  
+lemma sat_push_edge_chain_length:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter (op= (SAT_PUSH (u,v))) p) \<le> 4 * card V"
+proof (cases "p = []")
+  case True
+  then show ?thesis by auto
+next
+  case False
+  then obtain x xs where "p = xs @ [x]" by (meson neq_Nil_rev_conv)
+  then obtain fl where "(fl, x, fxl') \<in> algo_rel'" 
+    using assms trcl_unconcat[of fxl xs "[x]" fxl' algo_rel'] by auto
+  moreover obtain f l f' l' where "fl = (f, l)" and "fxl' = (f', l')" by (cases fl, cases fxl') auto
+  ultimately have "Height_Bounded_Labeling c s t (fst fxl') (snd fxl')"
+    using algo_rel'_Height_Bounded_Labeling_snd by auto
+
+  then interpret Height_Bounded_Labeling c s t "(fst fxl')" "(snd fxl')" .
+  
+  {
+    assume a1: "u \<in> V \<and> v \<in> V"
+    then have "V \<noteq> {}" by auto
+    then have "card V \<ge> 1" using min_dist_less_V nat_geq_1_eq_neqz by auto
+      
+    have "length (filter (op= (SAT_PUSH (u,v))) p) \<le> (snd fxl') u + (snd fxl') v + 2"
+      using sat_push_edge_chain_height_sum[OF assms, of u v] by auto
+    moreover have "(snd fxl') u \<le> 2 * card V - 1" and "(snd fxl') v \<le> 2 * card V - 1"
+      using height_bound a1 by auto
+    ultimately have ?thesis using `card V \<ge> 1` by auto
+  }
+  moreover {
+    assume a1: "\<not> (u \<in> V \<and> v \<in> V)"
+    then have ?thesis using sat_push_no_vertex_chain_length[OF assms] by auto
+  }
+  ultimately show ?thesis by blast
+qed
+
+  
+  
+(*************************************************************************************************
+*****************************************NEW BOUNDS***********************************************
+*************************************************************************************************)  
+lemma relabel_action_count:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter (op= RELABEL) p) < sum_heights_measure (snd fxl) + 1"
+  using assms
+  apply (induction rule: trcl.induct)
+  apply (auto elim!: algo_rel'.cases)  
+  apply (drule (1) Height_Bounded_Labeling.relabel_measure)
+  apply auto
+  done  
+
+
     
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
@@ -498,92 +727,5 @@ lemma
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(2); auto)
   oops
     
-lemma
-  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-      and "u \<in> V"
-  shows "(snd fxl) u \<le> (snd fxl') u"
-  using assms
-  apply (induction rule: trcl.induct)
-   apply (auto elim!: algo_rel'.cases)
-  subgoal for _ _ _ _ _ u
-  apply (drule (1) Height_Bounded_Labeling.relabel_measure)
-  apply auto
-  done      
-    
-    find_theorems "relabel_effect"
-    
-    
-    (*
-    
-datatype zz_type = ZIG | ZAG
-    
-inductive_set zigzag_rel :: "nat \<Rightarrow> nat \<Rightarrow> (nat, zz_type list) LTS" for start max where
-  z_flt[simp]: "\<lbrakk>start \<le> max\<rbrakk> \<Longrightarrow> (start, [], start) \<in> (zigzag_rel start max)"
-| z_rhs[simp]: "\<lbrakk>(a, [], a) \<in> (zigzag_rel start max); a + 1 \<le> max\<rbrakk> 
-              \<Longrightarrow> (a, [ZIG], a + 1) \<in> (zigzag_rel start max)"
-| z_lhs[simp]: "\<lbrakk>(a, [], a) \<in> (zigzag_rel start max); a + 1 \<le> max\<rbrakk> 
-              \<Longrightarrow> (a + 1, [ZAG], a) \<in> (zigzag_rel start max)"    
-| z_zig[simp]: "\<lbrakk>(a + 1, p, a) \<in> (zigzag_rel start max); hd p = ZAG; a + 2 \<le> max\<rbrakk> 
-              \<Longrightarrow> (a + 1, ZIG#p, a + 2) \<in> (zigzag_rel start max)"
-| z_zag[simp]: "\<lbrakk>(a, p, a + 1) \<in> (zigzag_rel start max); hd p = ZIG; a + 2 \<le> max\<rbrakk> 
-              \<Longrightarrow> (a + 2, ZAG#p, a + 1) \<in> (zigzag_rel start max)"
-  
-lemma 
-  assumes "(a, p, b) \<in> (zigzag_rel st mx)"
-  shows "(p = [] \<and> a = b \<and> a = st) \<or> (p \<noteq> [] \<and> ((a = b + 1) \<or> (b = a + 1)))"
-    and "st \<le> a" and "a \<le> mx" and "st \<le> b" and "b \<le> mx"
-  using assms
-  by (induction rule: zigzag_rel.induct) auto
-    
-lemma
-  assumes "x = y + 1"
-      and "x \<le> mx" and "st \<le> y"
-    obtains p where "(x, p, y) \<in> (zigzag_rel st mx)"
-  apply (auto elim:zigzag_rel.cases)
-      sledgehammer
-proof -
-qed
-  
-  
-  
-  
-inductive_set zigzag_chn :: "nat \<Rightarrow> nat \<Rightarrow> (nat, zz_type list) LTS" for start max where
-  empty[simp]: "\<lbrakk>start \<le> max\<rbrakk> \<Longrightarrow>(start, [], start) \<in> (zigzag_chn start max)"
-  zrgt
-| cons1[simp]: "\<lbrakk> (a,ZIG,b) \<in> (zigzag_rel start max); (a',xs,ab'') \<in> (zigzag_chn start max); \<rbrakk>
-                \<Longrightarrow> (ab,x#xs,ab'') \<in> (zigzag_chn start max)"
-  
-lemma arb1:
-  assumes "((a, b), lbl, (a', b')) \<in> (zigzag_rel st mx)"
-    shows "a' \<ge> a" and "b' \<ge> b"
-  using assms
-  by (induction rule: zigzag_rel.induct) auto
-    
-lemma arb1':
-  assumes "((a, b), lbl, (a', b')) \<in> (zigzag_rel st mx)"
-    shows "st \<le> a" and "b' \<le> mx"
-  using assms
-  by (induction rule: zigzag_rel.induct) auto
-    
-lemma arb2:
-  assumes "(ab, P, ab') \<in> (zigzag_chn st mx)"
-  shows "fst ab \<le> fst ab'" and "snd ab \<le> snd ab'"
-  using assms 
-   apply (induction rule: zigzag_chn.induct)
-    apply (auto elim: zigzag_chn.cases)
-   apply (drule arb1; simp)
-  by (drule arb1; simp)
-    
-lemma arb2':
-  assumes "(ab, P, ab') \<in> (zigzag_chn st mx)"
-  shows "st \<le> fst ab" and "snd ab' \<le> mx"    
-  using assms 
-   apply (induction rule: zigzag_chn.induct)
-     apply (auto elim: zigzag_chn.cases) 
-  by (drule arb1', simp)
-    
-
-  
-    *)
 end
 end
