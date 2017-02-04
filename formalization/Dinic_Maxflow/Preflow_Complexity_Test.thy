@@ -281,7 +281,7 @@ proof -
 qed
   
 (* Cormen 26.23 part II *)
-lemma relable_unsat_potential:
+lemma relabel_unsat_potential:
   assumes "relabel_precond f l u"
   shows "unsat_potential f (relabel_effect f l u) \<le> 2 * card V + unsat_potential f l"
 proof -  
@@ -722,8 +722,31 @@ next
     then have ?thesis using sat_push_no_vertex_chain_length[OF assms] by auto
   }
   ultimately show ?thesis by blast
-qed  
+qed
+end
   
+context Height_Bounded_Labeling
+begin
+  
+lemma unsat_push_action_count_AUX:
+  assumes "relabel_precond f l u"
+  shows "2 * card V * sum_heights_measure (relabel_effect f l u) + unsat_potential f (relabel_effect f l u)
+   \<le> 2 * card V * sum_heights_measure l + unsat_potential f l" (is "?L1 + ?L2 \<le> _")
+proof -
+  have "?L1 + ?L2 \<le> ?L1 + 2 * card V + unsat_potential f l"
+    using relabel_unsat_potential[OF assms] by auto
+  also have "2 * card V * sum_heights_measure (relabel_effect f l u) + 2 * card V = 
+    2 * card V * (sum_heights_measure (relabel_effect f l u) + 1)" by auto
+  also have "sum_heights_measure (relabel_effect f l u) + 1 \<le> sum_heights_measure l"
+    using relabel_measure[OF assms] by auto
+  finally show ?thesis by auto
+qed
+  
+end
+  
+  
+context Network
+begin  
 (*************************************************************************************************
 *****************************************NEW BOUNDS***********************************************
 *************************************************************************************************)  
@@ -817,16 +840,18 @@ proof -
   finally show ?thesis by auto
 qed
     
-lemma
+lemma unsat_push_action_count:
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= UNSAT_PUSH) p) < length (filter (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)) p)
-     + unsat_potential (fst fxl) (snd fxl) + 1"
+  shows "length (filter (op= UNSAT_PUSH) p) < unsat_potential (fst fxl) (snd fxl) +
+    2 * card V * length (filter (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)) p) +
+    2 * card V * sum_heights_measure (snd fxl) + 1"
   using assms
   apply (induction rule: trcl.induct)
-  apply (auto elim!: algo_rel'.cases)
-  apply (frule (3) Height_Bounded_Labeling.unsat_push_measure(1))
+   apply (auto elim!: algo_rel'.cases)
+  apply (drule (1) Height_Bounded_Labeling.sat_push_unsat_potential; simp add: sat_push_action_count)
   apply (drule (1) Height_Bounded_Labeling.unsat_push_measure(2); auto)
-  oops
+  apply (drule (1) Height_Bounded_Labeling.unsat_push_action_count_AUX; auto)  
+  done
     
 end
 end
