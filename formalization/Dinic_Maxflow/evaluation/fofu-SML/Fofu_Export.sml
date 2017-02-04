@@ -409,9 +409,7 @@ val equal_int = {equal = equal_inta} : int equal;
 
 datatype typerepa = Typerep of string * typerepa list;
 
-datatype nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5 |
-  Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC | NibbleD
-  | NibbleE | NibbleF;
+datatype num = One | Bit0 of num | Bit1 of num;
 
 datatype 'a itself = Type;
 
@@ -458,8 +456,6 @@ type 'a abs = {abs : 'a -> 'a};
 val abs = #abs : 'a abs -> 'a -> 'a;
 
 val abs_int = {abs = abs_inta} : int abs;
-
-datatype num = One | Bit0 of num | Bit1 of num;
 
 val one_inta : int = Int_of_integer (1 : IntInf.int);
 
@@ -778,18 +774,18 @@ val semiring_1_cancel_ring_1 = #semiring_1_cancel_ring_1 :
   'a ring_1 -> 'a semiring_1_cancel;
 
 type 'a ring_1_no_zero_divisors =
-  {semiring_1_no_zero_divisors_ring_1_no_zero_divisors :
-     'a semiring_1_no_zero_divisors,
-    ring_1_ring_1_no_zero_divisors : 'a ring_1,
-    ring_no_zero_divisors_ring_1_no_zero_divisors : 'a ring_no_zero_divisors};
-val semiring_1_no_zero_divisors_ring_1_no_zero_divisors =
-  #semiring_1_no_zero_divisors_ring_1_no_zero_divisors :
-  'a ring_1_no_zero_divisors -> 'a semiring_1_no_zero_divisors;
+  {ring_1_ring_1_no_zero_divisors : 'a ring_1,
+    ring_no_zero_divisors_ring_1_no_zero_divisors : 'a ring_no_zero_divisors,
+    semiring_1_no_zero_divisors_ring_1_no_zero_divisors :
+      'a semiring_1_no_zero_divisors};
 val ring_1_ring_1_no_zero_divisors = #ring_1_ring_1_no_zero_divisors :
   'a ring_1_no_zero_divisors -> 'a ring_1;
 val ring_no_zero_divisors_ring_1_no_zero_divisors =
   #ring_no_zero_divisors_ring_1_no_zero_divisors :
   'a ring_1_no_zero_divisors -> 'a ring_no_zero_divisors;
+val semiring_1_no_zero_divisors_ring_1_no_zero_divisors =
+  #semiring_1_no_zero_divisors_ring_1_no_zero_divisors :
+  'a ring_1_no_zero_divisors -> 'a semiring_1_no_zero_divisors;
 
 type 'a comm_ring =
   {comm_semiring_0_cancel_comm_ring : 'a comm_semiring_0_cancel,
@@ -809,12 +805,12 @@ val comm_semiring_1_cancel_comm_ring_1 = #comm_semiring_1_cancel_comm_ring_1 :
 val ring_1_comm_ring_1 = #ring_1_comm_ring_1 : 'a comm_ring_1 -> 'a ring_1;
 
 type 'a semidom =
-  {semiring_1_no_zero_divisors_semidom : 'a semiring_1_no_zero_divisors,
-    comm_semiring_1_cancel_semidom : 'a comm_semiring_1_cancel};
-val semiring_1_no_zero_divisors_semidom = #semiring_1_no_zero_divisors_semidom :
-  'a semidom -> 'a semiring_1_no_zero_divisors;
+  {comm_semiring_1_cancel_semidom : 'a comm_semiring_1_cancel,
+    semiring_1_no_zero_divisors_semidom : 'a semiring_1_no_zero_divisors};
 val comm_semiring_1_cancel_semidom = #comm_semiring_1_cancel_semidom :
   'a semidom -> 'a comm_semiring_1_cancel;
+val semiring_1_no_zero_divisors_semidom = #semiring_1_no_zero_divisors_semidom :
+  'a semidom -> 'a semiring_1_no_zero_divisors;
 
 type 'a idom =
   {comm_ring_1_idom : 'a comm_ring_1,
@@ -1008,10 +1004,10 @@ val ring_1_int =
   : int ring_1;
 
 val ring_1_no_zero_divisors_int =
-  {semiring_1_no_zero_divisors_ring_1_no_zero_divisors =
-     semiring_1_no_zero_divisors_int,
-    ring_1_ring_1_no_zero_divisors = ring_1_int,
-    ring_no_zero_divisors_ring_1_no_zero_divisors = ring_no_zero_divisors_int}
+  {ring_1_ring_1_no_zero_divisors = ring_1_int,
+    ring_no_zero_divisors_ring_1_no_zero_divisors = ring_no_zero_divisors_int,
+    semiring_1_no_zero_divisors_ring_1_no_zero_divisors =
+      semiring_1_no_zero_divisors_int}
   : int ring_1_no_zero_divisors;
 
 val comm_ring_int =
@@ -1026,8 +1022,8 @@ val comm_ring_1_int =
   : int comm_ring_1;
 
 val semidom_int =
-  {semiring_1_no_zero_divisors_semidom = semiring_1_no_zero_divisors_int,
-    comm_semiring_1_cancel_semidom = comm_semiring_1_cancel_int}
+  {comm_semiring_1_cancel_semidom = comm_semiring_1_cancel_int,
+    semiring_1_no_zero_divisors_semidom = semiring_1_no_zero_divisors_int}
   : int semidom;
 
 val idom_int =
@@ -1059,21 +1055,6 @@ val abs_if_int =
   {abs_abs_if = abs_int, minus_abs_if = minus_int, uminus_abs_if = uminus_int,
     zero_abs_if = zero_int, ord_abs_if = ord_int}
   : int abs_if;
-
-type 'a sgn_if =
-  {minus_sgn_if : 'a minus, one_sgn_if : 'a one, sgn_sgn_if : 'a sgn,
-    uminus_sgn_if : 'a uminus, zero_sgn_if : 'a zero, ord_sgn_if : 'a ord};
-val minus_sgn_if = #minus_sgn_if : 'a sgn_if -> 'a minus;
-val one_sgn_if = #one_sgn_if : 'a sgn_if -> 'a one;
-val sgn_sgn_if = #sgn_sgn_if : 'a sgn_if -> 'a sgn;
-val uminus_sgn_if = #uminus_sgn_if : 'a sgn_if -> 'a uminus;
-val zero_sgn_if = #zero_sgn_if : 'a sgn_if -> 'a zero;
-val ord_sgn_if = #ord_sgn_if : 'a sgn_if -> 'a ord;
-
-val sgn_if_int =
-  {minus_sgn_if = minus_int, one_sgn_if = one_int, sgn_sgn_if = sgn_int,
-    uminus_sgn_if = uminus_int, zero_sgn_if = zero_int, ord_sgn_if = ord_int}
-  : int sgn_if;
 
 type 'a semiring_char_0 = {semiring_1_semiring_char_0 : 'a semiring_1};
 val semiring_1_semiring_char_0 = #semiring_1_semiring_char_0 :
@@ -1109,6 +1090,18 @@ val order_linorder = #order_linorder : 'a linorder -> 'a order;
 
 val linorder_int = {order_linorder = order_int} : int linorder;
 
+type 'a idom_abs_sgn =
+  {abs_idom_abs_sgn : 'a abs, sgn_idom_abs_sgn : 'a sgn,
+    idom_idom_abs_sgn : 'a idom};
+val abs_idom_abs_sgn = #abs_idom_abs_sgn : 'a idom_abs_sgn -> 'a abs;
+val sgn_idom_abs_sgn = #sgn_idom_abs_sgn : 'a idom_abs_sgn -> 'a sgn;
+val idom_idom_abs_sgn = #idom_idom_abs_sgn : 'a idom_abs_sgn -> 'a idom;
+
+val idom_abs_sgn_int =
+  {abs_idom_abs_sgn = abs_int, sgn_idom_abs_sgn = sgn_int,
+    idom_idom_abs_sgn = idom_int}
+  : int idom_abs_sgn;
+
 type 'a ordered_ab_semigroup_add =
   {ab_semigroup_add_ordered_ab_semigroup_add : 'a ab_semigroup_add,
     order_ordered_ab_semigroup_add : 'a order};
@@ -1118,39 +1111,62 @@ val ab_semigroup_add_ordered_ab_semigroup_add =
 val order_ordered_ab_semigroup_add = #order_ordered_ab_semigroup_add :
   'a ordered_ab_semigroup_add -> 'a order;
 
+type 'a ordered_comm_monoid_add =
+  {comm_monoid_add_ordered_comm_monoid_add : 'a comm_monoid_add,
+    ordered_ab_semigroup_add_ordered_comm_monoid_add :
+      'a ordered_ab_semigroup_add};
+val comm_monoid_add_ordered_comm_monoid_add =
+  #comm_monoid_add_ordered_comm_monoid_add :
+  'a ordered_comm_monoid_add -> 'a comm_monoid_add;
+val ordered_ab_semigroup_add_ordered_comm_monoid_add =
+  #ordered_ab_semigroup_add_ordered_comm_monoid_add :
+  'a ordered_comm_monoid_add -> 'a ordered_ab_semigroup_add;
+
 type 'a ordered_semiring =
-  {comm_monoid_add_ordered_semiring : 'a comm_monoid_add,
-    ordered_ab_semigroup_add_ordered_semiring : 'a ordered_ab_semigroup_add,
+  {ordered_comm_monoid_add_ordered_semiring : 'a ordered_comm_monoid_add,
     semiring_ordered_semiring : 'a semiring};
-val comm_monoid_add_ordered_semiring = #comm_monoid_add_ordered_semiring :
-  'a ordered_semiring -> 'a comm_monoid_add;
-val ordered_ab_semigroup_add_ordered_semiring =
-  #ordered_ab_semigroup_add_ordered_semiring :
-  'a ordered_semiring -> 'a ordered_ab_semigroup_add;
+val ordered_comm_monoid_add_ordered_semiring =
+  #ordered_comm_monoid_add_ordered_semiring :
+  'a ordered_semiring -> 'a ordered_comm_monoid_add;
 val semiring_ordered_semiring = #semiring_ordered_semiring :
   'a ordered_semiring -> 'a semiring;
 
+type 'a ordered_semiring_0 =
+  {ordered_semiring_ordered_semiring_0 : 'a ordered_semiring,
+    semiring_0_ordered_semiring_0 : 'a semiring_0};
+val ordered_semiring_ordered_semiring_0 = #ordered_semiring_ordered_semiring_0 :
+  'a ordered_semiring_0 -> 'a ordered_semiring;
+val semiring_0_ordered_semiring_0 = #semiring_0_ordered_semiring_0 :
+  'a ordered_semiring_0 -> 'a semiring_0;
+
 type 'a ordered_cancel_semiring =
-  {ordered_semiring_ordered_cancel_semiring : 'a ordered_semiring,
+  {ordered_semiring_0_ordered_cancel_semiring : 'a ordered_semiring_0,
     semiring_0_cancel_ordered_cancel_semiring : 'a semiring_0_cancel};
-val ordered_semiring_ordered_cancel_semiring =
-  #ordered_semiring_ordered_cancel_semiring :
-  'a ordered_cancel_semiring -> 'a ordered_semiring;
+val ordered_semiring_0_ordered_cancel_semiring =
+  #ordered_semiring_0_ordered_cancel_semiring :
+  'a ordered_cancel_semiring -> 'a ordered_semiring_0;
 val semiring_0_cancel_ordered_cancel_semiring =
   #semiring_0_cancel_ordered_cancel_semiring :
   'a ordered_cancel_semiring -> 'a semiring_0_cancel;
 
+type 'a strict_ordered_ab_semigroup_add =
+  {ordered_ab_semigroup_add_strict_ordered_ab_semigroup_add :
+     'a ordered_ab_semigroup_add};
+val ordered_ab_semigroup_add_strict_ordered_ab_semigroup_add =
+  #ordered_ab_semigroup_add_strict_ordered_ab_semigroup_add :
+  'a strict_ordered_ab_semigroup_add -> 'a ordered_ab_semigroup_add;
+
 type 'a ordered_cancel_ab_semigroup_add =
   {cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
      'a cancel_ab_semigroup_add,
-    ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
-      'a ordered_ab_semigroup_add};
+    strict_ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
+      'a strict_ordered_ab_semigroup_add};
 val cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
   #cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
   'a ordered_cancel_ab_semigroup_add -> 'a cancel_ab_semigroup_add;
-val ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
-  #ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
-  'a ordered_cancel_ab_semigroup_add -> 'a ordered_ab_semigroup_add;
+val strict_ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
+  #strict_ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add :
+  'a ordered_cancel_ab_semigroup_add -> 'a strict_ordered_ab_semigroup_add;
 
 type 'a ordered_ab_semigroup_add_imp_le =
   {ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le :
@@ -1159,30 +1175,62 @@ val ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le =
   #ordered_cancel_ab_semigroup_add_ordered_ab_semigroup_add_imp_le :
   'a ordered_ab_semigroup_add_imp_le -> 'a ordered_cancel_ab_semigroup_add;
 
-type 'a ordered_comm_monoid_add =
-  {comm_monoid_add_ordered_comm_monoid_add : 'a comm_monoid_add,
-    ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add :
-      'a ordered_cancel_ab_semigroup_add};
-val comm_monoid_add_ordered_comm_monoid_add =
-  #comm_monoid_add_ordered_comm_monoid_add :
-  'a ordered_comm_monoid_add -> 'a comm_monoid_add;
-val ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add =
-  #ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add :
-  'a ordered_comm_monoid_add -> 'a ordered_cancel_ab_semigroup_add;
+type 'a strict_ordered_comm_monoid_add =
+  {comm_monoid_add_strict_ordered_comm_monoid_add : 'a comm_monoid_add,
+    strict_ordered_ab_semigroup_add_strict_ordered_comm_monoid_add :
+      'a strict_ordered_ab_semigroup_add};
+val comm_monoid_add_strict_ordered_comm_monoid_add =
+  #comm_monoid_add_strict_ordered_comm_monoid_add :
+  'a strict_ordered_comm_monoid_add -> 'a comm_monoid_add;
+val strict_ordered_ab_semigroup_add_strict_ordered_comm_monoid_add =
+  #strict_ordered_ab_semigroup_add_strict_ordered_comm_monoid_add :
+  'a strict_ordered_comm_monoid_add -> 'a strict_ordered_ab_semigroup_add;
+
+type 'a ordered_cancel_comm_monoid_add =
+  {ordered_cancel_ab_semigroup_add_ordered_cancel_comm_monoid_add :
+     'a ordered_cancel_ab_semigroup_add,
+    ordered_comm_monoid_add_ordered_cancel_comm_monoid_add :
+      'a ordered_comm_monoid_add,
+    strict_ordered_comm_monoid_add_ordered_cancel_comm_monoid_add :
+      'a strict_ordered_comm_monoid_add};
+val ordered_cancel_ab_semigroup_add_ordered_cancel_comm_monoid_add =
+  #ordered_cancel_ab_semigroup_add_ordered_cancel_comm_monoid_add :
+  'a ordered_cancel_comm_monoid_add -> 'a ordered_cancel_ab_semigroup_add;
+val ordered_comm_monoid_add_ordered_cancel_comm_monoid_add =
+  #ordered_comm_monoid_add_ordered_cancel_comm_monoid_add :
+  'a ordered_cancel_comm_monoid_add -> 'a ordered_comm_monoid_add;
+val strict_ordered_comm_monoid_add_ordered_cancel_comm_monoid_add =
+  #strict_ordered_comm_monoid_add_ordered_cancel_comm_monoid_add :
+  'a ordered_cancel_comm_monoid_add -> 'a strict_ordered_comm_monoid_add;
+
+type 'a ordered_ab_semigroup_monoid_add_imp_le =
+  {cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le :
+     'a cancel_comm_monoid_add,
+    ordered_ab_semigroup_add_imp_le_ordered_ab_semigroup_monoid_add_imp_le :
+      'a ordered_ab_semigroup_add_imp_le,
+    ordered_cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le :
+      'a ordered_cancel_comm_monoid_add};
+val cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le =
+  #cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le :
+  'a ordered_ab_semigroup_monoid_add_imp_le -> 'a cancel_comm_monoid_add;
+val ordered_ab_semigroup_add_imp_le_ordered_ab_semigroup_monoid_add_imp_le =
+  #ordered_ab_semigroup_add_imp_le_ordered_ab_semigroup_monoid_add_imp_le :
+  'a ordered_ab_semigroup_monoid_add_imp_le ->
+    'a ordered_ab_semigroup_add_imp_le;
+val ordered_cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le =
+  #ordered_cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le :
+  'a ordered_ab_semigroup_monoid_add_imp_le ->
+    'a ordered_cancel_comm_monoid_add;
 
 type 'a ordered_ab_group_add =
   {ab_group_add_ordered_ab_group_add : 'a ab_group_add,
-    ordered_ab_semigroup_add_imp_le_ordered_ab_group_add :
-      'a ordered_ab_semigroup_add_imp_le,
-    ordered_comm_monoid_add_ordered_ab_group_add : 'a ordered_comm_monoid_add};
+    ordered_ab_semigroup_monoid_add_imp_le_ordered_ab_group_add :
+      'a ordered_ab_semigroup_monoid_add_imp_le};
 val ab_group_add_ordered_ab_group_add = #ab_group_add_ordered_ab_group_add :
   'a ordered_ab_group_add -> 'a ab_group_add;
-val ordered_ab_semigroup_add_imp_le_ordered_ab_group_add =
-  #ordered_ab_semigroup_add_imp_le_ordered_ab_group_add :
-  'a ordered_ab_group_add -> 'a ordered_ab_semigroup_add_imp_le;
-val ordered_comm_monoid_add_ordered_ab_group_add =
-  #ordered_comm_monoid_add_ordered_ab_group_add :
-  'a ordered_ab_group_add -> 'a ordered_comm_monoid_add;
+val ordered_ab_semigroup_monoid_add_imp_le_ordered_ab_group_add =
+  #ordered_ab_semigroup_monoid_add_imp_le_ordered_ab_group_add :
+  'a ordered_ab_group_add -> 'a ordered_ab_semigroup_monoid_add_imp_le;
 
 type 'a ordered_ring =
   {ordered_ab_group_add_ordered_ring : 'a ordered_ab_group_add,
@@ -1199,22 +1247,37 @@ val ordered_ab_semigroup_add_int =
     order_ordered_ab_semigroup_add = order_int}
   : int ordered_ab_semigroup_add;
 
+val ordered_comm_monoid_add_int =
+  {comm_monoid_add_ordered_comm_monoid_add = comm_monoid_add_int,
+    ordered_ab_semigroup_add_ordered_comm_monoid_add =
+      ordered_ab_semigroup_add_int}
+  : int ordered_comm_monoid_add;
+
 val ordered_semiring_int =
-  {comm_monoid_add_ordered_semiring = comm_monoid_add_int,
-    ordered_ab_semigroup_add_ordered_semiring = ordered_ab_semigroup_add_int,
+  {ordered_comm_monoid_add_ordered_semiring = ordered_comm_monoid_add_int,
     semiring_ordered_semiring = semiring_int}
   : int ordered_semiring;
 
+val ordered_semiring_0_int =
+  {ordered_semiring_ordered_semiring_0 = ordered_semiring_int,
+    semiring_0_ordered_semiring_0 = semiring_0_int}
+  : int ordered_semiring_0;
+
 val ordered_cancel_semiring_int =
-  {ordered_semiring_ordered_cancel_semiring = ordered_semiring_int,
+  {ordered_semiring_0_ordered_cancel_semiring = ordered_semiring_0_int,
     semiring_0_cancel_ordered_cancel_semiring = semiring_0_cancel_int}
   : int ordered_cancel_semiring;
+
+val strict_ordered_ab_semigroup_add_int =
+  {ordered_ab_semigroup_add_strict_ordered_ab_semigroup_add =
+     ordered_ab_semigroup_add_int}
+  : int strict_ordered_ab_semigroup_add;
 
 val ordered_cancel_ab_semigroup_add_int =
   {cancel_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
      cancel_ab_semigroup_add_int,
-    ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
-      ordered_ab_semigroup_add_int}
+    strict_ordered_ab_semigroup_add_ordered_cancel_ab_semigroup_add =
+      strict_ordered_ab_semigroup_add_int}
   : int ordered_cancel_ab_semigroup_add;
 
 val ordered_ab_semigroup_add_imp_le_int =
@@ -1222,17 +1285,34 @@ val ordered_ab_semigroup_add_imp_le_int =
      ordered_cancel_ab_semigroup_add_int}
   : int ordered_ab_semigroup_add_imp_le;
 
-val ordered_comm_monoid_add_int =
-  {comm_monoid_add_ordered_comm_monoid_add = comm_monoid_add_int,
-    ordered_cancel_ab_semigroup_add_ordered_comm_monoid_add =
-      ordered_cancel_ab_semigroup_add_int}
-  : int ordered_comm_monoid_add;
+val strict_ordered_comm_monoid_add_int =
+  {comm_monoid_add_strict_ordered_comm_monoid_add = comm_monoid_add_int,
+    strict_ordered_ab_semigroup_add_strict_ordered_comm_monoid_add =
+      strict_ordered_ab_semigroup_add_int}
+  : int strict_ordered_comm_monoid_add;
+
+val ordered_cancel_comm_monoid_add_int =
+  {ordered_cancel_ab_semigroup_add_ordered_cancel_comm_monoid_add =
+     ordered_cancel_ab_semigroup_add_int,
+    ordered_comm_monoid_add_ordered_cancel_comm_monoid_add =
+      ordered_comm_monoid_add_int,
+    strict_ordered_comm_monoid_add_ordered_cancel_comm_monoid_add =
+      strict_ordered_comm_monoid_add_int}
+  : int ordered_cancel_comm_monoid_add;
+
+val ordered_ab_semigroup_monoid_add_imp_le_int =
+  {cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le =
+     cancel_comm_monoid_add_int,
+    ordered_ab_semigroup_add_imp_le_ordered_ab_semigroup_monoid_add_imp_le =
+      ordered_ab_semigroup_add_imp_le_int,
+    ordered_cancel_comm_monoid_add_ordered_ab_semigroup_monoid_add_imp_le =
+      ordered_cancel_comm_monoid_add_int}
+  : int ordered_ab_semigroup_monoid_add_imp_le;
 
 val ordered_ab_group_add_int =
   {ab_group_add_ordered_ab_group_add = ab_group_add_int,
-    ordered_ab_semigroup_add_imp_le_ordered_ab_group_add =
-      ordered_ab_semigroup_add_imp_le_int,
-    ordered_comm_monoid_add_ordered_ab_group_add = ordered_comm_monoid_add_int}
+    ordered_ab_semigroup_monoid_add_imp_le_ordered_ab_group_add =
+      ordered_ab_semigroup_monoid_add_imp_le_int}
   : int ordered_ab_group_add;
 
 val ordered_ring_int =
@@ -1240,6 +1320,18 @@ val ordered_ring_int =
     ordered_cancel_semiring_ordered_ring = ordered_cancel_semiring_int,
     ring_ordered_ring = ring_int}
   : int ordered_ring;
+
+type 'a zero_less_one =
+  {one_zero_less_one : 'a one, zero_zero_less_one : 'a zero,
+    order_zero_less_one : 'a order};
+val one_zero_less_one = #one_zero_less_one : 'a zero_less_one -> 'a one;
+val zero_zero_less_one = #zero_zero_less_one : 'a zero_less_one -> 'a zero;
+val order_zero_less_one = #order_zero_less_one : 'a zero_less_one -> 'a order;
+
+val zero_less_one_int =
+  {one_zero_less_one = one_int, zero_zero_less_one = zero_int,
+    order_zero_less_one = order_int}
+  : int zero_less_one;
 
 type 'a linordered_ab_semigroup_add =
   {ordered_ab_semigroup_add_linordered_ab_semigroup_add :
@@ -1266,14 +1358,15 @@ val ordered_ab_semigroup_add_imp_le_linordered_cancel_ab_semigroup_add =
 type 'a linordered_semiring =
   {linordered_cancel_ab_semigroup_add_linordered_semiring :
      'a linordered_cancel_ab_semigroup_add,
-    ordered_comm_monoid_add_linordered_semiring : 'a ordered_comm_monoid_add,
+    ordered_ab_semigroup_monoid_add_imp_le_linordered_semiring :
+      'a ordered_ab_semigroup_monoid_add_imp_le,
     ordered_cancel_semiring_linordered_semiring : 'a ordered_cancel_semiring};
 val linordered_cancel_ab_semigroup_add_linordered_semiring =
   #linordered_cancel_ab_semigroup_add_linordered_semiring :
   'a linordered_semiring -> 'a linordered_cancel_ab_semigroup_add;
-val ordered_comm_monoid_add_linordered_semiring =
-  #ordered_comm_monoid_add_linordered_semiring :
-  'a linordered_semiring -> 'a ordered_comm_monoid_add;
+val ordered_ab_semigroup_monoid_add_imp_le_linordered_semiring =
+  #ordered_ab_semigroup_monoid_add_imp_le_linordered_semiring :
+  'a linordered_semiring -> 'a ordered_ab_semigroup_monoid_add_imp_le;
 val ordered_cancel_semiring_linordered_semiring =
   #ordered_cancel_semiring_linordered_semiring :
   'a linordered_semiring -> 'a ordered_cancel_semiring;
@@ -1326,19 +1419,19 @@ val ordered_ab_group_add_linordered_ab_group_add =
   'a linordered_ab_group_add -> 'a ordered_ab_group_add;
 
 type 'a linordered_ring =
-  {abs_if_linordered_ring : 'a abs_if,
-    linordered_ab_group_add_linordered_ring : 'a linordered_ab_group_add,
+  {linordered_ab_group_add_linordered_ring : 'a linordered_ab_group_add,
     ordered_ab_group_add_abs_linordered_ring : 'a ordered_ab_group_add_abs,
+    abs_if_linordered_ring : 'a abs_if,
     linordered_semiring_linordered_ring : 'a linordered_semiring,
     ordered_ring_linordered_ring : 'a ordered_ring};
-val abs_if_linordered_ring = #abs_if_linordered_ring :
-  'a linordered_ring -> 'a abs_if;
 val linordered_ab_group_add_linordered_ring =
   #linordered_ab_group_add_linordered_ring :
   'a linordered_ring -> 'a linordered_ab_group_add;
 val ordered_ab_group_add_abs_linordered_ring =
   #ordered_ab_group_add_abs_linordered_ring :
   'a linordered_ring -> 'a ordered_ab_group_add_abs;
+val abs_if_linordered_ring = #abs_if_linordered_ring :
+  'a linordered_ring -> 'a abs_if;
 val linordered_semiring_linordered_ring = #linordered_semiring_linordered_ring :
   'a linordered_ring -> 'a linordered_semiring;
 val ordered_ring_linordered_ring = #ordered_ring_linordered_ring :
@@ -1398,16 +1491,39 @@ val ordered_cancel_comm_semiring_linordered_comm_semiring_strict =
   #ordered_cancel_comm_semiring_linordered_comm_semiring_strict :
   'a linordered_comm_semiring_strict -> 'a ordered_cancel_comm_semiring;
 
+type 'a linordered_nonzero_semiring =
+  {linorder_linordered_nonzero_semiring : 'a linorder,
+    comm_semiring_1_linordered_nonzero_semiring : 'a comm_semiring_1,
+    ordered_comm_semiring_linordered_nonzero_semiring :
+      'a ordered_comm_semiring,
+    zero_less_one_linordered_nonzero_semiring : 'a zero_less_one};
+val linorder_linordered_nonzero_semiring = #linorder_linordered_nonzero_semiring
+  : 'a linordered_nonzero_semiring -> 'a linorder;
+val comm_semiring_1_linordered_nonzero_semiring =
+  #comm_semiring_1_linordered_nonzero_semiring :
+  'a linordered_nonzero_semiring -> 'a comm_semiring_1;
+val ordered_comm_semiring_linordered_nonzero_semiring =
+  #ordered_comm_semiring_linordered_nonzero_semiring :
+  'a linordered_nonzero_semiring -> 'a ordered_comm_semiring;
+val zero_less_one_linordered_nonzero_semiring =
+  #zero_less_one_linordered_nonzero_semiring :
+  'a linordered_nonzero_semiring -> 'a zero_less_one;
+
 type 'a linordered_semidom =
   {semiring_char_0_linordered_semidom : 'a semiring_char_0,
     linordered_comm_semiring_strict_linordered_semidom :
       'a linordered_comm_semiring_strict,
+    linordered_nonzero_semiring_linordered_semidom :
+      'a linordered_nonzero_semiring,
     semidom_linordered_semidom : 'a semidom};
 val semiring_char_0_linordered_semidom = #semiring_char_0_linordered_semidom :
   'a linordered_semidom -> 'a semiring_char_0;
 val linordered_comm_semiring_strict_linordered_semidom =
   #linordered_comm_semiring_strict_linordered_semidom :
   'a linordered_semidom -> 'a linordered_comm_semiring_strict;
+val linordered_nonzero_semiring_linordered_semidom =
+  #linordered_nonzero_semiring_linordered_semidom :
+  'a linordered_semidom -> 'a linordered_nonzero_semiring;
 val semidom_linordered_semidom = #semidom_linordered_semidom :
   'a linordered_semidom -> 'a semidom;
 
@@ -1434,21 +1550,18 @@ val ordered_ring_ordered_ring_abs = #ordered_ring_ordered_ring_abs :
   'a ordered_ring_abs -> 'a ordered_ring;
 
 type 'a linordered_idom =
-  {sgn_if_linordered_idom : 'a sgn_if,
-    ring_char_0_linordered_idom : 'a ring_char_0,
-    idom_linordered_idom : 'a idom,
+  {ring_char_0_linordered_idom : 'a ring_char_0,
+    idom_abs_sgn_linordered_idom : 'a idom_abs_sgn,
     linordered_ring_strict_linordered_idom : 'a linordered_ring_strict,
     linordered_semidom_linordered_idom : 'a linordered_semidom,
     linordered_semiring_1_strict_linordered_idom :
       'a linordered_semiring_1_strict,
     ordered_comm_ring_linordered_idom : 'a ordered_comm_ring,
     ordered_ring_abs_linordered_idom : 'a ordered_ring_abs};
-val sgn_if_linordered_idom = #sgn_if_linordered_idom :
-  'a linordered_idom -> 'a sgn_if;
 val ring_char_0_linordered_idom = #ring_char_0_linordered_idom :
   'a linordered_idom -> 'a ring_char_0;
-val idom_linordered_idom = #idom_linordered_idom :
-  'a linordered_idom -> 'a idom;
+val idom_abs_sgn_linordered_idom = #idom_abs_sgn_linordered_idom :
+  'a linordered_idom -> 'a idom_abs_sgn;
 val linordered_ring_strict_linordered_idom =
   #linordered_ring_strict_linordered_idom :
   'a linordered_idom -> 'a linordered_ring_strict;
@@ -1478,7 +1591,8 @@ val linordered_cancel_ab_semigroup_add_int =
 val linordered_semiring_int =
   {linordered_cancel_ab_semigroup_add_linordered_semiring =
      linordered_cancel_ab_semigroup_add_int,
-    ordered_comm_monoid_add_linordered_semiring = ordered_comm_monoid_add_int,
+    ordered_ab_semigroup_monoid_add_imp_le_linordered_semiring =
+      ordered_ab_semigroup_monoid_add_imp_le_int,
     ordered_cancel_semiring_linordered_semiring = ordered_cancel_semiring_int}
   : int linordered_semiring;
 
@@ -1510,9 +1624,9 @@ val linordered_ab_group_add_int =
   : int linordered_ab_group_add;
 
 val linordered_ring_int =
-  {abs_if_linordered_ring = abs_if_int,
-    linordered_ab_group_add_linordered_ring = linordered_ab_group_add_int,
+  {linordered_ab_group_add_linordered_ring = linordered_ab_group_add_int,
     ordered_ab_group_add_abs_linordered_ring = ordered_ab_group_add_abs_int,
+    abs_if_linordered_ring = abs_if_int,
     linordered_semiring_linordered_ring = linordered_semiring_int,
     ordered_ring_linordered_ring = ordered_ring_int}
   : int linordered_ring;
@@ -1545,10 +1659,20 @@ val linordered_comm_semiring_strict_int =
       ordered_cancel_comm_semiring_int}
   : int linordered_comm_semiring_strict;
 
+val linordered_nonzero_semiring_int =
+  {linorder_linordered_nonzero_semiring = linorder_int,
+    comm_semiring_1_linordered_nonzero_semiring = comm_semiring_1_int,
+    ordered_comm_semiring_linordered_nonzero_semiring =
+      ordered_comm_semiring_int,
+    zero_less_one_linordered_nonzero_semiring = zero_less_one_int}
+  : int linordered_nonzero_semiring;
+
 val linordered_semidom_int =
   {semiring_char_0_linordered_semidom = semiring_char_0_int,
     linordered_comm_semiring_strict_linordered_semidom =
       linordered_comm_semiring_strict_int,
+    linordered_nonzero_semiring_linordered_semidom =
+      linordered_nonzero_semiring_int,
     semidom_linordered_semidom = semidom_int}
   : int linordered_semidom;
 
@@ -1565,9 +1689,8 @@ val ordered_ring_abs_int =
   : int ordered_ring_abs;
 
 val linordered_idom_int =
-  {sgn_if_linordered_idom = sgn_if_int,
-    ring_char_0_linordered_idom = ring_char_0_int,
-    idom_linordered_idom = idom_int,
+  {ring_char_0_linordered_idom = ring_char_0_int,
+    idom_abs_sgn_linordered_idom = idom_abs_sgn_int,
     linordered_ring_strict_linordered_idom = linordered_ring_strict_int,
     linordered_semidom_linordered_idom = linordered_semidom_int,
     linordered_semiring_1_strict_linordered_idom =
@@ -1893,16 +2016,17 @@ fun divmod_integer k l =
                                     IntInf.- (IntInf.abs l, s)))
                          end)));
 
-fun mod_integer k l = snd (divmod_integer k l);
+fun modulo_integer k l = snd (divmod_integer k l);
 
-fun mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
+fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
 
 fun nat_of_uint32 x =
   nat_of_integer (IntInf.fromLarge (Word32.toLargeInt x) : IntInf.int);
 
 fun nat_of_hashcode x = nat_of_uint32 x;
 
-fun bounded_hashcode_nat A_ n x = mod_nat (nat_of_hashcode (hashcode A_ x)) n;
+fun bounded_hashcode_nat A_ n x =
+  modulo_nat (nat_of_hashcode (hashcode A_ x)) n;
 
 fun array_length x = (nat_of_integer o FArray.IsabelleMapping.array_length) x;
 
@@ -2676,7 +2800,7 @@ fun divide_integer k l = fst (divmod_integer k l);
 fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
 fun mtx_new A_ n m c =
-  make A_ (times_nat n m) (fn i => c (divide_nat i m, mod_nat i m));
+  make A_ (times_nat n m) (fn i => c (divide_nat i m, modulo_nat i m));
 
 fun init_cf_impl c n = mtx_new heap_int n n c;
 
