@@ -1,7 +1,8 @@
 #!/bin/bash
 
 tests=`cat tests`
-platforms=`cat platforms`
+platforms_fofu=`cat fofu-platforms`
+platforms_rtof=`cat rtof-platforms`
 
 for t in $tests; do
   echo "*********************"
@@ -10,16 +11,17 @@ for t in $tests; do
 
   name="../data/samples/g-$t.txt"
 
-  for platform in $platforms; do
-    echo "##### $platform"
+  for platform in $platforms_fofu; do
+    echo "##### fofu-$platform"
     cd "fofu-$platform"
     ./run $name | tee "$t.$platform.log" | grep "^@@@"
     cd ..
   done
 
-  echo "##### Rtof"
-  cd "rtof-SML"
-  ./run $name | tee "$t.SML.log" | grep "^@@@"
-  cd ..
-
+  for platform in $platforms_rtof; do
+    echo "##### rtof-$platform"
+    cd "rtof-$platform"
+    ./run $name | tee "$t.$platform.log" | grep "^@@@"
+    cd ..
+  done
 done

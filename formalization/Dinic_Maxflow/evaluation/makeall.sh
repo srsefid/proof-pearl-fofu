@@ -4,16 +4,19 @@ cd data
 ./build
 cd ..
 
-platforms=`cat platforms`
+platforms_fofu=`cat fofu-platforms`
+platforms_rtof=`cat rtof-platforms`
 
-for p in $platforms; do
-  echo "Compiling $p"
+for p in $platforms_fofu; do
+  echo "Compiling fofu-$p"
   cd "fofu-$p"
   ./build
   cd ..
 done
 
-echo "Compiling Rtof-SML"
-cd "rtof-SML"
-./build
-cd ..
+for p in $platforms_rtof; do
+  echo "Compiling rtof-$p"
+  cd "rtof-$p"
+  ./build
+  cd ..
+done
