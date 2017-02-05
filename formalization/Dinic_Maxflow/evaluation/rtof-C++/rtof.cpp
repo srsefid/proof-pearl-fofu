@@ -1,114 +1,104 @@
-
 #include "time.h"
-#include <cstdio>
-#include <queue>
+#include "stdio.h"
 #include <cstring>
+#include <cmath>
 #include <vector>
+#include <queue>
 #include <iostream>
 #include <fstream>
 
-#define G_SIZE 10000
-
 using namespace std;
 
-vector<int> graph[G_SIZE];
-int capacities[G_SIZE][G_SIZE];
-int flowPassed[G_SIZE][G_SIZE];
-int parentsList[G_SIZE];
-int currentPathCapacity[G_SIZE];
+typedef long long LL;
 
-//int** graph_init (int size) {
-//	int** GRAPH = new int* [size];
-//
-//	int i;
-//	for (i = 0; i < size; i++){
-//		GRAPH[i] = new int [size];
-//	}
-//
-//	return GRAPH;
-//}
-//
-///* As our matrix is a int** we have to clean it up in a loop */
-//void graph_free (int** GRAPH, int size) {
-//	int i;
-//	for (i = 0; i < size; i++) {
-//		delete GRAPH[i];
-//		for (int j = 0; j < size; j++)
-//			GRAPH[i][j] = 0;
-//	}
-//
-//	delete GRAPH;
-//}
+struct Edge {
+  int from, to, cap, flow, index;
+  Edge(int from, int to, int cap, int flow, int index) :
+    from(from), to(to), cap(cap), flow(flow), index(index) {}
+};
 
-int stat_counter_ga = 0;
-int stat_counter_mget = 0;
+struct PushRelabel {
+  int N;
+  vector<vector<Edge> > G;
+  vector<LL> excess;
+  vector<int> dist, active, count;
+  queue<int> Q;
 
-int bfs(int startNode, int endNode)
-{
-    memset(parentsList, -1, sizeof(parentsList));
-    memset(currentPathCapacity, 0, sizeof(currentPathCapacity));
+  PushRelabel(int N) : N(N), G(N), excess(N), dist(N), active(N), count(2*N) {}
 
-    queue<int> q;
-    q.push(startNode);
+  void AddEdge(int from, int to, int cap) {
+    G[from].push_back(Edge(from, to, cap, 0, G[to].size()));
+    if (from == to) G[from].back().index++;
+    G[to].push_back(Edge(to, from, 0, 0, G[from].size() - 1));
+  }
 
-    parentsList[startNode] = -2;
-    currentPathCapacity[startNode] = 999;
+  void Enqueue(int v) { 
+    if (!active[v] && excess[v] > 0) { active[v] = true; Q.push(v); } 
+  }
 
-    while(!q.empty())
-    {
-        int currentNode = q.front();
-        q.pop();
-
-        for(int i=0; i<graph[currentNode].size(); i++)
-        {
-            stat_counter_mget+=3;
-            int to = graph[currentNode][i];
-            if(capacities[currentNode][to] - flowPassed[currentNode][to] > 0)
-            {
-                stat_counter_ga++;
-                if(parentsList[to] == -1)
-                {
-                    parentsList[to] = currentNode;
-                    currentPathCapacity[to] = min(currentPathCapacity[currentNode],
-                    capacities[currentNode][to] - flowPassed[currentNode][to]);
-                    if(to == endNode)
-                    {
-                        return currentPathCapacity[endNode];
-                    }
-                    q.push(to);
-                }
-            }
-        }
+  void Push(Edge &e) {
+    int amt = int(min(excess[e.from], LL(e.cap - e.flow)));
+    if (dist[e.from] <= dist[e.to] || amt == 0) return;
+    e.flow += amt;
+    G[e.to][e.index].flow -= amt;
+    excess[e.to] += amt;    
+    excess[e.from] -= amt;
+    Enqueue(e.to);
+  }
+  
+  void Gap(int k) {
+    for (int v = 0; v < N; v++) {
+      if (dist[v] < k) continue;
+      count[dist[v]]--;
+      dist[v] = max(dist[v], N+1);
+      count[dist[v]]++;
+      Enqueue(v);
     }
-    return 0;
-}
+  }
 
-int stat_outer_c = 0;
+  void Relabel(int v) {
+    count[dist[v]]--;
+    dist[v] = 2*N;
+    for (int i = 0; i < G[v].size(); i++) 
+      if (G[v][i].cap - G[v][i].flow > 0)
+        dist[v] = min(dist[v], dist[G[v][i].to] + 1);
+    count[dist[v]]++;
+    Enqueue(v);
+  }
 
-int edmondsKarp(int startNode, int endNode)
-{
-    int maxFlow = 0;
-      while(true)
-    {
-        stat_outer_c++;
-        int flow = bfs(startNode, endNode);
-        if (flow == 0)
-        {
-            break;
-        }
-        maxFlow += flow;
-        int currentNode = endNode;
-        while(currentNode != startNode)
-        {
-            int previousNode = parentsList[currentNode];
-            stat_counter_mget+=2;            
-            flowPassed[previousNode][currentNode] += flow;
-            flowPassed[currentNode][previousNode] -= flow;
-            currentNode = previousNode;
-        }
+  void Discharge(int v) {
+    for (int i = 0; excess[v] > 0 && i < G[v].size(); i++) Push(G[v][i]);
+    if (excess[v] > 0) {
+      if (count[dist[v]] == 1) 
+        Gap(dist[v]); 
+      else
+        Relabel(v);
     }
-    return maxFlow;
-}
+  }
+
+  LL GetMaxFlow(int s, int t) {
+    count[0] = N-1;
+    count[N] = 1;
+    dist[s] = N;
+    active[s] = active[t] = true;
+    for (int i = 0; i < G[s].size(); i++) {
+      excess[s] += G[s][i].cap;
+      Push(G[s][i]);
+    }
+    
+    while (!Q.empty()) {
+      int v = Q.front();
+      Q.pop();
+      active[v] = false;
+      Discharge(v);
+    }
+    
+    LL totflow = 0;
+    for (int i = 0; i < G[s].size(); i++) totflow += G[s][i].flow;
+    return totflow;
+  }
+};
+
 
 int main(int argc, char** argv) {
 	if (argc < 2) {
@@ -119,42 +109,21 @@ int main(int argc, char** argv) {
 		int V_size, E_size;
 		fi >> V_size >> E_size;
 
-		if (V_size > 0 && V_size <= G_SIZE) {
-			//capacities = graph_init(V_size);
-			//flowPassed = graph_init(V_size);
-			//parentsList = new int [V_size];
-			//currentPathCapacity = new int [V_size];
+    PushRelabel pr(V_size);
 
-			for (int i = 0; i < E_size; i++) {
-				int from, to, capacity;
-				fi >> from >> to >>capacity;
+		for (int i = 0; i < E_size; i++) {
+			int from, to, capacity;
+			fi >> from >> to >> capacity;
 
-				capacities[from][to] = capacity;
-				graph[from].push_back(to);
-
-				graph[to].push_back(from);
-			}
-
-			clock_t tStart = clock();
-			int maxFlow = edmondsKarp(0, V_size -1);
-
-			printf("@@@time: %.0f ms\n", ((double)(clock() - tStart)/CLOCKS_PER_SEC) * 1000);
-			printf("[Input (V E): %d %d]\n", V_size, E_size);
-			printf("@@@max-flow: %d\n", maxFlow);
-      printf("stat_outer_c: %d\n", stat_outer_c);
-      printf("stat_counter_ga: %d\n", stat_counter_ga);
-      printf("stat_counter_mget: %d\n", stat_counter_mget);
-
-
-			//delete currentPathCapacity;
-			//delete parentsList;
-			//graph_free(flowPassed, V_size);
-			//graph_free(capacities, V_size);
-
+      pr.AddEdge(from, to, capacity);
 		}
-		else {
-			cout << "Input graph is invalid\n";
-		}
+
+		clock_t tStart = clock();
+		LL maxFlow = pr.GetMaxFlow(0, V_size -1);
+
+		printf("@@@time: %.0f ms\n", ((double)(clock() - tStart)/CLOCKS_PER_SEC) * 1000);
+		printf("[Input (V E): %d %d]\n", V_size, E_size);
+		printf("@@@max-flow: %lld\n", maxFlow);
 	}
 
 	return 0;
