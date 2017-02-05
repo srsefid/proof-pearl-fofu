@@ -1,34 +1,27 @@
-session Dinic_Base = Sepref_IICF +
+session Push_Relabel_Base = Sepref_IICF +
   options [document = false]
   theories
     "$AFP/DFS_Framework/DFS_Framework"
     "$AFP/DFS_Framework/Examples/Reachable_Nodes"
 
-session Dinic_Maxflow = Dinic_Base +
+session Push_Relabel_Maxflow = Push_Relabel_Base +
   theories [document = false]
     Graph
     Fofu_Abs_Base
     Fofu_Impl_Base
     Refine_Add_Fofu
 
-  theories
+  theories [document = false]
     Network
     ResidualGraph
-    Augmenting_Flow
-    Augmenting_Path
     Ford_Fulkerson
+    Preflow
 
-  theories      
-    FordFulkerson_Algo
-    EdmondsKarp_Algo
-
-  theories  
-    Augmenting_Path_BFS
-    EdmondsKarp_Impl
-    NetCheck
-    Edka_Checked_Impl
   theories [document = false]
-    Edka_Benchmark_Export
+    NetCheck
+    Preflow_Push_Impl
+  theories [document = false]
+    Rtof_Benchmark_Export
    document_files
      "root.tex" "root.bib"
 
