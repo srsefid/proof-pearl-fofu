@@ -16,4 +16,10 @@ for t in $tests; do
     ./run $name | tee "$t.$platform.log" | grep "^@@@"
     cd ..
   done
+
+  echo "##### Rtof"
+  cd "rtof-SML"
+  ./run $name | tee "$t.SML.log" | grep "^@@@"
+  cd ..
+
 done

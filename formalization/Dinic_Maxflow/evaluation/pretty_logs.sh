@@ -6,6 +6,9 @@ platforms=`cat platforms`
 tabs -12
 echo -ne "name \t& "
 for p in $platforms; do echo -ne "$p\t& "; done
+
+echo -ne "Rtof"
+
 echo ""
 
 for t in $tests; do
@@ -15,6 +18,11 @@ for t in $tests; do
     time=`grep "@@@time:" $log | sed -re 's/.*@@@time: //g;s/ms//g'`
     echo -ne "$time\t& "
   done
+  
+  log="rtof-SML/$t.SML.log"
+  time=`grep "@@@time:" $log | sed -re 's/.*@@@time: //g;s/ms//g'`
+  echo -ne "$time\t& "
+
   echo "\\\\"
 done
 

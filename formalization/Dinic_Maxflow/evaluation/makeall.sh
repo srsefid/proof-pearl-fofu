@@ -12,3 +12,8 @@ for p in $platforms; do
   ./build
   cd ..
 done
+
+echo "Compiling Rtof-SML"
+cd "rtof-SML"
+./build
+cd ..
