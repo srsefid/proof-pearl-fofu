@@ -1440,12 +1440,157 @@ lemma relabel_to_front_correct:
   done
     
 end -- \<open>Network\<close> 
+
   
+section \<open>Gap Heuristics\<close>
+(*
+  TODO: Reported to be ineffective with FIFO rule by 
+    Cherkassky & Goldberg: On Implementing the Push—Relabel Method for the Maximum Flow Problem
+
+*)  
+  
+context Labeling begin 
+  text \<open>A path to the sink implies that there is no gap in the labels.\<close>
+  lemma UNUSED_path_to_sink_imp_no_gap:
+    assumes "(u,t)\<in>cf.E\<^sup>*"
+    shows "\<forall>x\<le>l u. \<exists>v\<in>V. l v = x"
+    using assms  
+  proof (induction rule: converse_rtrancl_induct)
+    case base
+    then show ?case 
+      apply clarsimp 
+      using lab_sink by blast
+  next
+    case (step y z)
+    from step.hyps have "y\<in>V" "z\<in>V" using cfE_ss_invE E_ss_VxV by auto
+        
+    show ?case 
+    proof (cases "l y \<le> l z")
+      case True
+      with step.IH show ?thesis by auto
+    next
+      case False
+      with valid[OF \<open>(y,z)\<in>cf.E\<close>] have "l y = l z + 1" by auto
+      with \<open>y\<in>V\<close> step.IH show ?thesis using le_Suc_eq by auto
+    qed    
+  qed    
+  
+  definition (in Network) "gap_precond l k \<equiv> \<forall>v\<in>V. l v \<noteq> k"
+  definition (in Network) "gap_effect l k 
+    \<equiv> \<lambda>v. if k<l v \<and> l v < card V then card V + 1 else l v"
+    
+  lemma gap_pres_Labeling:
+    assumes PRE: "gap_precond l k"
+    defines "l' \<equiv> gap_effect l k"
+    shows "Labeling c s t f l'"
+  proof    
+    from lab_src show "l' s = card V" unfolding l'_def gap_effect_def by auto
+    from lab_sink show "l' t = 0" unfolding l'_def gap_effect_def by auto
+    
+    have l'_incr: "l' v \<ge> l v" for v unfolding l'_def gap_effect_def by auto
+        
+    fix u v
+    assume A: "(u,v) \<in> cf.E"  
+    hence "u\<in>V" "v\<in>V" using cfE_ss_invE E_ss_VxV by auto  
+    thus "l' u \<le> l' v + 1"  
+      unfolding l'_def gap_effect_def
+      using valid[OF A] PRE 
+      unfolding gap_precond_def 
+      by auto
+  qed  
+
+  definition (in Network) "gap_relabel_effect f l u \<equiv> let l' = relabel_effect f l u in
+    if (gap_precond l' (l u)) then gap_effect l' (l u) else l'
+  "  
+
+  lemma gap_relabel_pres_Labeling:
+    assumes PRE: "relabel_precond f l u"
+    defines "l' \<equiv> gap_relabel_effect f l u"
+    shows "Labeling c s t f l'"
+    unfolding l'_def gap_relabel_effect_def
+    using relabel_pres_Labeling[OF PRE] Labeling.gap_pres_Labeling
+    by (fastforce simp: Let_def)
+    
+end  
+  
+lemma (in Height_Bounded_Labeling) gap_pres_hb_labeling:
+  assumes PRE: "gap_precond l k"
+  defines "l' \<equiv> gap_effect l k"
+  shows "Height_Bounded_Labeling c s t f l'"  
+proof -  
+  from gap_pres_Labeling[OF PRE] interpret Labeling c s t f l'
+    unfolding l'_def .
+  
+  show ?thesis    
+    apply unfold_locales
+    unfolding l'_def gap_effect_def using height_bound by auto
+qed  
+
+lemma (in Height_Bounded_Labeling) gap_relabel_pres_hb_labeling:
+  assumes PRE: "relabel_precond f l u"
+  defines "l' \<equiv> gap_relabel_effect f l u"
+  shows "Height_Bounded_Labeling c s t f l'"  
+  unfolding l'_def gap_relabel_effect_def
+  using relabel_pres_height_bound[OF PRE] Height_Bounded_Labeling.gap_pres_hb_labeling
+  by (fastforce simp: Let_def)
+  
+lemma (in Height_Bounded_Labeling) gap_measure:
+  assumes "gap_precond l k"
+  shows "sum_heights_measure (gap_effect l k) \<le> sum_heights_measure l"
+  unfolding gap_effect_def sum_heights_measure_def
+  by (auto intro!: sum_mono)  
+  
+lemma (in Height_Bounded_Labeling) gap_relabel_measure:
+  assumes PRE: "relabel_precond f l u"
+  shows "sum_heights_measure (gap_relabel_effect f l u) < sum_heights_measure l"
+  unfolding gap_relabel_effect_def
+  using relabel_measure[OF PRE] relabel_pres_height_bound[OF PRE] Height_Bounded_Labeling.gap_measure
+  by (fastforce simp: Let_def)
+       
+  
+context Network begin
+  
+inductive_set gap_algo_rel where
+  unsat_push: "\<lbrakk>Height_Bounded_Labeling c s t f l; unsat_push_precond f l e\<rbrakk> 
+    \<Longrightarrow> ((push_effect f e,l),(f,l))\<in>gap_algo_rel"
+| sat_push: "\<lbrakk>Height_Bounded_Labeling c s t f l; sat_push_precond f l e\<rbrakk> 
+    \<Longrightarrow> ((push_effect f e,l),(f,l))\<in>gap_algo_rel"
+| relabel: "\<lbrakk>Height_Bounded_Labeling c s t f l; relabel_precond f l u \<rbrakk>
+    \<Longrightarrow> ((f,gap_relabel_effect f l u),(f,l))\<in>gap_algo_rel"
+  
+    
+lemma wf_gap_algo_rel[simp, intro!]: "wf gap_algo_rel"  
+proof -
+  have "gap_algo_rel \<subseteq> inv_image (less_than <*lex*> less_than <*lex*> less_than) term_f"
+    unfolding term_f_def
+    using Height_Bounded_Labeling.unsat_push_measure  
+    using Height_Bounded_Labeling.sat_push_measure  
+    using Height_Bounded_Labeling.gap_relabel_measure  
+    by (fastforce elim!: gap_algo_rel.cases)
+  thus ?thesis
+    by (rule_tac wf_subset; auto)
+qed  
+
+lemma gap_algo_rel_alt: "gap_algo_rel = 
+    { ((push_effect f e,l),(f,l)) | f e l. Height_Bounded_Labeling c s t f l \<and> push_precond f l e }
+  \<union> { ((f, gap_relabel_effect f l u), (f,l)) | f u l. Height_Bounded_Labeling c s t f l \<and> relabel_precond f l u }"  
+  by (auto elim!: gap_algo_rel.cases intro: gap_algo_rel.intros simp: push_precond_eq_sat_or_unsat)
+  
+lemma gap_algo_rel_pushI: "\<lbrakk>Height_Bounded_Labeling c s t f l; push_precond f l e\<rbrakk> 
+    \<Longrightarrow> ((push_effect f e,l),(f,l))\<in>gap_algo_rel"
+  unfolding gap_algo_rel_alt by blast
+  
+  
+end  
 
 section \<open>FIFO selection rule\<close>  
 (* Straightforward, also O(V\<^sup>3) complexity, can be combined with gap heuristics.
   Idea: Maintain queue of active nodes, discharge node at front, add activated nodes
         to end.
+
+  Following C++ implementation from ICPC-notebook:
+    * No neighbor-lists, discharge iterates over all adjacent nodes
+    * Gap heuristics
 *)
   
   
@@ -1453,14 +1598,20 @@ context Network
 begin
 
 definition "Q_invar f Q \<equiv> distinct Q \<and> set Q = { v\<in>V-{s,t}. excess f v \<noteq> 0 }"  
-definition "QD_invar u f Q \<equiv> distinct Q \<and> set Q = { v\<in>V-{s,t,u}. excess f v \<noteq> 0 }"  
+definition "QD_invar u f Q \<equiv> u\<in>V-{s,t} \<and> distinct Q \<and> set Q = { v\<in>V-{s,t,u}. excess f v \<noteq> 0 }"  
 
-lemma Q_invar_when_discharged: "\<lbrakk>QD_invar u f Q; excess f u = 0\<rbrakk> \<Longrightarrow> Q_invar f Q"  
+lemma Q_invar_when_discharged1: "\<lbrakk>QD_invar u f Q; excess f u = 0\<rbrakk> \<Longrightarrow> Q_invar f Q"  
   unfolding Q_invar_def QD_invar_def by auto
-  
+
+lemma Q_invar_when_discharged2: "\<lbrakk>QD_invar u f Q; excess f u \<noteq> 0\<rbrakk> \<Longrightarrow> Q_invar f (Q@[u])"  
+  unfolding Q_invar_def QD_invar_def 
+  by auto  
+    
+
+    
 end  
   
-context discharge_invar begin  
+context Labeling begin  
   
   lemma push_no_activate_pres_QD_invar:
     fixes v
@@ -1497,84 +1648,177 @@ context discharge_invar begin
   qed      
     
 end  
-  
+
   
 context Network
 begin
   
-definition "fifo_discharge f l n Q \<equiv> do {  
+definition "fifo_discharge f l Q \<equiv> do {  
   let u=hd Q; let Q=tl Q;
   assert (u\<in>V \<and> u\<noteq>s \<and> u\<noteq>t);
-  while\<^sub>T (\<lambda>(f,l,n,Q). excess f u \<noteq> 0) (\<lambda>(f,l,n,Q). do {
-    v \<leftarrow> selectp v. v\<in>n u;
-    case v of
-      None \<Rightarrow> do {
-        assert (relabel_precond f l u);
-        return (f,relabel_effect f l u,n(u := adjacent_nodes u),Q)
-      }
-    | Some v \<Rightarrow> do {
-        if ((u,v) \<in> cfE_of f \<and> l u = l v + 1) then do {
-          assert (push_precond f l (u,v));
-          let Q = (if v\<noteq>s \<and> v\<noteq>t \<and> excess f v = 0 then Q@[v] else Q);
-          return (push_effect f (u,v),l,n,Q)
-        } else do {
-          assert ( (u,v) \<notin> adm_edges f l );
-          return (f,l,n( u := n u - {v} ),Q)
-        }
-      }
-  }) (f,l,n,Q)
+
+  (f,l,Q) \<leftarrow> FOREACHc {v . (u,v)\<in>cfE_of f} (\<lambda>(f,l,Q). excess f u \<noteq> 0) (\<lambda>v (f,l,Q). do {
+    if (l u = l v + 1) then do {
+      assert (push_precond f l (u,v));
+      let Q = (if v\<noteq>s \<and> v\<noteq>t \<and> excess f v = 0 then Q@[v] else Q);
+      return (push_effect f (u,v),l,Q)
+    } else return (f,l,Q)
+  }) (f,l,Q);
+
+  if excess f u \<noteq> 0 then do {
+    let Q = Q@[u];
+    (* TODO: Gap heuristics! *)
+    let lu = l u;
+    assert (relabel_precond f l u);
+    let l = gap_relabel_effect f l u;
+    return (f,l,Q)
+  } else do {
+    return (f,l,Q)
+  }
 }"
 
 lemma fifo_discharge_correct[THEN order_trans, refine_vcg]:
-  assumes DINV: "neighbor_invar c s t f l n"
+  assumes DINV: "Height_Bounded_Labeling c s t f l"
   assumes QINV: "Q_invar f Q" and QNE: "Q\<noteq>[]"
-  shows "fifo_discharge f l n Q \<le> SPEC (\<lambda>(f',l',n',Q'). 
-    discharge_invar c s t (hd Q) f l n f' l' n' \<and> excess f' (hd Q) = 0 \<and> Q_invar f' Q'
+  shows "fifo_discharge f l Q \<le> SPEC (\<lambda>(f',l',Q'). 
+    Height_Bounded_Labeling c s t f' l' \<and> Q_invar f' Q' \<and> ((f',l'),(f,l))\<in>gap_algo_rel\<^sup>+
   )"  
 proof -
   from QNE obtain u Qr where [simp]: "Q=u#Qr" by (cases Q) auto
   
-  from QINV have U: "u\<in>V-{s,t}" "QD_invar u f Qr"
+  from QINV have U: "u\<in>V-{s,t}" "QD_invar u f Qr" and XU_orig: "excess f u \<noteq> 0"
     by (auto simp: Q_invar_def QD_invar_def)    
 
+  have [simp, intro!]: "finite {v. (u, v) \<in> cfE_of f}" 
+    apply (rule finite_subset[where B=V])
+    using cfE_of_ss_VxV  
+    by auto  
+      
   show ?thesis
     using U
     unfolding fifo_discharge_def  
-    apply (refine_vcg WHILET_rule[where 
-              I="\<lambda>(f',l',n',Q'). discharge_invar c s t u f l n f' l' n' \<and> QD_invar u f' Q'"
-          and R="inv_image (algo_rel <*lex*> finite_psubset) 
-                  (\<lambda>(f',l',n',_). ((f',l'),n' u))"]
-        )
-    apply (vc_solve 
-        solve: wf_lex_prod DINV 
-        solve: neighbor_invar.discharge_invar_init[OF DINV]
-        solve: neighbor_invar.no_neighbors_relabel_precond 
-        solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
-        solve: discharge_invar.push_precondI_nz algo_rel.relabel algo_rel_pushI
-        solve: discharge_invar.remove_neighbor_pres_dis_invar
-        solve: Q_invar_when_discharged
-        intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr 
-        simp: neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr])
-    subgoal 
-      by (auto 
-          intro: discharge_invar.push_activate_pres_QD_invar 
-          intro: discharge_invar.push_no_activate_pres_QD_invar)
-    subgoal unfolding adm_edges_def by auto  
-    subgoal by (auto)
-    done
-qed  
-  
+    apply (rewrite in "FOREACHc _ _ \<hole> _" vcg_intro_frame)  
+    apply (rewrite in "if excess _ _ \<noteq> 0 then \<hole> else _" vcg_intro_frame)  
+    apply (refine_vcg FOREACHc_rule[where 
+            I="\<lambda>it (f',l',Q'). 
+                Height_Bounded_Labeling c s t f' l' 
+              \<and> QD_invar u f' Q'
+              \<and> ((f',l'),(f,l))\<in>gap_algo_rel\<^sup>*
+              \<and> it \<subseteq> {v. (u,v) \<in> cfE_of f' }
+              \<and> (excess f' u\<noteq>0 \<longrightarrow> (\<forall>v\<in>{v. (u,v) \<in> cfE_of f' }-it. l' u \<noteq> l' v + 1))
+            "
+          ])
+    apply (vc_solve simp: DINV QINV it_step_insert_iff split del: if_split)
+    subgoal for v it f' l' Q' proof -
+      assume HBL: "Height_Bounded_Labeling c s t f' l'"
+      then interpret l': Height_Bounded_Labeling c s t f' l' .  
+      
+      assume X: "excess f' u \<noteq> 0" and UI: "u \<in> V" "u \<noteq> s" "u \<noteq> t" 
+        and QDI: "QD_invar u f' Q'"  
+          
+      assume "v \<in> it" and ITSS: "it \<subseteq> {v. (u, v) \<in> l'.cf.E}"
+      hence UVE: "(u,v) \<in> l'.cf.E" by auto 
+      
+      assume REL: "((f', l'), f, l) \<in> gap_algo_rel\<^sup>*"    
+          
+      assume SAT_EDGES: "\<forall>v\<in>{v. (u, v) \<in> cfE_of f'} - it. l' u \<noteq> Suc (l' v)"  
+        
+      from X UI l'.excess_non_negative have X': "excess f' u > 0" by force   
+          
+      have PP: "push_precond f' l' (u, v)" if "l' u = l' v + 1"
+        unfolding push_precond_def using that UVE X' by auto
+        
+      show ?thesis
+        apply (rule vcg_rem_frame)
+        apply (rewrite in "if _ then (assert _ \<then> \<hole>) else _" vcg_intro_frame)  
+        apply refine_vcg  
+        apply (vc_solve simp: REL solve: PP l'.push_pres_height_bound HBL QDI split del: if_split)
+        subgoal proof - 
+          assume [simp]: "l' u = Suc (l' v)" 
+          assume PRE: "push_precond f' l' (u, v)"
+          then interpret pe: push_effect_locale c s t f' l' u v by unfold_locales
+          
+          show ?thesis
+            apply (rule vcg_rem_frame)
+            apply refine_vcg  
+            apply (vc_solve simp: l'.push_pres_height_bound[OF PRE])
+            subgoal 
+              using l'.push_activate_pres_QD_invar[OF QDI PRE] 
+              using l'.push_no_activate_pres_QD_invar[OF QDI PRE]
+              by auto
+            subgoal
+              by (meson gap_algo_rel_pushI REL PRE converse_rtrancl_into_rtrancl HBL)
+            subgoal for x proof -
+              assume "x\<in>it" "x\<noteq>v"
+              with ITSS have "(u,x)\<in>l'.cf.E" by auto    
+              thus ?thesis
+                using \<open>x\<noteq>v\<close>
+                unfolding pe.f'_alt 
+                apply simp
+                unfolding Graph.E_def  
+                by (auto)
+            qed
+            subgoal for v' proof -
+              assume "excess f' u \<noteq> pe.\<Delta>"
+              hence PED: "pe.\<Delta> = l'.cf (u,v)"
+                unfolding pe.\<Delta>_def by auto
+              hence E'SS: "pe.l'.cf.E \<subseteq> (l'.cf.E \<union> {(v,u)}) - {(u,v)}"
+                unfolding pe.f'_alt 
+                apply simp  
+                unfolding Graph.E_def  
+                by auto 
+                  
+              assume "v' \<in> it \<longrightarrow> v' = v" and UV'E: "(u, v') \<in> pe.l'.cf.E" and LUSLV': "l' v = l' v'"    
+              with E'SS have "v'\<notin>it" by auto
+              moreover from UV'E E'SS \<open>v\<noteq>u\<close> have "(u,v')\<in>l'.cf.E" by auto  
+              ultimately have "l' u \<noteq> Suc (l' v')" using SAT_EDGES by auto    
+              with LUSLV' show False by simp  
+            qed      
+            done
+        qed      
+        subgoal using ITSS by auto
+        subgoal using SAT_EDGES by auto
+        done
+    qed
+    subgoal premises prems for f' l' Q' proof -
+      from prems interpret l': Height_Bounded_Labeling c s t f' l' by simp
+      from prems have UI: "u\<in>V" "u\<noteq>s" "u\<noteq>t" 
+        and X: "excess f' u \<noteq> 0" 
+        and QDI: "QD_invar u f' Q'"
+        and REL: "((f', l'), f, l) \<in> gap_algo_rel\<^sup>*"
+        and NO_ADM: "\<forall>v. (u, v) \<in> l'.cf.E \<longrightarrow> l' u \<noteq> Suc (l' v)"
+        by simp_all
+        
+      from X have X': "excess f' u > 0" using l'.excess_non_negative UI by force    
+          
+      from X' UI NO_ADM have PRE: "relabel_precond f' l' u" 
+        unfolding relabel_precond_def by auto
+          
+      show ?thesis 
+        apply (rule vcg_rem_frame)
+        apply refine_vcg
+        apply (vc_solve simp: PRE l'.gap_relabel_pres_hb_labeling[OF PRE] Q_invar_when_discharged2[OF QDI X])
+        subgoal
+          by (meson PRE REL gap_algo_rel.relabel l'.Height_Bounded_Labeling_axioms rtrancl_into_trancl2)
+        done  
+    qed      
+    subgoal by (auto simp: Q_invar_when_discharged1 Q_invar_when_discharged2)
+    subgoal using XU_orig by (metis Pair_inject rtranclD)    
+    subgoal by (auto simp: Q_invar_when_discharged1)
+    subgoal using XU_orig by (metis Pair_inject rtranclD)    
+    done    
+qed
+        
 
 definition "fifo_push_relabel \<equiv> do {
   let f = pp_init_f;
   let l = pp_init_l;
-  let n = rtf_init_n;
 
   Q \<leftarrow> spec l. distinct l \<and> set l = {v\<in>V - {s,t}. excess f v \<noteq> 0}; (* TODO: This is exactly E``{s}! *)
 
-  (f,l,n,_) \<leftarrow> while\<^sub>T (\<lambda>(f,l,n,Q). Q \<noteq> []) (\<lambda>(f,l,n,Q). do {
-    fifo_discharge f l n Q
-  }) (f,l,n,Q);
+  (f,l,_) \<leftarrow> while\<^sub>T (\<lambda>(f,l,Q). Q \<noteq> []) (\<lambda>(f,l,Q). do {
+    fifo_discharge f l Q
+  }) (f,l,Q);
 
   return f
 }"
@@ -1583,102 +1827,23 @@ lemma fifo_push_relabel_correct:
   "fifo_push_relabel \<le> SPEC isMaxFlow"
   unfolding fifo_push_relabel_def
   apply (refine_vcg  
-      WHILET_rule[where I="\<lambda>(f,l,n,Q). neighbor_invar c s t f l n \<and> Q_invar f Q"
-                    and R="inv_image (algo_rel\<^sup>+) (\<lambda>(f,l,n,Q). ((f,l)))"
+      WHILET_rule[where I="\<lambda>(f,l,Q). Height_Bounded_Labeling c s t f l \<and> Q_invar f Q"
+                    and R="inv_image (gap_algo_rel\<^sup>+) (\<lambda>(f,l,Q). ((f,l)))"
         ]
       )
-  apply (vc_solve solve: rtf_init_neighbor_invar simp: discharge_invar.dis_is_nbr)
+  apply (vc_solve solve: pp_init_height_bound)
   subgoal by (blast intro: wf_lex_prod wf_trancl)  
-  subgoal unfolding Q_invar_def by auto    
-  subgoal for initQ f l n Q f' l' n' Q' proof -
-    assume "discharge_invar c s t (hd Q) f l n f' l' n'" 
-    then interpret discharge_invar c s t "hd Q" f l n f' l' n' .
-
-    assume "Q_invar f Q" "Q \<noteq> []" "excess f' (hd Q) = 0"
-    hence "f \<noteq> f'" unfolding Q_invar_def by (cases Q) auto 
-    with algo_rel show "((f', l'), f, l) \<in> algo_rel\<^sup>+" by (auto dest: rtranclD)
-  qed
-  subgoal for initQ f l n proof -
-    assume "neighbor_invar c s t f l n"
-    then interpret neighbor_invar c s t f l n .
+  subgoal unfolding Q_invar_def by auto 
+  subgoal for initQ f l proof -
+    assume "Height_Bounded_Labeling c s t f l"
+    then interpret Height_Bounded_Labeling c s t f l .
     assume "Q_invar f []"    
     hence "\<forall>u\<in>V-{s,t}. excess f u = 0" unfolding Q_invar_def by auto
     thus "isMaxFlow f" by (rule no_excess_imp_maxflow)    
   qed
-  done    
+  done
     
 end  
 
-section \<open>Gap Heuristics\<close>
-(*
-  TODO: Reported to be ineffective with FIFO rule by 
-    Cherkassky & Goldberg: On Implementing the Push—Relabel Method for the Maximum Flow Problem
-
-*)  
-  
-context Labeling begin 
-  text \<open>A path to the sink implies that there is no gap in the labels.\<close>
-  lemma UNUSED_path_to_sink_imp_no_gap:
-    assumes "(u,t)\<in>cf.E\<^sup>*"
-    shows "\<forall>x\<le>l u. \<exists>v\<in>V. l v = x"
-    using assms  
-  proof (induction rule: converse_rtrancl_induct)
-    case base
-    then show ?case 
-      apply clarsimp 
-      using lab_sink by blast
-  next
-    case (step y z)
-    from step.hyps have "y\<in>V" "z\<in>V" using cfE_ss_invE E_ss_VxV by auto
-        
-    show ?case 
-    proof (cases "l y \<le> l z")
-      case True
-      with step.IH show ?thesis by auto
-    next
-      case False
-      with valid[OF \<open>(y,z)\<in>cf.E\<close>] have "l y = l z + 1" by auto
-      with \<open>y\<in>V\<close> step.IH show ?thesis using le_Suc_eq by auto
-    qed    
-  qed    
-  
-  definition (in Network) "gap_relabel_precond l k \<equiv> \<forall>v\<in>V. l v \<noteq> k"
-  definition (in Network) "gap_relabel_effect l k 
-    \<equiv> \<lambda>v. if k<l v \<and> l v < card V then card V + 1 else l v"
-    
-  lemma gap_relabel_pres_Labeling:
-    assumes PRE: "gap_relabel_precond l k"
-    defines "l' \<equiv> gap_relabel_effect l k"
-    shows "Labeling c s t f l'"
-  proof    
-    from lab_src show "l' s = card V" unfolding l'_def gap_relabel_effect_def by auto
-    from lab_sink show "l' t = 0" unfolding l'_def gap_relabel_effect_def by auto
-    
-    have l'_incr: "l' v \<ge> l v" for v unfolding l'_def gap_relabel_effect_def by auto
-        
-    fix u v
-    assume A: "(u,v) \<in> cf.E"  
-    hence "u\<in>V" "v\<in>V" using cfE_ss_invE E_ss_VxV by auto  
-    thus "l' u \<le> l' v + 1"  
-      unfolding l'_def gap_relabel_effect_def
-      using valid[OF A] PRE 
-      unfolding gap_relabel_precond_def 
-      by auto
-  qed  
-  
-end  
-  
-lemma (in Height_Bounded_Labeling) 
-  assumes PRE: "gap_relabel_precond l k"
-  defines "l' \<equiv> gap_relabel_effect l k"
-  shows "Height_Bounded_Labeling c s t f l'"  
-proof -  
-  from gap_relabel_pres_Labeling[OF PRE] interpret Labeling c s t f l'
-    unfolding l'_def .
-  
-  show ?thesis    
-    apply unfold_locales
-    unfolding l'_def gap_relabel_effect_def using height_bound by auto
-qed  
   
 end
