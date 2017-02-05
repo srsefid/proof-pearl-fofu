@@ -121,9 +121,8 @@ in
     val t = Time.fromNanoseconds (Time.toNanoseconds t div n)
     val res = "TODO" (*compres res*)
     val _ = print ("\n");
-    val _ = print ("@@@max-flow: " ^ res ^ "\n");
-    val _ = print ("@@@time: " ^ IntInf.toString (Time.toMilliseconds t) ^ " ms\n")
-    
+    val _ = print ("@@@time: " ^ IntInf.toString (Time.toMilliseconds t) ^ " ms\n");
+    val _ = print ("@@@max-flow: " ^ res ^ "\n")
   in () end
 
 end
