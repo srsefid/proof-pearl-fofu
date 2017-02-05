@@ -13,7 +13,7 @@ session Push_Relabel_Maxflow = Push_Relabel_Base +
 
   theories [document = false]
     Network
-    ResidualGraph
+    Residual_Graph
     Ford_Fulkerson
     Preflow
 
