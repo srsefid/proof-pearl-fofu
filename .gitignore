@@ -19,4 +19,6 @@ formalization/Push_Relabel_Maxflow/evaluation/fofu-Java/*.class
 formalization/Push_Relabel_Maxflow/evaluation/fofu-Java/lib/*.class
 formalization/Push_Relabel_Maxflow/evaluation/rtof-SML/Rtof
 formalization/Push_Relabel_Maxflow/evaluation/rtof-C++/Rtof
+formalization/Push_Relabel_Maxflow/evaluation/rtof-Java/*.class
+formalization/Push_Relabel_Maxflow/evaluation/rtof-Java/lib/*.class
 
