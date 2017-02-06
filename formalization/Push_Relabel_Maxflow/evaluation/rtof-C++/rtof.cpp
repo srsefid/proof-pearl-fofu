@@ -9,7 +9,7 @@
 
 using namespace std;
 
-typedef long long LL;
+typedef long LL;
 
 struct Edge {
   int from, to, cap, flow, index;
@@ -19,12 +19,22 @@ struct Edge {
 
 struct PushRelabel {
   int N;
-  vector<vector<Edge> > G;
-  vector<LL> excess;
-  vector<int> dist, active, count;
+  vector<Edge>*  G;
+  LL* excess;
+  int *dist, *count;
+  bool * active;
   queue<int> Q;
 
-  PushRelabel(int N) : N(N), G(N), excess(N), dist(N), active(N), count(2*N) {}
+  PushRelabel(int N) : N(N) {
+    this->G = new vector<Edge>[N];
+    for(int i = 0; i < N; i++)
+      G[i].reserve(10);
+
+    this->excess = new LL[N];
+    this->dist = new int[N];
+    this->active = new bool[N];
+    this->count = new int[2 * N];
+  }
 
   void AddEdge(int from, int to, int cap) {
     G[from].push_back(Edge(from, to, cap, 0, G[to].size()));
@@ -123,7 +133,7 @@ int main(int argc, char** argv) {
 
 		printf("@@@time: %.0f ms\n", ((double)(clock() - tStart)/CLOCKS_PER_SEC) * 1000);
 		printf("[Input (V E): %d %d]\n", V_size, E_size);
-		printf("@@@max-flow: %lld\n", maxFlow);
+		printf("@@@max-flow: %ld\n", maxFlow);
 	}
 
 	return 0;
