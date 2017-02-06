@@ -4,10 +4,10 @@ tests=`cat tests`
 platforms_fofu=`cat fofu-platforms`
 platforms_rtof=`cat rtof-platforms`
 
-tabs -12
-echo -ne "name \t& "
-for p in $platforms_fofu; do echo -ne "fofu-$p\t& "; done
-for p in $platforms_rtof; do echo -ne "rtof-$p\t& "; done
+tabs -9
+echo -ne "Test-Name \t& "
+for p in $platforms_fofu; do echo -ne "f-$p\t& "; done
+for p in $platforms_rtof; do echo -ne "p-$p\t& "; done
 
 echo ""
 
