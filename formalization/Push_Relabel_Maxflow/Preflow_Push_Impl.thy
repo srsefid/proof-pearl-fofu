@@ -54,6 +54,108 @@ lemma monadic_WHILEIT_comb[sepref_monadify_comb]:
     )"
   by (simp)
 
+lemma nfoldli_filter_deforestation: 
+  "nfoldli (filter P xs) c f s = nfoldli xs c (\<lambda>x s. if P x then f x s else return s) s"
+  apply (induction xs arbitrary: s)
+  by (auto simp: pw_eq_iff refine_pw_simps) 
+    
+lemma extend_list_of_filtered_set:
+  assumes [simp, intro!]: "finite S" 
+    and A: "distinct xs'" "set xs' = {x \<in> S. P x}"
+  obtains xs where "xs' = filter P xs" "distinct xs" "set xs = S"
+proof -
+  obtain xs2 where "{x\<in>S. \<not>P x} = set xs2" "distinct xs2"
+    using finite_distinct_list[where A="{x\<in>S. \<not>P x}"] by auto
+  with A have "xs' = filter P (xs'@xs2)" "distinct (xs'@xs2)" "set (xs'@xs2) = S"  
+    by (auto simp: filter_empty_conv)
+  from that[OF this] show ?thesis .
+qed    
+
+    
+lemma FOREACHc_filter_deforestation:
+  assumes FIN[simp, intro!]: "finite S"
+  shows "(FOREACHc {x\<in>S. P x} c f s) 
+    = FOREACHc S c (\<lambda>x s. if P x then f x s else RETURN s) s"
+  unfolding FOREACHc_def FOREACHci_def FOREACHoci_by_LIST_FOREACH LIST_FOREACH'_eq
+      LIST_FOREACH'_def it_to_sorted_list_def
+  subgoal       
+  proof (induction rule: antisym[consumes 0, case_names 1 2])
+    case 1
+    then show ?case
+      apply (rule le_ASSERTI)  
+      apply (rule ASSERT_leI, simp)  
+      apply (rule intro_spec_refine[where R=Id, simplified]; clarsimp)
+      apply (rule extend_list_of_filtered_set[OF FIN _ sym], assumption, assumption)
+      subgoal for xs' xs
+        apply (rule rhs_step_bind_SPEC[where R=Id and x'="xs", simplified])
+        applyS simp  
+        applyS (simp add: nfoldli_filter_deforestation)
+        done
+      done
+  next
+    case 2
+    then show ?case
+    apply (rule le_ASSERTI)  
+    apply (rule ASSERT_leI, (simp; fail))  
+    apply (rule intro_spec_refine[where R=Id, simplified]; clarsimp)
+    subgoal for xs  
+      apply (rule rhs_step_bind_SPEC[where R=Id and x'="filter P xs", simplified])
+      apply simp  
+      apply (simp add: nfoldli_filter_deforestation)
+      done
+    done  
+  qed
+  done    
+
+lemma FOREACHc_filter_deforestation2:
+  assumes [simp]: "distinct xs"
+  shows "(FOREACHc (set (filter P xs)) c f s) 
+    = FOREACHc (set xs) c (\<lambda>x s. if P x then f x s else RETURN s) s"
+  using FOREACHc_filter_deforestation[of "set xs", simplified, folded set_filter]
+  .  
+
+(* TODO: Move *)
+lemma list_case_refine[refine]: 
+  assumes "(li,l)\<in>\<langle>S\<rangle>list_rel"
+  assumes "fni \<le>\<Down>R fn"  
+  assumes "\<And>xi x xsi xs. \<lbrakk> (xi,x)\<in>S; (xsi,xs)\<in>\<langle>S\<rangle>list_rel; li=xi#xsi; l=x#xs \<rbrakk> \<Longrightarrow> fci xi xsi \<le>\<Down>R (fc x xs)"  
+  shows "(case li of [] \<Rightarrow> fni | xi#xsi \<Rightarrow> fci xi xsi) \<le> \<Down>R (case l of [] \<Rightarrow> fn | x#xs \<Rightarrow> fc x xs)"  
+  using assms by (auto split: list.split)  
+    
+lemma list_rel_congD: 
+  assumes A: "(li,l)\<in>\<langle>S\<rangle>list_rel" 
+  shows "(li,l)\<in>\<langle>S\<inter>(set li\<times>set l)\<rangle>list_rel"
+proof -
+  {
+    fix Si0 S0
+    assume "set li \<subseteq> Si0" "set l \<subseteq> S0"
+    with A have "(li,l)\<in>\<langle>S\<inter>(Si0\<times>S0)\<rangle>list_rel"
+      by (induction rule: list_rel_induct) auto  
+  } from this[OF order_refl order_refl] show ?thesis .
+qed      
+    
+lemma monadic_nfoldli_refine[refine]:
+  assumes L: "(li, l) \<in> \<langle>S\<rangle>list_rel"
+    and  [simp]: "(si, s) \<in> R"
+    and CR[refine]: "\<And>si s. (si,s)\<in>R \<Longrightarrow> ci si \<le>\<Down>bool_rel (c s)"
+    and [refine]: "\<And>xi x si s. \<lbrakk> (xi,x)\<in>S; x\<in>set l; (si,s)\<in>R; inres (c s) True \<rbrakk> \<Longrightarrow> fi xi si \<le> \<Down>R (f x s)"
+  shows "monadic_nfoldli li ci fi si \<le> \<Down> R (monadic_nfoldli l c f s)"
+    
+  supply RELATESI[of "S\<inter>(set li\<times>set l)", refine_dref_RELATES]
+  supply RELATESI[of R, refine_dref_RELATES]
+  unfolding monadic_nfoldli_def  
+  apply (refine_rcg bind_refine')
+  apply refine_dref_type  
+  apply (vc_solve simp: list_rel_congD[OF L]) 
+  done
+    
+      
+    
+    
+    
+    
+    
+    
 context Network 
 begin  
   
@@ -141,7 +243,7 @@ definition n_reset :: "(node \<Rightarrow> node list) \<Rightarrow> (node \<Righ
 (* Labeling *)    
 definition l_init :: "nat \<Rightarrow> (node \<Rightarrow> nat) nres"
   where "l_init C \<equiv> return ((\<lambda>_. 0)(s := C))"
-    
+     
 definition l_get :: "(node \<Rightarrow> nat) \<Rightarrow> node \<Rightarrow> nat nres"    
   where "l_get l u \<equiv> do {
     assert (u \<in> V);
@@ -151,6 +253,7 @@ definition l_get :: "(node \<Rightarrow> nat) \<Rightarrow> node \<Rightarrow> n
 definition l_set :: "(node \<Rightarrow> nat) \<Rightarrow> node \<Rightarrow> nat \<Rightarrow> (node \<Rightarrow> nat) nres"    
   where "l_set l u a \<equiv> do {
     assert (u\<in>V);
+    assert (a < 2*card V);
     return (l(u := a))
   }"
     
@@ -304,23 +407,6 @@ proof -
     by (auto simp: pw_le_iff refine_pw_simps list_set_autoref_empty fun_relD[OF AM])
 qed  
     
-definition augment_edge_cf :: "'capacity flow \<Rightarrow> _" where 
-  "augment_edge_cf cf \<equiv> \<lambda>(u,v) \<Delta>. (cf)( (u,v) := cf (u,v) - \<Delta>, (v,u) := cf (v,u) + \<Delta>)"
-  
-lemma cf_of_augment_edge[simp]:
-  assumes A: "(u,v)\<in>cfE_of f" 
-  assumes "Labeling c s t f l"
-  shows "cf_of (augment_edge f (u,v) \<Delta>) = augment_edge_cf (cf_of f) (u,v) \<Delta>"  
-proof -  
-  interpret Labeling c s t f l by fact
-  
-  show "cf_of (augment_edge f (u, v) \<Delta>) = augment_edge_cf cf (u, v) \<Delta>"
-    by (simp add: augment_edge_cf_def A)
-qed      
-    
-    
-    
-    
 definition "push2_aux x cf \<equiv> \<lambda>(u,v). do {
   assert ( (u,v) \<in> E \<union> E\<inverse> );
   assert ( u \<noteq> v );
@@ -344,7 +430,7 @@ lemma push2_aux_refine: "\<lbrakk>((x,cf),f)\<in>xf_rel; (ei,e)\<in>Id\<times>\<
       then interpret l': push_effect_locale c s t f l u v by unfold_locales
       from l'.excess'_if show ?thesis by (auto simp: l'.\<Delta>_def push_effect_def)
     qed
-    subgoal unfolding push_effect_def push_precond_def by auto
+    subgoal unfolding push_effect_def push_precond_def augment_edge_cf_def by auto
     done  
   done
 
@@ -454,13 +540,13 @@ definition "min_adj_label am cf l u \<equiv> do {
 }"
 
 lemma min_adj_label_refine[THEN order_trans, refine_vcg]:
-  assumes "Labeling c s t f l"
+  assumes "Height_Bounded_Labeling c s t f l"
   assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
   assumes PRE: "relabel_precond f l u"
   assumes [simp]: "cf = cf_of f"  
   shows "min_adj_label am cf l u \<le> SPEC (\<lambda>x. x = Min { l v | v. (u,v)\<in>cfE_of f })"  
 proof - 
-  interpret Labeling c s t f l by fact
+  interpret Height_Bounded_Labeling c s t f l by fact
 
   have "min_adj_label am (cf_of f) l u \<le> \<Down>Id (min_adj_label_aux (cf_of f) l u)"  
     unfolding min_adj_label_def min_adj_label_aux_def Let_def
@@ -495,10 +581,19 @@ proof -
   show ?thesis
     using assms
     unfolding relabel2_def relabel_def
-    unfolding l_set_def  
+    unfolding l_set_def
     apply (refine_vcg AM)
-    apply (vc_solve simp: xf_rel_def relabel_effect_def)
-    apply auto  
+    apply (vc_solve (nopre) simp: xf_rel_def relabel_effect_def solve: asm_rl)
+    subgoal premises prems for a proof -   
+      from prems interpret Height_Bounded_Labeling c s t f l by simp
+      interpret l': Height_Bounded_Labeling c s t f "relabel_effect f l u"
+        by (rule relabel_pres_height_bound) (rule prems)
+      from prems have "u\<in>V" by simp
+      from prems have "a + 1 = relabel_effect f l u u"
+        by (auto simp: relabel_effect_def)
+      also note l'.height_bound[THEN bspec, OF \<open>u\<in>V\<close>]
+      finally show "a + 1 < 2 * card V" using card_V_ge2 by auto
+    qed      
     done
 qed
     
@@ -1092,4 +1187,745 @@ theorem relabel_to_front_correct:
   using prepareNet_correct[of el s t]
   by (sep_auto simp: ln_rel_def in_br_conv)
   
+    
+section \<open>Fifo Push-Relabel with Gap-Heuristics\<close>    
+    
+context Network_Impl 
+begin  
+  (* More Basic Operations*)
+  
+  definition q_empty :: "node list nres" where
+    "q_empty \<equiv> return []"
+  
+  definition q_is_empty :: "node list \<Rightarrow> bool nres" where
+    "q_is_empty Q \<equiv> return ( Q = [] )"
+    
+  definition q_enqueue :: "node \<Rightarrow> node list \<Rightarrow> node list nres" where
+    "q_enqueue v Q \<equiv> do {
+      assert (v\<in>V);
+      return (Q@[v])
+    }"
+
+  definition q_dequeue :: "node list \<Rightarrow> (node \<times> node list) nres" where
+    "q_dequeue Q \<equiv> do {
+      assert (Q\<noteq>[]);
+      return (hd Q, tl Q)
+    }"
+    
+  definition cnt_init :: "nat \<Rightarrow> (nat \<Rightarrow> nat) nres"
+    where "cnt_init C \<equiv> return ((\<lambda>_. 0)(0 := C - 1, C := 1))"
+      
+  definition cnt_get :: "(nat \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> nat nres"    
+    where "cnt_get cnt lv \<equiv> do {
+      assert (lv < 2*N);
+      return (cnt lv)
+    }"
+  
+  definition cnt_incr :: "(nat \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) nres"    
+    where "cnt_incr cnt lv \<equiv> do {
+      assert (lv < 2*N);
+      return (cnt ( lv := cnt lv + 1 ))
+    }"
+
+  definition cnt_decr :: "(nat \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) nres"    
+    where "cnt_decr cnt lv \<equiv> do {
+      assert (lv < 2*N \<and> cnt lv > 0);
+      return (cnt ( lv := cnt lv - 1 ))
+    }"
+    
+
+  (* Adding frequency counters to labeling *)    
+      
+  definition "l_invar l \<equiv> \<forall>v. l v \<noteq> 0 \<longrightarrow> v\<in>V"  
+  
+  definition "clc_invar \<equiv> \<lambda>(cnt,l). 
+    (\<forall>lv. cnt lv = card { u\<in>V . l u = lv }) 
+  \<and> (\<forall>u. l u < 2*N) \<and> l_invar l"
+  definition "clc_rel \<equiv> br snd clc_invar"    
+      
+  definition "clc_init C \<equiv> do {
+    l \<leftarrow> l_init C;
+    cnt \<leftarrow> cnt_init C;
+    return (cnt,l)
+  }"
+    
+  definition "clc_get \<equiv> \<lambda>(cnt,l) u. l_get l u"
+  definition "clc_set \<equiv> \<lambda>(cnt,l) u a. do {
+    assert (a<2*N);
+    lu \<leftarrow> l_get l u;
+    cnt \<leftarrow> cnt_decr cnt lu;
+    l \<leftarrow> l_set l u a;
+    lu \<leftarrow> l_get l u;
+    cnt \<leftarrow> cnt_incr cnt lu;
+    return (cnt,l)
+  }"  
+
+  definition "clc_has_gap \<equiv> \<lambda>(cnt,l) lu. do {
+    nlu \<leftarrow> cnt_get cnt lu;
+    return (nlu = 0)
+  }"
+    
+  lemma cardV_le_N: "card V \<le> N" using card_mono[OF _ V_ss] by auto
+  lemma N_not_Z: "N \<noteq> 0" using card_V_ge2 cardV_le_N by auto
+  lemma N_ge_2: "2\<le>N" using card_V_ge2 cardV_le_N by auto
+    
+  lemma clc_init_refine[refine]:
+    assumes [simplified,simp]: "(Ci,C)\<in>nat_rel" 
+    assumes [simp]: "C = card V" 
+    shows "clc_init Ci \<le>\<Down>clc_rel (l_init C)"  
+  proof -
+    have AUX: "{u. u \<noteq> s \<and> u \<in> V} = V-{s}" by auto
+    
+    show ?thesis
+      unfolding clc_init_def l_init_def cnt_init_def
+      apply refine_vcg
+      unfolding clc_rel_def clc_invar_def
+      using cardV_le_N N_not_Z
+      by (auto simp: in_br_conv V_not_empty AUX l_invar_def)  
+  qed  
+
+  lemma clc_get_refine[refine]: 
+    "\<lbrakk> (clc,l)\<in>clc_rel; (ui,u)\<in>nat_rel \<rbrakk> \<Longrightarrow> clc_get clc ui \<le>\<Down>Id (l_get l u)"
+    unfolding clc_get_def clc_rel_def
+    by (auto simp: in_br_conv split: prod.split)  
+  
+  definition l_get_rlx :: "(node \<Rightarrow> nat) \<Rightarrow> node \<Rightarrow> nat nres"    
+    where "l_get_rlx l u \<equiv> do {
+      assert (u < N);
+      return (l u)
+    }"
+  definition "clc_get_rlx \<equiv> \<lambda>(cnt,l) u. l_get_rlx l u"
+    
+  lemma clc_get_rlx_refine[refine]: 
+    "\<lbrakk> (clc,l)\<in>clc_rel; (ui,u)\<in>nat_rel \<rbrakk> \<Longrightarrow> clc_get_rlx clc ui \<le>\<Down>Id (l_get_rlx l u)"
+    unfolding clc_get_rlx_def clc_rel_def
+    by (auto simp: in_br_conv split: prod.split)  
+      
+  lemma card_insert_disjointI: "\<lbrakk> finite Y; X = insert x Y; x\<notin>Y \<rbrakk> \<Longrightarrow> card X = Suc (card Y)"    
+    by auto
+    
+  lemma clc_set_refine[refine]:
+    "\<lbrakk> (clc,l) \<in> clc_rel; (ui,u)\<in>nat_rel; (ai,a)\<in>nat_rel \<rbrakk> \<Longrightarrow>
+      clc_set clc ui ai \<le>\<Down>clc_rel (l_set l u a)"
+    unfolding clc_set_def l_set_def l_get_def cnt_decr_def cnt_incr_def
+    apply refine_vcg  
+    apply vc_solve
+    unfolding clc_rel_def in_br_conv clc_invar_def l_invar_def
+    subgoal using cardV_le_N by auto
+    applyS auto  
+    applyS (auto simp: simp: card_gt_0_iff)
+      
+    subgoal for cnt ll 
+      apply clarsimp  
+      apply (intro impI conjI; clarsimp?)
+      subgoal  
+        apply (subst le_imp_diff_is_add; simp)
+        apply (rule card_insert_disjointI[where x=u])
+        by auto
+      subgoal     
+        apply (rule card_insert_disjointI[where x=u, symmetric])
+        by auto
+      subgoal
+        by (auto intro!: arg_cong[where f=card])
+      done
+    done    
+
+  lemma clc_has_gap_correct[THEN order_trans, refine_vcg]:
+    "\<lbrakk>(clc,l)\<in>clc_rel; k<2*N\<rbrakk> \<Longrightarrow> clc_has_gap clc k \<le> (spec r. r \<longleftrightarrow> gap_precond l k)"
+    unfolding clc_has_gap_def cnt_get_def gap_precond_def
+    apply refine_vcg  
+    unfolding clc_rel_def clc_invar_def in_br_conv
+    by auto  
+    
+definition "fifo_push2_aux x cf Q \<equiv> \<lambda>(u,v). do {
+  assert ( (u,v) \<in> E \<union> E\<inverse> );
+  assert ( u \<noteq> v );
+  let \<Delta> = min (x u) (cf (u,v));
+  let Q = (if v\<noteq>s \<and> v\<noteq>t \<and> x v = 0 then Q@[v] else Q);
+  return ((x( u := x u - \<Delta>, v := x v + \<Delta> ),augment_edge_cf cf (u,v) \<Delta>),Q)
+}"
+    
+  
+lemma fifo_push2_aux_refine: "\<lbrakk>((x,cf),f)\<in>xf_rel; (ei,e)\<in>Id\<times>\<^sub>rId; (Qi,Q)\<in>Id\<rbrakk> \<Longrightarrow> fifo_push2_aux x cf Qi ei \<le> \<Down>(xf_rel \<times>\<^sub>r Id) (fifo_push f l Q e)"
+  unfolding fifo_push_def fifo_push2_aux_def
+  apply refine_vcg  
+  apply (vc_solve simp: xf_rel_def no_self_loop)
+  subgoal for u v 
+    unfolding push_precond_def using cfE_of_ss_invE by auto
+  subgoal for u v 
+  proof -
+    assume [simp]: "Labeling c s t f l"
+    then interpret Labeling c s t f l .
+        thm cfE_ss_invE
+    assume "push_precond f l (u, v)"    
+    then interpret l': push_effect_locale c s t f l u v by unfold_locales
+    show ?thesis 
+      apply (safe intro!: ext)
+      using l'.excess'_if l'.\<Delta>_def l'.cf'_alt \<open>u\<noteq>v\<close>
+      by (auto)  
+  qed
+  done  
+
+definition "fifo_push2 x cf Q \<equiv> \<lambda>(u,v). do {
+  assert ( (u,v) \<in> E \<union> E\<inverse> );
+  xu \<leftarrow> x_get x u;
+  xv \<leftarrow> x_get x v;
+  cfuv \<leftarrow> cf_get cf (u,v);
+  cfvu \<leftarrow> cf_get cf (v,u);
+  let \<Delta> = min xu cfuv;
+  x \<leftarrow> x_add x u (-\<Delta>);
+  x \<leftarrow> x_add x v \<Delta>;
+
+  cf \<leftarrow> cf_set cf (u,v) (cfuv - \<Delta>);
+  cf \<leftarrow> cf_set cf (v,u) (cfvu + \<Delta>);
+
+  if v\<noteq>s \<and> v\<noteq>t \<and> xv = 0 then do {
+    Q \<leftarrow> q_enqueue v Q;
+    return ((x,cf),Q)
+  } else
+    return ((x,cf),Q)
+}"
+    
+lemma fifo_push2_refine[refine]: 
+  assumes "((x,cf),f)\<in>xf_rel" "(ei,e)\<in>Id\<times>\<^sub>rId" "(Qi,Q)\<in>Id"
+  shows "fifo_push2 x cf Qi ei \<le> \<Down>(xf_rel \<times>\<^sub>r Id) (fifo_push f l Q e)"
+proof -
+  have "fifo_push2 x cf Qi ei \<le> (fifo_push2_aux x cf Qi ei)"  
+    unfolding fifo_push2_def fifo_push2_aux_def
+    unfolding x_get_def x_add_def cf_get_def cf_set_def q_enqueue_def
+    unfolding augment_edge_cf_def  
+    apply (simp only: nres_monad_laws)  
+    apply refine_vcg  
+    using E_ss_VxV  
+    by auto  
+  also note fifo_push2_aux_refine[OF assms]    
+  finally show ?thesis . 
+qed  
+    
+definition "gap_aux C l k \<equiv> do {
+  nfoldli [0..<N] (\<lambda>_. True) (\<lambda>v l. do {
+    lv \<leftarrow> l_get_rlx l v;
+    if (k < lv \<and> lv < C) then do {
+      assert (C+1 < 2*N);
+      l \<leftarrow> l_set l v (C+1);
+      return l
+    } else return l
+  }) l
+}"
+  
+lemma gap_effect_invar[simp]: "l_invar l \<Longrightarrow> l_invar (gap_effect l k)"   
+  unfolding gap_effect_def l_invar_def
+  by auto  
+  
+lemma relabel_effect_invar[simp]: "\<lbrakk>l_invar l; u\<in>V\<rbrakk> \<Longrightarrow> l_invar (relabel_effect f l u)"    
+  unfolding relabel_effect_def l_invar_def by auto
+    
+lemma gap_aux_correct[THEN order_trans, refine_vcg]: 
+  "\<lbrakk>l_invar l; C=card V\<rbrakk> \<Longrightarrow> gap_aux C l k \<le> SPEC (\<lambda>r. r=gap_effect l k)"
+  unfolding gap_aux_def l_get_rlx_def l_set_def
+  apply (simp only: nres_monad_laws)  
+  apply (refine_vcg nfoldli_rule[where I = "\<lambda>it1 it2 l'. \<forall>u. if u\<in>set it2 then l' u = l u else l' u = gap_effect l k u"])
+  apply (vc_solve simp: upt_eq_lel_conv)
+  subgoal
+    apply (frule gap_effect_invar[where k=k])
+    unfolding l_invar_def using V_ss by force 
+  subgoal using N_not_Z cardV_le_N by auto
+  subgoal unfolding l_invar_def by auto  
+  subgoal unfolding gap_effect_def by auto
+  subgoal for v l' u
+    apply (drule spec[where x=u])
+    by (auto split: if_splits simp: gap_effect_def)
+  subgoal by auto
+  done  
+  
+definition "fifo_gap_relabel_aux C f l Q u \<equiv> do {
+  Q \<leftarrow> q_enqueue u Q;
+  lu \<leftarrow> l_get l u;
+  l \<leftarrow> relabel f l u;
+  if gap_precond l lu then do {
+    l \<leftarrow> gap_aux C l lu;
+    return (l,Q)
+  } else return (l,Q)
+}"  
+
+lemma fifo_gap_relabel_aux_refine: 
+  assumes [simp]: "C = card V" "l_invar l"
+  shows "fifo_gap_relabel_aux C f l Q u \<le> fifo_gap_relabel f l Q u"  
+  unfolding fifo_gap_relabel_aux_def fifo_gap_relabel_def relabel_def 
+    gap_relabel_effect_def l_get_def q_enqueue_def
+  apply (simp only: Let_def nres_monad_laws)  
+  apply refine_vcg  
+  by auto  
+  
+definition "gap2 C clc k \<equiv> do {
+  nfoldli [0..<N] (\<lambda>_. True) (\<lambda>v clc. do {
+    lv \<leftarrow> clc_get_rlx clc v;
+    if (k < lv \<and> lv < C) then do {
+      clc \<leftarrow> clc_set clc v (C+1);
+      return clc
+    } else return clc
+  }) clc
+}"
+    
+lemma gap2_refine[refine]:  
+  assumes [simplified,simp]: "(Ci,C)\<in>nat_rel" "(ki,k)\<in>nat_rel"
+  assumes CLC: "(clc,l)\<in>clc_rel"  
+  shows "gap2 Ci clc ki \<le>\<Down>clc_rel (gap_aux C l k)"
+  unfolding gap2_def gap_aux_def  
+  apply (refine_rcg CLC)
+  apply refine_dref_type  
+  by auto    
+    
+definition "fifo_relabel2 am cf clc u \<equiv> do {
+  assert (u\<in>V - {s,t});
+  nl \<leftarrow> min_adj_label am cf (snd clc) u;
+  clc \<leftarrow> clc_set clc u (nl+1);
+  return clc
+}"
+    
+lemma relabel2_refine[refine]: 
+  assumes XF: "((x,cf),f)\<in>xf_rel"
+  assumes CLC: "(clc,l)\<in>clc_rel"  
+  assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
+  assumes [simplified,simp]: "(ui,u)\<in>Id"
+  shows "fifo_relabel2 am cf clc ui \<le> \<Down>clc_rel (relabel f l u)"    
+proof -
+  have "fifo_relabel2 am cf clc ui \<le>\<Down>clc_rel (relabel2 am cf l ui)"
+    unfolding fifo_relabel2_def relabel2_def
+    apply (refine_rcg)
+    apply (refine_dref_type)  
+    apply (vc_solve simp: CLC)
+    subgoal using CLC unfolding clc_rel_def in_br_conv by auto
+    done    
+  also note relabel2_refine[OF XF AM, of l l ui u]
+  finally show ?thesis by simp  
+qed  
+  
+  
+    
+definition "fifo_gap_relabel2 C am cf clc Q u \<equiv> do {
+  Q \<leftarrow> q_enqueue u Q;
+  lu \<leftarrow> clc_get clc u;
+  clc \<leftarrow> fifo_relabel2 am cf clc u;
+  has_gap \<leftarrow> clc_has_gap clc lu;
+  if has_gap then do {
+    clc \<leftarrow> gap2 C clc lu;
+    RETURN (clc,Q)
+  } else 
+    RETURN (clc,Q)
+}"  
+  
+lemma fifo_gap_relabel2_refine_aux:
+  assumes XCF: "((x, cf), f) \<in> xf_rel"  
+  assumes CLC: "(clc,l)\<in>clc_rel"  
+  assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
+  assumes [simplified,simp]: "(Ci,C)\<in>Id" "(Qi,Q)\<in>Id" "(ui,u)\<in>Id"
+  shows "fifo_gap_relabel2 Ci am cf clc Qi ui \<le> \<Down>(clc_rel \<times>\<^sub>r Id) (fifo_gap_relabel_aux C f l Q u)"  
+  unfolding fifo_gap_relabel2_def fifo_gap_relabel_aux_def
+  apply (refine_vcg XCF AM CLC if_bind_cond_refine bind_refine')
+  apply refine_dref_type  
+  apply (vc_solve solve: refl )
+  subgoal for _ lu
+    using CLC
+    unfolding clc_get_def l_get_def clc_rel_def in_br_conv clc_invar_def
+    by (auto simp: refine_pw_simps split: prod.splits)
+  done    
+    
+thm fifo_gap_relabel_aux_refine fifo_gap_relabel2_refine_aux   
+    
+lemma fifo_gap_relabel2_refine[refine]:
+  assumes XCF: "((x, cf), f) \<in> xf_rel"  
+  assumes CLC: "(clc,l)\<in>clc_rel"  
+  assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
+  assumes [simplified,simp]: "(Qi,Q)\<in>Id" "(ui,u)\<in>Id"    
+  assumes CC: "C = card V"  
+  shows "fifo_gap_relabel2 C am cf clc Qi ui \<le>\<Down>(clc_rel \<times>\<^sub>r Id) (fifo_gap_relabel f l Q u)"
+proof -
+  from CLC have LINV: "l_invar l" unfolding clc_rel_def in_br_conv clc_invar_def by auto
+  
+  note fifo_gap_relabel2_refine_aux[OF XCF CLC AM IdI IdI IdI]
+  also note fifo_gap_relabel_aux_refine[OF CC LINV]  
+  finally show ?thesis by simp  
+qed    
+    
+  
+context begin  
+  (* Some lengthy, multi-step refinement of discharge, 
+     changing the iteration to iteration over adjacent nodes with filter,
+     and showing that we can do the filter wrt. the current state, rather than 
+     the original one before the loop.
+  *)
+  (* Iterate over cf-edges *) 
+  lemma am_nodes_as_filter:
+    assumes "is_adj_map am"
+    shows "{v . (u,v)\<in>cfE_of f} = set (filter (\<lambda>v. cf_of f (u,v) \<noteq> 0) (am u))"
+    using assms cfE_of_ss_invE 
+    unfolding is_adj_map_def Graph.E_def
+    by fastforce 
+        
+  private lemma adjacent_nodes_iterate_refine1:   
+    fixes ff u f
+    assumes AMR: "(am,adjacent_nodes)\<in>Id \<rightarrow> \<langle>Id\<rangle>list_set_rel"
+    assumes CR: "\<And>s si. (si,s)\<in>Id \<Longrightarrow> cci si \<longleftrightarrow> cc s"  
+    assumes FR: "\<And>v vi s si. \<lbrakk>(vi,v)\<in>Id; v\<in>V; (u,v)\<in>E\<union>E\<inverse>; (si,s)\<in>Id\<rbrakk> \<Longrightarrow> 
+      ffi vi si \<le> \<Down>Id (do {
+                        if (cf_of f (u,v) \<noteq> 0) then ff v s else RETURN s
+                      })" (is "\<And>v vi s si. \<lbrakk>_;_;_;_\<rbrakk> \<Longrightarrow> _  \<le> \<Down>_ (?ff' v s)")
+    assumes S0R: "(s0i,s0)\<in>Id"
+    assumes UR: "(ui,u)\<in>Id"  
+    shows "nfoldli (am ui) cci ffi s0i \<le>\<Down>Id (FOREACHc {v . (u,v)\<in>cfE_of f} cc ff s0)"
+  proof -
+    from fun_relD[OF AMR] have AM: "is_adj_map am"
+      unfolding is_adj_map_def
+      by (auto simp: list_set_rel_def in_br_conv adjacent_nodes_def)  
+    
+    from AM have AM_SS_V: "set (am u) \<subseteq> V" "{u}\<times>set (am u) \<subseteq> E \<union> E\<inverse>"
+      unfolding is_adj_map_def using E_ss_VxV by auto
+        
+    thm nfoldli_refine    
+    have "nfoldli (am ui) cci ffi s0 \<le> \<Down>Id (nfoldli (am ui) cc ?ff' s0)"    
+      apply (refine_vcg FR) 
+      apply (rule list_rel_congD)  
+      apply refine_dref_type 
+      using CR  
+      apply vc_solve
+      using AM_SS_V UR by auto  
+    also have "nfoldli (am ui) cc ?ff' s0 \<le>\<Down>Id (FOREACHc (adjacent_nodes u) cc ?ff' s0)"    
+      by (rule LFOc_refine[OF fun_relD[OF AMR UR]]; simp)
+    also have "FOREACHc (adjacent_nodes u) cc ?ff' s0 \<le> FOREACHc {v . (u,v)\<in>cfE_of f} cc ff s0"
+      apply (subst am_nodes_as_filter[OF AM])  
+      apply (subst FOREACHc_filter_deforestation2)  
+      subgoal using AM unfolding is_adj_map_def by auto
+      subgoal 
+        apply (rule eq_refl) 
+        apply ((fo_rule cong)+; (rule refl)?)
+        subgoal using fun_relD[OF AMR IdI[of u]] by (auto simp: list_set_rel_def in_br_conv) 
+        done    
+      done
+    finally show ?thesis using S0R by simp
+  qed    
+      
+  private definition "dis_loop_aux am f\<^sub>0 l Q u \<equiv> do {
+    assert (u\<in>V - {s,t});
+    assert (distinct (am u));
+    nfoldli (am u) (\<lambda>(f,l,Q). excess f u \<noteq> 0) (\<lambda>v (f,l,Q). do {
+      assert ((u,v)\<in>E\<union>E\<inverse> \<and> v\<in>V);
+      if (cf_of f\<^sub>0 (u,v) \<noteq> 0) then do {
+        if (l u = l v + 1) then do {
+          (f',Q) \<leftarrow> fifo_push f l Q (u,v);
+          assert (\<forall>v'. v'\<noteq>v \<longrightarrow> cf_of f' (u,v') = cf_of f (u,v'));
+          return (f',l,Q)
+        } else return (f,l,Q)
+      } else return (f,l,Q)
+    }) (f\<^sub>0,l,Q)
+  }"
+      
+  private definition "fifo_discharge_aux am f\<^sub>0 l Q \<equiv> do {  
+    (u,Q) \<leftarrow> q_dequeue Q;
+    assert (u\<in>V \<and> u\<noteq>s \<and> u\<noteq>t);
+  
+    (f,l,Q) \<leftarrow> dis_loop_aux am f\<^sub>0 l Q u;
+  
+    if excess f u \<noteq> 0 then do {
+      (l,Q) \<leftarrow> fifo_gap_relabel f l Q u;
+      return (f,l,Q)
+    } else do {
+      return (f,l,Q)
+    }
+  }"
+      
+  private lemma fifo_discharge_aux_refine:  
+    assumes AM: "(am,adjacent_nodes)\<in>Id \<rightarrow> \<langle>Id\<rangle>list_set_rel"
+    assumes [simplified,simp]: "(fi,f)\<in>Id" "(li,l)\<in>Id" "(Qi,Q)\<in>Id"
+    shows "fifo_discharge_aux am fi li Qi \<le> \<Down>Id (fifo_discharge f l Q)"
+    unfolding fifo_discharge_aux_def fifo_discharge_def dis_loop_aux_def 
+    unfolding q_dequeue_def  
+    apply (simp only: nres_monad_laws)  
+    apply (refine_rcg adjacent_nodes_iterate_refine1[OF AM])  
+    apply refine_dref_type
+    apply vc_solve  
+    subgoal 
+      using fun_relD[OF AM IdI[of "hd Q"]]  
+      unfolding list_set_rel_def by (auto simp: in_br_conv)
+    done  
+      
+  private definition "dis_loop_aux2 am f\<^sub>0 l Q u \<equiv> do {
+    assert (u\<in>V - {s,t});
+    assert (distinct (am u));
+    nfoldli (am u) (\<lambda>(f,l,Q). excess f u \<noteq> 0) (\<lambda>v (f,l,Q). do {
+      assert ((u,v)\<in>E\<union>E\<inverse> \<and> v\<in>V);
+      if (cf_of f (u,v) \<noteq> 0) then do {
+        if (l u = l v + 1) then do {
+          (f',Q) \<leftarrow> fifo_push f l Q (u,v);
+          assert (\<forall>v'. v'\<noteq>v \<longrightarrow> cf_of f' (u,v') = cf_of f (u,v'));
+          return (f',l,Q)
+        } else return (f,l,Q)
+      } else return (f,l,Q)
+    }) (f\<^sub>0,l,Q)
+  }"
+      
+  private lemma dis_loop_aux2_refine:
+    shows "dis_loop_aux2 am f\<^sub>0 l Q u \<le>\<Down>Id (dis_loop_aux am f\<^sub>0 l Q u)"  
+    unfolding dis_loop_aux2_def dis_loop_aux_def
+    apply (intro ASSERT_refine_right ASSERT_refine_left; assumption?)  
+    apply (rule nfoldli_invar_refine[where I="\<lambda>it1 it2 (f,_,_). \<forall>v\<in>set it2. cf_of f (u,v) = cf_of f\<^sub>0 (u,v)"])
+    apply refine_dref_type  
+    apply vc_solve
+    apply (auto simp: pw_leof_iff refine_pw_simps fifo_push_def; metis) 
+    done  
+      
+  private definition "dis_loop_aux3 am x cf l Q u \<equiv> do {
+    assert (distinct (am u));
+    monadic_nfoldli (am u) 
+      (\<lambda>((x,cf),l,Q). do { xu \<leftarrow> x_get x u; return (xu \<noteq> 0) }) 
+      (\<lambda>v ((x,cf),l,Q). do {
+        cfuv \<leftarrow> cf_get cf (u,v);
+        if (cfuv \<noteq> 0) then do {
+          lu \<leftarrow> l_get l u;
+          lv \<leftarrow> l_get l v;
+          if (lu = lv + 1) then do {
+            ((x,cf),Q) \<leftarrow> fifo_push2 x cf Q (u,v);
+            return ((x,cf),l,Q)
+          } else return ((x,cf),l,Q)
+        } else return ((x,cf),l,Q)
+    }) ((x,cf),l,Q)
+  }"
+      
+  private lemma dis_loop_aux3_refine:
+    assumes [simplified,simp]: "(ami,am)\<in>Id" "(li,l)\<in>Id" "(Qi,Q)\<in>Id" "(ui,u)\<in>Id"
+    assumes XF: "((x,cf),f)\<in>xf_rel"
+    shows "dis_loop_aux3 ami x cf li Qi ui \<le>\<Down>(xf_rel \<times>\<^sub>r Id \<times>\<^sub>r Id) (dis_loop_aux2 am f l Q u)"  
+    unfolding dis_loop_aux3_def dis_loop_aux2_def
+    unfolding x_get_def cf_get_def l_get_def  
+    apply (simp only: nres_monad_laws nfoldli_to_monadic)  
+    apply (refine_rcg)
+    apply refine_dref_type  
+    using XF  
+    by (vc_solve simp: xf_rel_def in_br_conv)
+      
+  definition "dis_loop2 am x cf clc Q u \<equiv> do {
+    assert (distinct (am u));
+    monadic_nfoldli (am u) 
+      (\<lambda>((x,cf),clc,Q). do { xu \<leftarrow> x_get x u; return (xu \<noteq> 0) }) 
+      (\<lambda>v ((x,cf),clc,Q). do {
+        cfuv \<leftarrow> cf_get cf (u,v);
+        if (cfuv \<noteq> 0) then do {
+          lu \<leftarrow> clc_get clc u;
+          lv \<leftarrow> clc_get clc v;
+          if (lu = lv + 1) then do {
+            ((x,cf),Q) \<leftarrow> fifo_push2 x cf Q (u,v);
+            return ((x,cf),clc,Q)
+          } else return ((x,cf),clc,Q)
+        } else return ((x,cf),clc,Q)
+    }) ((x,cf),clc,Q)
+  }"
+      
+  private lemma dis_loop2_refine_aux:
+    assumes [simplified,simp]: "(xi,x)\<in>Id" "(cfi,cf)\<in>Id" "(ami,am)\<in>Id" "(li,l)\<in>Id" "(Qi,Q)\<in>Id" "(ui,u)\<in>Id"
+    assumes CLC: "(clc,l)\<in>clc_rel"
+    shows "dis_loop2 ami xi cfi clc Qi ui \<le>\<Down>(Id \<times>\<^sub>r clc_rel \<times>\<^sub>r Id) (dis_loop_aux3 am x cf l Q u)"  
+    unfolding dis_loop2_def dis_loop_aux3_def
+    apply refine_rcg  
+    apply refine_dref_type  
+    apply (vc_solve simp: CLC)
+    done
+      
+  lemma dis_loop2_refine[refine]:
+    assumes XF: "((x,cf),f)\<in>xf_rel"
+    assumes CLC: "(clc,l)\<in>clc_rel"
+    assumes [simplified,simp]: "(ami,am)\<in>Id" "(Qi,Q)\<in>Id" "(ui,u)\<in>Id"
+    shows "dis_loop2 ami x cf clc Qi ui \<le>\<Down>(xf_rel \<times>\<^sub>r clc_rel \<times>\<^sub>r Id) (dis_loop_aux am f l Q u)"
+  proof -      
+    have [simp]: "((Id \<times>\<^sub>r clc_rel \<times>\<^sub>r Id) O (xf_rel \<times>\<^sub>r Id)) = xf_rel \<times>\<^sub>r clc_rel \<times>\<^sub>r Id"
+      by (auto simp: prod_rel_comp)
+    
+    note dis_loop2_refine_aux[OF IdI IdI IdI IdI IdI IdI CLC]
+    also note dis_loop_aux3_refine[OF IdI IdI IdI IdI XF]
+    also note dis_loop_aux2_refine  
+    finally show ?thesis 
+      by (auto simp: conc_fun_chain monoD[OF conc_fun_mono])
+  qed    
+      
+      
+  definition "fifo_discharge2 C am x cf clc Q \<equiv> do {  
+    (u,Q) \<leftarrow> q_dequeue Q;
+    assert (u\<in>V \<and> u\<noteq>s \<and> u\<noteq>t);
+  
+    ((x,cf),clc,Q) \<leftarrow> dis_loop2 am x cf clc Q u;
+  
+    xu \<leftarrow> x_get x u;
+    if xu \<noteq> 0 then do {
+      (clc,Q) \<leftarrow> fifo_gap_relabel2 C am cf clc Q u;
+      return ((x,cf),clc,Q)
+    } else do {
+      return ((x,cf),clc,Q)
+    }
+  }"
+      
+  lemma fifo_discharge2_refine[refine]:
+    assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
+    assumes XCF: "((x, cf), f) \<in> xf_rel"  
+    assumes CLC: "(clc,l)\<in>clc_rel"  
+    assumes [simplified,simp]: "(Qi,Q)\<in>Id"  
+    assumes CC: "C = card V"  
+    shows "fifo_discharge2 C am x cf clc Qi \<le>\<Down>(xf_rel \<times>\<^sub>r clc_rel \<times>\<^sub>r Id) (fifo_discharge f l Q)"
+  proof -
+    have "fifo_discharge2 C am x cf clc Q \<le>\<Down>(xf_rel \<times>\<^sub>r clc_rel \<times>\<^sub>r Id) (fifo_discharge_aux am f l Q)"
+      unfolding fifo_discharge2_def fifo_discharge_aux_def  
+      unfolding x_get_def  
+      apply (simp only: nres_monad_laws)  
+      apply (refine_rcg XCF CLC AM IdI)
+      apply (vc_solve simp: CC) 
+      subgoal unfolding xf_rel_def in_br_conv by auto  
+      applyS assumption  
+      done  
+    also note fifo_discharge_aux_refine[OF AM IdI IdI IdI]
+    finally show ?thesis by simp  
+  qed    
+      
+end -- \<open>Context to refine discharge\<close>
+
+definition "init_C am \<equiv> do {
+  let cardV=0;
+  nfoldli [0..<N] (\<lambda>_. True) (\<lambda>v cardV. do {
+    assert (v<N);
+    inV \<leftarrow> am_is_in_V am v;
+    if inV then do {
+      return (cardV + 1)
+    } else
+      return cardV
+  }) cardV
+}"    
+
+lemma init_C_correct:
+  assumes AMR: "(am,adjacent_nodes) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel"  
+  shows "init_C am \<le> SPEC (\<lambda>C. C = card V)"
+  unfolding init_C_def  
+  apply (refine_vcg 
+      nfoldli_rule[where I="\<lambda>l1 _ C. C = card (V\<inter>set l1)"]
+      AMR
+      )  
+  apply clarsimp_all  
+  using V_ss  
+  apply (auto simp: upt_eq_lel_conv Int_absorb2)  
+  done    
+  
+definition "q_init am \<equiv> do {
+  Q \<leftarrow> q_empty;
+  nfoldli (am s) (\<lambda>_. True) (\<lambda>v Q. do {
+    if v\<noteq>t then q_enqueue v Q else return Q
+  }) Q
+}"
+
+lemma q_init_correct[THEN order_trans, refine_vcg]: 
+  assumes AMR: "(am,adjacent_nodes) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel"  
+  shows "q_init am \<le> (spec l. distinct l \<and> set l = {v \<in> V - {s, t}. excess pp_init_f v \<noteq> 0})"  
+proof -    
+  from fun_relD[OF AMR IdI[of s]] have "set (am s) \<subseteq> V"
+    using adjacent_nodes_ss_V
+    by (auto simp: list_set_rel_def in_br_conv)
+  hence "q_init am \<le> RETURN (filter (op \<noteq> t) (am s))"
+    unfolding q_init_def q_empty_def q_enqueue_def
+    apply (refine_vcg nfoldli_rule[where I="\<lambda>l1 _ l. l = filter (op \<noteq> t) l1"])  
+    by auto  
+  also have "\<dots> \<le> (spec l. distinct l \<and> set l = {v \<in> V - {s, t}. excess pp_init_f v \<noteq> 0})"    
+  proof -    
+    from fun_relD[OF AMR IdI[of s]] have [simp]: "distinct (am s)" "set (am s) = adjacent_nodes s" 
+      unfolding list_set_rel_def
+      by (auto simp: in_br_conv)
+    
+    show ?thesis
+      using E_ss_VxV
+      apply (auto simp: pp_init_x_def adjacent_nodes_def)
+      unfolding Graph.E_def by auto      
+  qed
+  finally show ?thesis .
+qed    
+  
+definition "fifo_push_relabel_aux am \<equiv> do {
+  cardV \<leftarrow> init_C am;
+  assert (cardV = card V);
+  let f = pp_init_f;
+  l \<leftarrow> l_init cardV;
+
+  Q \<leftarrow> q_init am;
+
+  (f,l,_) \<leftarrow> monadic_WHILEIT (\<lambda>_. True) 
+    (\<lambda>(f,l,Q). do {qe \<leftarrow> q_is_empty Q; return (\<not>qe)}) 
+    (\<lambda>(f,l,Q). do {
+      fifo_discharge f l Q
+    }) 
+    (f,l,Q);
+
+  assert (Height_Bounded_Labeling c s t f l);
+  return f
+}"
+
+(* TODO: Move *)  
+lemma specify_left:
+  assumes "m \<le> SPEC \<Phi>"
+  assumes "\<And>x. \<Phi> x \<Longrightarrow> f x \<le> M"  
+  shows "do { x \<leftarrow> m; f x } \<le> M"
+  using assms by (auto simp: pw_le_iff refine_pw_simps)  
+  
+lemma fifo_push_relabel_aux_refine:
+  assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
+  shows "fifo_push_relabel_aux am \<le> \<Down>Id (fifo_push_relabel)"
+  unfolding fifo_push_relabel_aux_def fifo_push_relabel_def
+  unfolding l_init_def pp_init_l_def q_is_empty_def bind_to_let_conv
+  apply (rule specify_left[OF init_C_correct[OF AM]])
+  apply (refine_rcg q_init_correct[OF AM])
+  apply refine_dref_type  
+  apply vc_solve
+  done    
+    
+  
+definition "fifo_push_relabel2 am \<equiv> do {
+  cardV \<leftarrow> init_C am;
+  (x,cf) \<leftarrow> pp_init_xcf2 am;
+  clc \<leftarrow> clc_init cardV;
+  Q \<leftarrow> q_init am;
+
+  ((x,cf),clc,Q) \<leftarrow> monadic_WHILEIT (\<lambda>_. True) 
+    (\<lambda>((x,cf),clc,Q). do {qe \<leftarrow> q_is_empty Q; return (\<not>qe)}) 
+    (\<lambda>((x,cf),clc,Q). do {
+      fifo_discharge2 cardV am x cf clc Q
+    }) 
+    ((x,cf),clc,Q);
+
+  return cf
+}"
+
+lemma fifo_push_relabel2_refine:
+  assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
+  shows "fifo_push_relabel2 am \<le> \<Down>(br (flow_of_cf) (RPreGraph c s t)) fifo_push_relabel"
+proof -
+  {
+    fix f l n
+    assume "Height_Bounded_Labeling c s t f l"
+    then interpret Height_Bounded_Labeling c s t f l .  
+    have G1: "flow_of_cf cf = f" by (rule fo_rg_inv)
+    have G2: "RPreGraph c s t cf" by (rule is_RPreGraph)
+    note G1 G2    
+  } note AUX1=this   
+  
+  
+  have "fifo_push_relabel2 am \<le> \<Down>(br (flow_of_cf) (RPreGraph c s t)) (fifo_push_relabel_aux am)"
+    unfolding fifo_push_relabel2_def fifo_push_relabel_aux_def
+    apply (refine_rcg AM)  
+    apply (refine_dref_type)      
+    apply (vc_solve)   
+    subgoal using AUX1 by (auto simp: in_br_conv xf_rel_def)
+    done  
+  also note fifo_push_relabel_aux_refine[OF AM]
+  finally show ?thesis .  
+qed      
+      
+xx, ctd here: Implementation! q, cnt      
+  
+  
+  
+  
+end    
+    
 end

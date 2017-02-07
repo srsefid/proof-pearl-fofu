@@ -91,7 +91,34 @@ lemma augment_edge_rev_same[simp]: "(v,u)\<in>E \<Longrightarrow> augment_edge f
 
 lemma augment_edge_rev_other[simp]: "\<lbrakk>(u,v)\<notin>E; e'\<noteq>(v,u)\<rbrakk> \<Longrightarrow> augment_edge f (u,v) \<Delta> e' = f e'"    
   unfolding augment_edge_def by (auto split!: prod.splits)
+
+lemma augment_edge_cf[simp]: "(u,v)\<in>E\<union>E\<inverse> \<Longrightarrow> 
+  cf_of (augment_edge f (u,v) \<Delta>) = (cf_of f)( (u,v) := cf_of f (u,v) - \<Delta>, (v,u) := cf_of f (v,u) + \<Delta>)"    
+  apply (intro ext; cases "(u,v)\<in>E")
+  subgoal for e' 
+    apply (cases "e'=(u,v)")  
+    applyS (simp split!: if_splits add: no_self_loop residualGraph_def)
+    apply (cases "e'=(v,u)")  
+    applyS (simp split!: if_splits add: no_parallel_edge residualGraph_def)
+    applyS (simp split!: if_splits prod.splits add: residualGraph_def augment_edge_def)
+    done
+  subgoal for e'
+    apply (cases "e'=(u,v)")  
+    applyS (simp split!: if_splits add: no_self_loop residualGraph_def)
+    apply (cases "e'=(v,u)")  
+    applyS (simp split!: if_splits add: no_self_loop residualGraph_def)
+    applyS (simp split!: if_splits prod.splits add: residualGraph_def augment_edge_def)
+    done
+  done
     
+lemma augment_edge_cf'[simp]: "(u,v)\<in>cfE_of f \<Longrightarrow> 
+  cf_of (augment_edge f (u,v) \<Delta>) = (cf_of f)( (u,v) := cf_of f (u,v) - \<Delta>, (v,u) := cf_of f (v,u) + \<Delta>)"    
+proof -
+  assume "(u,v)\<in>cfE_of f"
+  hence "(u,v)\<in>E\<union>E\<inverse>" using cfE_of_ss_invE ..
+  thus ?thesis by simp
+qed      
+  
 end -- \<open>Network\<close>  
   
 context NPreflow begin  
@@ -197,29 +224,6 @@ lemma augment_edge_preflow_preserve:
   qed          
   done            
 
-lemma augment_edge_cf[simp]: "(u,v)\<in>cf.E \<Longrightarrow> 
-  cf_of (augment_edge f (u,v) \<Delta>) = (cf)( (u,v) := cf (u,v) - \<Delta>, (v,u) := cf (v,u) + \<Delta>)"    
-proof -
-  assume "(u,v)\<in>cf.E"
-  hence "(u,v)\<in>E\<union>E\<inverse>" using cfE_ss_invE ..
-  thus ?thesis
-    apply (intro ext; cases "(u,v)\<in>E")
-    subgoal for e' 
-      apply (cases "e'=(u,v)")  
-      applyS (simp split!: if_splits add: no_self_loop residualGraph_def)
-      apply (cases "e'=(v,u)")  
-      applyS (simp split!: if_splits add: no_parallel_edge residualGraph_def)
-      applyS (simp split!: if_splits prod.splits add: residualGraph_def augment_edge_def)
-      done
-    subgoal for e'
-      apply (cases "e'=(u,v)")  
-      applyS (simp split!: if_splits add: no_self_loop residualGraph_def)
-      apply (cases "e'=(v,u)")  
-      applyS (simp split!: if_splits add: no_self_loop residualGraph_def)
-      applyS (simp split!: if_splits prod.splits add: residualGraph_def augment_edge_def)
-      done
-    done
-qed    
     
 end  
   
@@ -540,6 +544,23 @@ context Network begin
       
 end
     
+context Network begin  
+definition augment_edge_cf :: "'capacity flow \<Rightarrow> _" where 
+  "augment_edge_cf cf \<equiv> \<lambda>(u,v) \<Delta>. (cf)( (u,v) := cf (u,v) - \<Delta>, (v,u) := cf (v,u) + \<Delta>)"
+  
+lemma cf_of_augment_edge:
+  assumes A: "(u,v)\<in>cfE_of f" 
+  assumes "Labeling c s t f l"
+  shows "cf_of (augment_edge f (u,v) \<Delta>) = augment_edge_cf (cf_of f) (u,v) \<Delta>"  
+proof -  
+  interpret Labeling c s t f l by fact
+  
+  show "cf_of (augment_edge f (u, v) \<Delta>) = augment_edge_cf cf (u, v) \<Delta>"
+    by (simp add: augment_edge_cf_def A)
+qed      
+    
+end    
+  
     
     
 text \<open>Locale to relate original flow and flow after a push.\<close>
@@ -575,6 +596,10 @@ begin
     by auto
       
   lemma f'_alt: "f' = augment_edge f (u,v) \<Delta>" unfolding push_effect_def \<Delta>_def by auto
+      
+  lemma cf'_alt: "l'.cf = augment_edge_cf cf (u,v) \<Delta>"    
+    unfolding push_effect_def \<Delta>_def augment_edge_cf_def
+    by auto  
       
   lemma unsat_push_\<Delta>: "unsat_push_precond f l (u,v) \<Longrightarrow> \<Delta> = excess f u"      
     unfolding \<Delta>_def unsat_push_precond_def by auto
@@ -991,7 +1016,7 @@ end
 context Network begin  
   
 definition "relabel f l u \<equiv> do {
-  assert (Labeling c s t f l);
+  assert (Height_Bounded_Labeling c s t f l);
   assert (relabel_precond f l u);
   assert (u\<in>V-{s,t});
   (*assert (\<exists>v. (u,v)\<in>cfE_of f);*)
@@ -1239,11 +1264,12 @@ lemma discharge_correct[THEN order_trans, refine_vcg]:
       solve: neighbor_invar.discharge_invar_init[OF DINV]
       solve: neighbor_invar.no_neighbors_relabel_precond 
       solve: discharge_invar.relabel_pres_dis_invar discharge_invar.push_pres_dis_invar
-      solve: discharge_invar.push_precondI_nz algo_rel.relabel algo_rel_pushI
+      solve: discharge_invar.push_precondI_nz algo_rel.relabel 
+      solve: algo_rel_pushI[OF discharge_invar.dis_is_hbl]
       solve: discharge_invar.remove_neighbor_pres_dis_invar
       solve: discharge_invar.neighbors_in_V
       solve: discharge_invar.relabeled_node_has_outgoing
-      intro: discharge_invar.dis_is_hbl discharge_invar.dis_is_nbr solve: discharge_invar.dis_is_lbl
+      solve: discharge_invar.dis_is_hbl intro: discharge_invar.dis_is_nbr solve: discharge_invar.dis_is_lbl
       simp: NOT_ST neighbor_invar.neighbors_finite[OF discharge_invar.dis_is_nbr] UIV)
   subgoal by (auto dest: discharge_invar.neighbors_in_E)  
   subgoal unfolding adm_edges_def by auto  
@@ -1653,24 +1679,38 @@ end
 context Network
 begin
   
-definition "fifo_discharge f l Q \<equiv> do {  
+definition "fifo_push f l Q \<equiv> \<lambda>(u,v). do {
+  assert (push_precond f l (u,v));
+  assert (Labeling c s t f l);
+  let Q = (if v\<noteq>s \<and> v\<noteq>t \<and> excess f v = 0 then Q@[v] else Q);
+  return (push_effect f (u,v),Q)
+}"  
+  
+definition "fifo_gap_relabel f l Q u \<equiv> do {
+  assert (u\<in>V-{s,t});
+  assert (Height_Bounded_Labeling c s t f l);
+  let Q = Q@[u];
+  assert (relabel_precond f l u);
+  assert (l u < 2*card V \<and> relabel_effect f l u u < 2*card V);
+  let l = gap_relabel_effect f l u;
+  return (l,Q)
+}"  
+  
+definition "fifo_discharge f\<^sub>0 l Q \<equiv> do {  
+  assert (Q\<noteq>[]);
   let u=hd Q; let Q=tl Q;
   assert (u\<in>V \<and> u\<noteq>s \<and> u\<noteq>t);
 
-  (f,l,Q) \<leftarrow> FOREACHc {v . (u,v)\<in>cfE_of f} (\<lambda>(f,l,Q). excess f u \<noteq> 0) (\<lambda>v (f,l,Q). do {
+  (f,l,Q) \<leftarrow> FOREACHc {v . (u,v)\<in>cfE_of f\<^sub>0} (\<lambda>(f,l,Q). excess f u \<noteq> 0) (\<lambda>v (f,l,Q). do {
     if (l u = l v + 1) then do {
-      assert (push_precond f l (u,v));
-      let Q = (if v\<noteq>s \<and> v\<noteq>t \<and> excess f v = 0 then Q@[v] else Q);
-      return (push_effect f (u,v),l,Q)
+      (f',Q) \<leftarrow> fifo_push f l Q (u,v);
+      assert (\<forall>v'. v'\<noteq>v \<longrightarrow> cf_of f' (u,v') = cf_of f (u,v'));
+      return (f',l,Q)
     } else return (f,l,Q)
-  }) (f,l,Q);
+  }) (f\<^sub>0,l,Q);
 
   if excess f u \<noteq> 0 then do {
-    let Q = Q@[u];
-    (* TODO: Gap heuristics! *)
-    let lu = l u;
-    assert (relabel_precond f l u);
-    let l = gap_relabel_effect f l u;
+    (l,Q) \<leftarrow> fifo_gap_relabel f l Q u;
     return (f,l,Q)
   } else do {
     return (f,l,Q)
@@ -1696,7 +1736,8 @@ proof -
       
   show ?thesis
     using U
-    unfolding fifo_discharge_def  
+    unfolding fifo_discharge_def fifo_push_def fifo_gap_relabel_def
+    apply (simp only: split nres_monad_laws)  
     apply (rewrite in "FOREACHc _ _ \<hole> _" vcg_intro_frame)  
     apply (rewrite in "if excess _ _ \<noteq> 0 then \<hole> else _" vcg_intro_frame)  
     apply (refine_vcg FOREACHc_rule[where 
@@ -1705,7 +1746,10 @@ proof -
               \<and> QD_invar u f' Q'
               \<and> ((f',l'),(f,l))\<in>gap_algo_rel\<^sup>*
               \<and> it \<subseteq> {v. (u,v) \<in> cfE_of f' }
-              \<and> (excess f' u\<noteq>0 \<longrightarrow> (\<forall>v\<in>{v. (u,v) \<in> cfE_of f' }-it. l' u \<noteq> l' v + 1))
+              (*\<and> (\<forall>v\<in>it. cf_of f' (u,v) = cf_of f (u,v))*)
+              \<and> (excess f' u\<noteq>0 \<longrightarrow> (\<forall>v\<in>{v. (u,v) \<in> cfE_of f' }-it. l' u \<noteq> l' v + 1)
+              (*\<and> (\<forall>v. cf_of f (u,v) = 0 \<longrightarrow> cf_of f' (u,v) = 0)*)
+            )
             "
           ])
     apply (vc_solve simp: DINV QINV it_step_insert_iff split del: if_split)
@@ -1723,25 +1767,39 @@ proof -
           
       assume SAT_EDGES: "\<forall>v\<in>{v. (u, v) \<in> cfE_of f'} - it. l' u \<noteq> Suc (l' v)"  
         
+      (*assume IT_PRES: "\<forall>v\<in>it. cf_of f' (u,v) = cf_of f (u,v)"
+        
+      assume NE_PRES: "(\<forall>v. cf_of f (u,v) = 0 \<longrightarrow> cf_of f' (u,v) = 0)"  *)
+        
       from X UI l'.excess_non_negative have X': "excess f' u > 0" by force   
           
       have PP: "push_precond f' l' (u, v)" if "l' u = l' v + 1"
         unfolding push_precond_def using that UVE X' by auto
         
+      (*from IT_PRES \<open>v\<in>it\<close> have L'UV: "l'.cf (u, v) = cf_of f (u, v)" by auto*)
+          
       show ?thesis
         apply (rule vcg_rem_frame)
         apply (rewrite in "if _ then (assert _ \<then> \<hole>) else _" vcg_intro_frame)  
         apply refine_vcg  
-        apply (vc_solve simp: REL solve: PP l'.push_pres_height_bound HBL QDI split del: if_split)
+        apply (vc_solve simp: REL solve: (*L'UV*) PP l'.push_pres_height_bound HBL QDI split del: if_split)
         subgoal proof - 
           assume [simp]: "l' u = Suc (l' v)" 
           assume PRE: "push_precond f' l' (u, v)"
           then interpret pe: push_effect_locale c s t f' l' u v by unfold_locales
           
+          have UVNE': "l'.cf (u, v) \<noteq> 0"    
+            using l'.resE_positive by fastforce
+            
           show ?thesis
             apply (rule vcg_rem_frame)
             apply refine_vcg  
             apply (vc_solve simp: l'.push_pres_height_bound[OF PRE])
+            subgoal by unfold_locales  
+            (*subgoal 
+              using NE_PRES UVNE'
+              by (auto simp: pe.cf'_alt augment_edge_cf_def)*)
+            subgoal by (auto simp: pe.cf'_alt augment_edge_cf_def)
             subgoal 
               using l'.push_activate_pres_QD_invar[OF QDI PRE] 
               using l'.push_no_activate_pres_QD_invar[OF QDI PRE]
@@ -1758,6 +1816,16 @@ proof -
                 unfolding Graph.E_def  
                 by (auto)
             qed
+            (*subgoal for v' proof -
+              assume "v'\<in>it" with IT_PRES have "cf_of f (u, v') = l'.cf (u, v')" by auto
+              moreover assume "pe.l'.cf (u, v') \<noteq> cf_of f (u, v')"
+              ultimately have "pe.l'.cf (u, v') \<noteq> l'.cf (u, v')" by simp
+              thus "v' = v"
+                unfolding pe.f'_alt 
+                apply simp  
+                unfolding Graph.E_def  
+                by (auto split: if_splits)
+            qed    *)
             subgoal for v' proof -
               assume "excess f' u \<noteq> pe.\<Delta>"
               hence PED: "pe.\<Delta> = l'.cf (u,v)"
@@ -1777,7 +1845,9 @@ proof -
             done
         qed      
         subgoal using ITSS by auto
+        (*subgoal using IT_PRES by auto    *)
         subgoal using SAT_EDGES by auto
+        (*subgoal using NE_PRES by auto    *)
         done
     qed
     subgoal premises prems for f' l' Q' proof -
@@ -1794,10 +1864,21 @@ proof -
       from X' UI NO_ADM have PRE: "relabel_precond f' l' u" 
         unfolding relabel_precond_def by auto
           
+      from l'.height_bound \<open>u\<in>V\<close> card_V_ge2 have [simp]: "l' u < 2*card V" by auto
+          
+      from l'.relabel_pres_height_bound[OF PRE] 
+      interpret l'': Height_Bounded_Labeling c s t f' "relabel_effect f' l' u" .
+          
+      from l''.height_bound \<open>u\<in>V\<close> card_V_ge2 have [simp]: "relabel_effect f' l' u u < 2*card V" by auto
+          
       show ?thesis 
         apply (rule vcg_rem_frame)
         apply refine_vcg
-        apply (vc_solve simp: PRE l'.gap_relabel_pres_hb_labeling[OF PRE] Q_invar_when_discharged2[OF QDI X])
+        apply (vc_solve 
+            simp: UI PRE 
+            simp: l'.gap_relabel_pres_hb_labeling[OF PRE] 
+            simp: Q_invar_when_discharged2[OF QDI X])
+        subgoal by unfold_locales    
         subgoal
           by (meson PRE REL gap_algo_rel.relabel l'.Height_Bounded_Labeling_axioms rtrancl_into_trancl2)
         done  
@@ -1814,12 +1895,13 @@ definition "fifo_push_relabel \<equiv> do {
   let f = pp_init_f;
   let l = pp_init_l;
 
-  Q \<leftarrow> spec l. distinct l \<and> set l = {v\<in>V - {s,t}. excess f v \<noteq> 0}; (* TODO: This is exactly E``{s}! *)
+  Q \<leftarrow> spec l. distinct l \<and> set l = {v\<in>V - {s,t}. excess f v \<noteq> 0}; (* TODO: This is exactly E``{s} - {t}! *)
 
   (f,l,_) \<leftarrow> while\<^sub>T (\<lambda>(f,l,Q). Q \<noteq> []) (\<lambda>(f,l,Q). do {
     fifo_discharge f l Q
   }) (f,l,Q);
 
+  assert (Height_Bounded_Labeling c s t f l);
   return f
 }"
   
