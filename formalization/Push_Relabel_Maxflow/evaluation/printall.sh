@@ -5,7 +5,7 @@ platforms_fofu=`cat fofu-platforms`
 platforms_rtof=`cat rtof-platforms`
 
 tabs -9
-echo -ne "Test-Name \t& "
+echo -ne "Name \t& "
 for p in $platforms_fofu; do echo -ne "f-$p\t& "; done
 for p in $platforms_rtof; do echo -ne "p-$p\t& "; done
 
