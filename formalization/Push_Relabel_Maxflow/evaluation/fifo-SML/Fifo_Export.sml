@@ -249,16 +249,15 @@ end;
 
 
 
-    fun array_blit src si dst di len = (
-      src=dst andalso raise Fail ("array_blit: Same arrays");
+    fun array_blit src si dst di len = 
       ArraySlice.copy {
-        di = IntInf.toInt di,
-        src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
-        dst = dst})
+        di=di,
+        src = ArraySlice.slice (src,si,SOME len),
+        dst=dst}
 
-    fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
+    fun array_nth_oo v a i () = Array.sub(a,i) handle Subscript => v
     fun array_upd_oo f i x a () = 
-      (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
+      (Array.update(a,i,x); a) handle Subscript => f ()
 
     
 
@@ -1812,26 +1811,22 @@ datatype ('a, 'b) pre_network_ext =
 datatype ('a, 'b, 'c) simple_state_nos_impl_ext =
   Simple_state_nos_impl_ext of 'a * 'b * 'c;
 
-fun len A_ a =
-  (fn () => let
-              val i = (fn () => IntInf.fromInt (Array.length a)) ();
-            in
-              nat_of_integer i
-            end);
+fun len A_ a = (fn () => let
+                           val i = (fn () => Array.length a) ();
+                         in
+                           nat_of_integer i
+                         end);
 
-fun new A_ =
-  (fn a => fn b => (fn () => Array.array (IntInf.toInt a, b))) o integer_of_nat;
+fun new A_ = (fn a => fn b => (fn () => Array.array (a, b))) o integer_of_nat;
 
-fun nth A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
+fun nth A_ a n = (fn () => Array.sub (a, integer_of_nat n));
 
 fun upd A_ i x a =
-  (fn () =>
-    let
-      val _ =
-        (fn () => Array.update (a, IntInf.toInt (integer_of_nat i), x)) ();
-    in
-      a
-    end);
+  (fn () => let
+              val _ = (fn () => Array.update (a, integer_of_nat i, x)) ();
+            in
+              a
+            end);
 
 fun fold f (x :: xs) s = fold f xs (f x s)
   | fold f [] s = s;
@@ -1845,8 +1840,7 @@ fun map f [] = []
 fun image f (Set xs) = Set (map f xs);
 
 fun make A_ n f =
-  (fn () => Array.tabulate (IntInf.toInt (integer_of_nat n),
-    (f o nat_of_integer) o IntInf.fromInt));
+  (fn () => Array.tabulate (integer_of_nat n, f o nat_of_integer));
 
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
