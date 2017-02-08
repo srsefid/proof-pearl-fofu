@@ -197,5 +197,18 @@ lemma uminus_hnr[sepref_import_param]: "(uminus,uminus)\<in>int_rel \<rightarrow
     unfolding rev_append_def by parametricity
     
       
+(* TODO: Move. Allow monadic_nfoldli to be used in abstract programs *)      
+(* Refinement Setup for nfoldli  *)
+lemma monadic_nfoldli_arities[sepref_monadify_arity]:
+  "monadic_nfoldli \<equiv> \<lambda>\<^sub>2s c f \<sigma>. SP (monadic_nfoldli)$s$(\<lambda>\<^sub>2x. c$x)$(\<lambda>\<^sub>2x \<sigma>. f$x$\<sigma>)$\<sigma>"
+  by (simp_all)
+
+lemma monadic_nfoldli_comb[sepref_monadify_comb]:
+  "\<And>s c f \<sigma>. (monadic_nfoldli)$s$c$f$\<sigma> \<equiv> 
+    Refine_Basic.bind$(EVAL$s)$(\<lambda>\<^sub>2s. Refine_Basic.bind$(EVAL$\<sigma>)$(\<lambda>\<^sub>2\<sigma>. 
+      SP (monadic_nfoldli)$s$c$f$\<sigma>
+    ))"
+  by (simp_all)
+      
 
 end

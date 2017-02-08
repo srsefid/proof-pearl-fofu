@@ -2,7 +2,7 @@
 
 tests=`cat tests`
 platforms_fofu=`cat fofu-platforms`
-platforms_rtof=`cat rtof-platforms`
+platforms_fifo=`cat fifo-platforms`
 
 for t in $tests; do
   echo "*********************"
@@ -18,9 +18,9 @@ for t in $tests; do
     cd ..
   done
 
-  for platform in $platforms_rtof; do
-    echo "##### rtof-$platform"
-    cd "rtof-$platform"
+  for platform in $platforms_fifo; do
+    echo "##### fifo-$platform"
+    cd "fifo-$platform"
     ./run $name | tee "$t.$platform.log" | grep "^@@@"
     cd ..
   done
