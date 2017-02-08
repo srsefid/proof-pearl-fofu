@@ -1,6 +1,0 @@
-#!/bin/bash
-
-mlton -verbose 1 -default-type intinf -output Rtof Rtof.mlb
-
-# mlton -verbose 1 -profile time -default-type intinf -output Rtof Rtof.mlb
-
