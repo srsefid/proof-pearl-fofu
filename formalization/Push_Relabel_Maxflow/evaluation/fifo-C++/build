@@ -1,0 +1,2 @@
+#!/bin/sh
+g++ rtof.cpp -o Rtof
