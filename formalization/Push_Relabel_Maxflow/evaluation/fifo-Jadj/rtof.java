@@ -33,7 +33,9 @@ public class rtof {
         long maxflow = G.computeMaxFlow(0, V_size - 1);
         long endTime  = System.currentTimeMillis();
 
-        return new MaxFlowResult(endTime - startTime, maxflow);
+        CounterPR stat = G.getCounter();
+
+        return new MaxFlowResult(endTime - startTime, maxflow, stat.getDischargeCount(), stat.getPushCount(), stat.getRelabelCount());
     }
 
     // test client that reads input network, solves max flow, and prints results
@@ -58,6 +60,11 @@ public class rtof {
             MaxFlowResult result = doTest(G);
             System.out.format("@@@time: %d ms\n", result.getTime());
             System.out.format("@@@max-flow: %d\n", result.getFlowValue());
+
+            System.out.format(">>>disc: %d\n", result.getDischargeCount());
+            System.out.format(">>>push: %d\n", result.getPushCount());
+            System.out.format(">>>rlbl: %d\n", result.getRelabelCount());
+
         }
     }
 }

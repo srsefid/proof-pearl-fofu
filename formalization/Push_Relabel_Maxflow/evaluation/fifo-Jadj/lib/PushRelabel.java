@@ -15,6 +15,7 @@ public class PushRelabel {
     private boolean[] active;
     private int[] dist, count;
     private Queue<Integer> Q;
+    private CounterPR sc;
 
     public PushRelabel(int size) {
         this.N = size;
@@ -26,6 +27,8 @@ public class PushRelabel {
         this.count = new int[2 * size];
 
         this.Q = new LinkedList<Integer>();
+
+        this.sc = new CounterPR();
     }
 
     private void enqueue(int v) {
@@ -36,6 +39,8 @@ public class PushRelabel {
     }
 
     private void push(int from, int to) {
+        sc.incPush();
+
         int amt = (int) (min(excess[from], G[from][to]));
 
         if (dist[from] <= dist[to] || amt == 0)
@@ -61,6 +66,8 @@ public class PushRelabel {
     }
 
     private void relabel(int v) {
+        sc.incRelabel();
+
         count[dist[v]]--;
         dist[v] = 2 * N;
 
@@ -73,6 +80,8 @@ public class PushRelabel {
     }
 
     private void discharge(int v) {
+        sc.incDischarge();
+
         for (int i = 0; excess[v] > 0 && i < N; i++)
             push(v, i);
 
@@ -82,6 +91,10 @@ public class PushRelabel {
             else
                 relabel(v);
         }
+    }
+
+    public CounterPR getCounter() {
+        return this.sc;
     }
 
     public int getSize() {
