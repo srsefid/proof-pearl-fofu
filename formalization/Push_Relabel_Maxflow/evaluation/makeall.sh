@@ -5,7 +5,7 @@ cd data
 cd ..
 
 platforms_fofu=`cat fofu-platforms`
-platforms_fifo=`cat fifo-platforms`
+platforms_prpu=`cat prpu-platforms`
 
 for p in $platforms_fofu; do
   echo "Compiling fofu-$p"
@@ -14,9 +14,9 @@ for p in $platforms_fofu; do
   cd ..
 done
 
-for p in $platforms_fifo; do
-  echo "Compiling fifo-$p"
-  cd "fifo-$p"
+for p in $platforms_prpu; do
+  echo "Compiling prpu-$p"
+  cd "prpu-$p"
   ./build
   cd ..
 done
