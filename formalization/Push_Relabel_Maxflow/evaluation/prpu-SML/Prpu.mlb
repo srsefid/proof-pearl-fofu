@@ -4,7 +4,7 @@ $(SML_LIB)/basis/mlton.mlb
 local
     Unsynchronized.sml
     ann "nonexhaustiveMatch ignore" in
-      Fifo_Export.sml
+      Prpu_Export.sml
     end
 in
     structure Prpu
