@@ -1,4 +1,4 @@
-open Fifo
+open Prpu
 
 structure Profile = MLton.Profile
 

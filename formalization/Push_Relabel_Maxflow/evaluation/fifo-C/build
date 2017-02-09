@@ -1,2 +1,0 @@
-#!/bin/sh
-gcc q_prf_t.c -O4 -o Fifo 

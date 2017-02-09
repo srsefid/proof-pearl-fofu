@@ -4,7 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Scanner;
 
-public class rtof {
+public class Prpu {
     private static PushRelabel initializePR(String path) throws FileNotFoundException {
         Scanner in = new Scanner(new FileReader(path));
         int nodeCount = in.nextInt();

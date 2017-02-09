@@ -19,10 +19,10 @@ formalization/Push_Relabel_Maxflow/evaluation/fofu-C++/Fofu2
 formalization/Push_Relabel_Maxflow/evaluation/fofu-Java/*.class
 formalization/Push_Relabel_Maxflow/evaluation/fofu-Java/lib/*.class
 formalization/Push_Relabel_Maxflow/evaluation/fofu-SML/Fofu
-formalization/Push_Relabel_Maxflow/evaluation/fifo-C/Fifo
-formalization/Push_Relabel_Maxflow/evaluation/fifo-C++/Rtof
-formalization/Push_Relabel_Maxflow/evaluation/fifo-Java/*.class
-formalization/Push_Relabel_Maxflow/evaluation/fifo-Java/lib/*.class
-formalization/Push_Relabel_Maxflow/evaluation/fifo-Jadj/*.class
-formalization/Push_Relabel_Maxflow/evaluation/fifo-Jadj/lib/*.class
-formalization/Push_Relabel_Maxflow/evaluation/fifo-SML/Fifo
+formalization/Push_Relabel_Maxflow/evaluation/prpu-C/Prpu
+formalization/Push_Relabel_Maxflow/evaluation/prpu-C++/Prpu
+formalization/Push_Relabel_Maxflow/evaluation/prpu-Java/*.class
+formalization/Push_Relabel_Maxflow/evaluation/prpu-Java/lib/*.class
+formalization/Push_Relabel_Maxflow/evaluation/prpu-Jadj/*.class
+formalization/Push_Relabel_Maxflow/evaluation/prpu-Jadj/lib/*.class
+formalization/Push_Relabel_Maxflow/evaluation/prpu-SML/Prpu

@@ -7,8 +7,8 @@ local
       Fifo_Export.sml
     end
 in
-    structure Fifo
+    structure Prpu
     structure stat
 end
 
-Fifo_Benchmark.sml
+Prpu_Benchmark.sml

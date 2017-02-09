@@ -1,2 +1,2 @@
 #!/bin/sh
-javac -cp . fofu.java
+javac -cp . Fofu.java

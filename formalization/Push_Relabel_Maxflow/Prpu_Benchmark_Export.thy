@@ -1,4 +1,4 @@
-theory Rtof_Benchmark_Export
+theory Prpu_Benchmark_Export
 imports Preflow_Push_Impl
 begin
 
@@ -25,12 +25,12 @@ code_printing
 | constant stat_inner_c \<rightharpoonup> (SML) "stat.inner'_c'_incr"  
   
   (**)
-  
-(*  export_code nat_of_integer integer_of_nat int_of_integer integer_of_int
-  prepareNet relabel_to_front_impl relabel_to_front_impl_tab_am relabel_to_front
+  export_code nat_of_integer integer_of_nat int_of_integer integer_of_int
+  prepareNet 
+  (*relabel_to_front_impl*) relabel_to_front_impl_tab_am fifo_push_relabel
   in SML_imp 
-  module_name Rtof 
-  file "evaluation/fifo-SML/Rtof_Export.sml"  *)
+  module_name Prpu
+  file "evaluation/prpu-SML/Prpu_Export.sml"  
 
   
 end

@@ -365,7 +365,7 @@ fun test_bit x n =
 
 end; (*struct Bits_Integer*)
 
-structure Fifo : sig
+structure Prpu : sig
   datatype int = Int_of_integer of IntInf.int
   val integer_of_int : int -> IntInf.int
   type nat
@@ -2926,4 +2926,4 @@ fun fifo_push_relabel el s t =
                   SOME (c, (am, (n, cf)))
                 end));
 
-end; (*struct Fifo*)
+end; (*struct Prpu*)

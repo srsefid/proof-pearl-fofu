@@ -1,7 +1,7 @@
 import lib.FlowNetwork;
 import lib.FordFulkerson;
 
-public class fofu {
+public class Fofu {
     static FordFulkerson maxflow;
 
     public static long doTest(FlowNetwork G) {
