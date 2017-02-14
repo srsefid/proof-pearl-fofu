@@ -1,0 +1,2 @@
+#!/bin/sh
+g++ prpu.cpp -o Prpu
