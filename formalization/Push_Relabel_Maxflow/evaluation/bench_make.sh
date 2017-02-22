@@ -1,11 +1,10 @@
 #!/bin/bash
 
+. bench_cmdline.inc
+
 cd data
 ./build
 cd ..
-
-platforms_fofu=`cat fofu-platforms`
-platforms_prpu=`cat prpu-platforms`
 
 for p in $platforms_fofu; do
   echo "Compiling fofu-$p"

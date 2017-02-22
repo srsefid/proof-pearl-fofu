@@ -1,8 +1,6 @@
 #!/bin/bash
 
-tests=`cat tests`
-platforms_fofu=`cat fofu-platforms`
-platforms_prpu=`cat prpu-platforms`
+. bench_cmdline.inc
 
 tabs -9
 echo -ne "Name \t& "
