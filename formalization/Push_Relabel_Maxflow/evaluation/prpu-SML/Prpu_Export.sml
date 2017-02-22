@@ -119,19 +119,19 @@ fun shrink (aref, sz) = case aref of
 structure IsabelleMapping = struct
 type 'a ArrayType = 'a array;
 
-fun new_array (a:'a) (n:int) = array (n, a);
+fun new_array (a:'a) (n:IntInf.int) = array (IntInf.toInt n, a);
 
-fun array_length (a:'a ArrayType) = length a;
+fun array_length (a:'a ArrayType) = IntInf.fromInt (length a);
 
-fun array_get (a:'a ArrayType) (i:int) = sub (a, i);
+fun array_get (a:'a ArrayType) (i:IntInf.int) = sub (a, IntInf.toInt i);
 
-fun array_set (a:'a ArrayType) (i:int) (e:'a) = update (a, i, e);
+fun array_set (a:'a ArrayType) (i:IntInf.int) (e:'a) = update (a, IntInf.toInt i, e);
 
 fun array_of_list (xs:'a list) = fromList xs;
 
-fun array_grow (a:'a ArrayType) (i:int) (x:'a) = grow (a, i, x);
+fun array_grow (a:'a ArrayType) (i:IntInf.int) (x:'a) = grow (a, IntInf.toInt i, x);
 
-fun array_shrink (a:'a ArrayType) (sz:int) = shrink (a,sz);
+fun array_shrink (a:'a ArrayType) (sz:IntInf.int) = shrink (a,IntInf.toInt sz);
 
 end;
 
@@ -222,25 +222,25 @@ structure FArray = struct
 structure IsabelleMapping = struct
 type 'a ArrayType = 'a array;
 
-fun new_array (a:'a) (n:int) = array (n, a);
+fun new_array (a:'a) (n:IntInf.int) = array (IntInf.toInt n, a);
 
-fun array_length (a:'a ArrayType) = length a;
+fun array_length (a:'a ArrayType) = IntInf.fromInt (length a);
 
-fun array_get (a:'a ArrayType) (i:int) = sub (a, i);
+fun array_get (a:'a ArrayType) (i:IntInf.int) = sub (a, IntInf.toInt i);
 
-fun array_set (a:'a ArrayType) (i:int) (e:'a) = update (a, i, e);
+fun array_set (a:'a ArrayType) (i:IntInf.int) (e:'a) = update (a, IntInf.toInt i, e);
 
 fun array_of_list (xs:'a list) = fromList xs;
 
-fun array_grow (a:'a ArrayType) (i:int) (x:'a) = grow (a, i, x);
+fun array_grow (a:'a ArrayType) (i:IntInf.int) (x:'a) = grow (a, IntInf.toInt i, x);
 
-fun array_shrink (a:'a ArrayType) (sz:int) = shrink (a,sz);
+fun array_shrink (a:'a ArrayType) (sz:IntInf.int) = shrink (a,IntInf.toInt sz);
 
-fun array_get_oo (d:'a) (a:'a ArrayType) (i:int) =
-  sub (a,i) handle Subscript => d
+fun array_get_oo (d:'a) (a:'a ArrayType) (i:IntInf.int) =
+  sub (a,IntInf.toInt i) handle Subscript => d
 
-fun array_set_oo (d:(unit->'a ArrayType)) (a:'a ArrayType) (i:int) (e:'a) =
-  update (a, i, e) handle Subscript => d ()
+fun array_set_oo (d:(unit->'a ArrayType)) (a:'a ArrayType) (i:IntInf.int) (e:'a) =
+  update (a, IntInf.toInt i, e) handle Subscript => d ()
 
 end;
 end;
@@ -249,15 +249,16 @@ end;
 
 
 
-    fun array_blit src si dst di len = 
+    fun array_blit src si dst di len = (
+      src=dst andalso raise Fail ("array_blit: Same arrays");
       ArraySlice.copy {
-        di=di,
-        src = ArraySlice.slice (src,si,SOME len),
-        dst=dst}
+        di = IntInf.toInt di,
+        src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
+        dst = dst})
 
-    fun array_nth_oo v a i () = Array.sub(a,i) handle Subscript => v
+    fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
     fun array_upd_oo f i x a () = 
-      (Array.update(a,i,x); a) handle Subscript => f ()
+      (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
     
 
@@ -374,9 +375,8 @@ structure Prpu : sig
   val prepareNet :
     (nat * (nat * int)) list ->
       nat -> nat -> ((nat * nat -> int) * ((nat -> nat list) * nat)) option
-  val relabel_to_front_impl_tab_am :
-    (nat * nat -> int) ->
-      nat -> nat -> nat -> (nat -> nat list) -> (unit -> (int array))
+  val fifo_push_relabel_run_impl :
+    nat -> nat -> nat -> (nat list) array -> int array -> (unit -> (int array))
   val fifo_push_relabel :
     (nat * (nat * int)) list ->
       nat ->
@@ -384,6 +384,21 @@ structure Prpu : sig
           (unit ->
             (((nat * nat -> int) *
                ((nat -> nat list) * (nat * int array))) option))
+  val relabel_to_front_impl :
+    (nat * nat -> int) ->
+      nat -> nat -> nat -> nat -> (nat list) array -> (unit -> (int array))
+  val relabel_to_front_impl_tab_am :
+    (nat * nat -> int) ->
+      nat -> nat -> nat -> (nat -> nat list) -> (unit -> (int array))
+  val fifo_push_relabel_prepare_impl :
+    (nat * (nat * int)) list ->
+      nat ->
+        nat ->
+          (unit ->
+            ((nat *
+               ((nat -> nat list) *
+                 ((nat list) array *
+                   ((nat * nat -> int) * int array)))) option))
 end = struct
 
 datatype int = Int_of_integer of IntInf.int;
@@ -1710,9 +1725,26 @@ val one_nata : nat = Nat (1 : IntInf.int);
 
 val one_nat = {one = one_nata} : nat one;
 
+fun plus_nata m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+val plus_nat = {plus = plus_nata} : nat plus;
+
 val zero_nata : nat = Nat (0 : IntInf.int);
 
 val zero_nat = {zero = zero_nata} : nat zero;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
+
+fun minus_nata m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
+val minus_nat = {minus = minus_nata} : nat minus;
 
 fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 
@@ -1723,13 +1755,6 @@ val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 val preorder_nat = {ord_preorder = ord_nat} : nat preorder;
 
 val order_nat = {preorder_order = preorder_nat} : nat order;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
-
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
 
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
@@ -1769,10 +1794,8 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
-fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
-
 fun def_hashmap_size_prod A_ B_ =
-  (fn _ => plus_nat (def_hashmap_size A_ Type) (def_hashmap_size B_ Type));
+  (fn _ => plus_nata (def_hashmap_size A_ Type) (def_hashmap_size B_ Type));
 
 fun snd (x1, x2) = x2;
 
@@ -1811,25 +1834,31 @@ datatype ('a, 'b) pre_network_ext =
 datatype ('a, 'b, 'c) simple_state_nos_impl_ext =
   Simple_state_nos_impl_ext of 'a * 'b * 'c;
 
-fun len A_ a = (fn () => let
-                           val i = (fn () => Array.length a) ();
-                         in
-                           nat_of_integer i
-                         end);
-
-fun new A_ = (fn a => fn b => (fn () => Array.array (a, b))) o integer_of_nat;
-
-fun nth A_ a n = (fn () => Array.sub (a, integer_of_nat n));
-
-fun upd A_ i x a =
-  (fn () => let
-              val _ = (fn () => Array.update (a, integer_of_nat i, x)) ();
-            in
-              a
-            end);
-
 fun fold f (x :: xs) s = fold f xs (f x s)
   | fold f [] s = s;
+
+fun rev xs = fold (fn a => fn b => a :: b) xs [];
+
+fun len A_ a =
+  (fn () => let
+              val i = (fn () => IntInf.fromInt (Array.length a)) ();
+            in
+              nat_of_integer i
+            end);
+
+fun new A_ =
+  (fn a => fn b => (fn () => Array.array (IntInf.toInt a, b))) o integer_of_nat;
+
+fun nth A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
+
+fun upd A_ i x a =
+  (fn () =>
+    let
+      val _ =
+        (fn () => Array.update (a, IntInf.toInt (integer_of_nat i), x)) ();
+    in
+      a
+    end);
 
 fun null [] = true
   | null (x :: xs) = false;
@@ -1840,7 +1869,8 @@ fun map f [] = []
 fun image f (Set xs) = Set (map f xs);
 
 fun make A_ n f =
-  (fn () => Array.tabulate (integer_of_nat n, f o nat_of_integer));
+  (fn () => Array.tabulate (IntInf.toInt (integer_of_nat n),
+    (f o nat_of_integer) o IntInf.fromInt));
 
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
@@ -1886,7 +1916,7 @@ fun sup_set A_ (Coset xs) a = Coset (filter (fn x => not (member A_ x a)) xs)
   | sup_set A_ (Set xs) a = fold (insert A_) xs a;
 
 fun ln_N el =
-  plus_nat
+  plus_nata
     (maxa linorder_nat
       (sup_set equal_nat (image fst (Set el)) (image (fst o snd) (Set el))))
     one_nata;
@@ -2030,17 +2060,13 @@ fun ahm_update_aux (A1_, A2_) (HashMapa (a, n)) k v =
   in
     HashMapa
       (array_set a h (update A1_ k v m),
-        (if insert then plus_nat n one_nata else n))
+        (if insert then plus_nata n one_nata else n))
   end;
-
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun idx_iteratei_aux_array_get sz i l c f sigma =
   (if equal_nata i zero_nata orelse not (c sigma) then sigma
-    else idx_iteratei_aux_array_get sz (minus_nat i one_nata) l c f
-           (f (array_get l (minus_nat sz i)) sigma));
+    else idx_iteratei_aux_array_get sz (minus_nata i one_nata) l c f
+           (f (array_get l (minus_nata sz i)) sigma));
 
 fun idx_iteratei_array_length_array_get l c f sigma =
   idx_iteratei_aux_array_get (array_length l) (array_length l) l c f sigma;
@@ -2069,7 +2095,7 @@ fun ahm_filled A_ (HashMapa (a, n)) =
     (times_nat n (nat_of_integer (100 : IntInf.int)));
 
 fun hm_grow A_ (HashMapa (a, n)) =
-  plus_nat (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
+  plus_nata (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
     (nat_of_integer (3 : IntInf.int));
 
 fun ahm_updatea (A1_, A2_) k v hm =
@@ -2255,13 +2281,13 @@ fun ahm_update_auxa eq bhc (HashMapb (a, n)) k v =
   in
     HashMapb
       (array_set a h (list_map_update eq k v m),
-        (if insert then plus_nat n one_nata else n))
+        (if insert then plus_nata n one_nata else n))
   end;
 
 fun idx_iteratei_aux get sz i l c f sigma =
   (if equal_nata i zero_nata orelse not (c sigma) then sigma
-    else idx_iteratei_aux get sz (minus_nat i one_nata) l c f
-           (f (get l (minus_nat sz i)) sigma));
+    else idx_iteratei_aux get sz (minus_nata i one_nata) l c f
+           (f (get l (minus_nata sz i)) sigma));
 
 fun idx_iteratei get sz l c f sigma =
   idx_iteratei_aux get (sz l) (sz l) l c f sigma;
@@ -2288,7 +2314,7 @@ fun ahm_filleda (HashMapb (a, n)) =
     (times_nat n (nat_of_integer (100 : IntInf.int)));
 
 fun hm_growa (HashMapb (a, n)) =
-  plus_nat (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
+  plus_nata (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
     (nat_of_integer (3 : IntInf.int));
 
 fun ahm_updateb eq bhc k v hm =
@@ -2318,7 +2344,7 @@ fun ras_push x s =
         else aa);
     val ac = array_set ab n x;
   in
-    (ac, plus_nat n one_nata)
+    (ac, plus_nata n one_nata)
   end;
 
 fun new_hashmap_witha size = HashMapb (new_array [] size, zero_nata);
@@ -2331,7 +2357,7 @@ fun ras_top s = let
                   val a = s;
                   val (aa, n) = a;
                 in
-                  array_get aa (minus_nat n one_nata)
+                  array_get aa (minus_nata n one_nata)
                 end;
 
 fun array_shrink a = FArray.IsabelleMapping.array_shrink a o integer_of_nat;
@@ -2353,7 +2379,7 @@ fun ras_pop s = let
                   val a = s;
                   val (aa, n) = a;
                 in
-                  ras_shrink (aa, minus_nat n one_nata)
+                  ras_shrink (aa, minus_nata n one_nata)
                 end;
 
 fun gi_E (Gen_g_impl_ext (gi_V, gi_E, gi_V0, more)) = gi_E;
@@ -2600,24 +2626,72 @@ fun imp_for i u f s =
     else (fn () => let
                      val x = f i s ();
                    in
-                     imp_for (plus_nat i one_nata) u f x ()
+                     imp_for (plus_nata i one_nata) u f x ()
                    end));
 
-fun mtx_get A_ m mtx e = nth A_ mtx (plus_nat (times_nat (fst e) m) (snd e));
-
-fun divide_integer k l = fst (divmod_integer k l);
-
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
-fun mtx_new A_ n m c =
-  make A_ (times_nat n m) (fn i => c (divide_nat i m, modulo_nat i m));
+fun mtx_get A_ m mtx e = nth A_ mtx (plus_nata (times_nat (fst e) m) (snd e));
 
 fun mtx_set A_ m mtx e v =
-  upd A_ (plus_nat (times_nat (fst e) m) (snd e)) v mtx;
+  upd A_ (plus_nata (times_nat (fst e) m) (snd e)) v mtx;
 
 fun op_list_prepend x = (fn a => x :: a);
 
 fun op_list_is_empty x = null x;
+
+fun clc_get_rlx_impl x = (fn ai => fn bi => let
+      val (_, a2) = ai;
+    in
+      nth heap_nat a2 bi
+    end)
+                           x;
+
+fun cnt_incr_impl (A1_, A2_, A3_) a k =
+  (fn () => let
+              val freq = nth A3_ a k ();
+              val x = upd A3_ k (plus A2_ freq (one A1_)) a ();
+            in
+              x
+            end);
+
+fun cnt_decr_impl (A1_, A2_, A3_) a k =
+  (fn () => let
+              val freq = nth A3_ a k ();
+              val x = upd A3_ k (minus A1_ freq (one A2_)) a ();
+            in
+              x
+            end);
+
+fun clc_set_impl x =
+  (fn ai => fn bia => fn bi =>
+    let
+      val (a1, a2) = ai;
+    in
+      (fn () =>
+        let
+          val xa = nth heap_nat a2 bia ();
+          val x_a = cnt_decr_impl (minus_nat, one_nat, heap_nat) a1 xa ();
+          val x_b = upd heap_nat bia bi a2 ();
+          val x_c = nth heap_nat x_b bia ();
+          val x_d = cnt_incr_impl (one_nat, plus_nat, heap_nat) x_a x_c ();
+        in
+          (x_d, x_b)
+        end)
+    end)
+    x;
+
+fun gap_impl n =
+  (fn ai => fn bia => fn bi =>
+    imp_for zero_nata n
+      (fn xa => fn sigma => fn () =>
+        let
+          val x_b = clc_get_rlx_impl sigma xa ();
+        in
+          (if less_nat bi x_b andalso less_nat x_b ai
+            then clc_set_impl sigma xa (plus_nata ai one_nata)
+            else (fn () => sigma))
+            ()
+        end)
+      bia);
 
 fun imp_nfoldli (x :: ls) c f s =
   (fn () =>
@@ -2668,6 +2742,32 @@ fun push_impl n =
         ()
     end);
 
+fun mtx_tabulate (A1_, A2_, A3_) (B1_, B2_) n m c =
+  (fn () =>
+    let
+      val ma = new B2_ (times_nat n m) (zero B1_) ();
+      val a =
+        imp_for zero_nata (times_nat n m)
+          (fn k => fn (i, (j, maa)) =>
+            (fn f_ => fn () => f_ ((upd B2_ k (c (i, j)) maa) ()) ())
+              (fn _ =>
+                let
+                  val ja = plus_nata j one_nata;
+                in
+                  (if less_nat ja m then (fn () => (i, (ja, maa)))
+                    else (fn () => (plus A2_ i (one A1_), (zero_nata, maa))))
+                end))
+          (zero A3_, (zero_nata, ma)) ();
+    in
+      let
+        val (_, aa) = a;
+        val (_, ab) = aa;
+      in
+        (fn () => ab)
+      end
+        ()
+    end);
+
 fun heap_WHILET b f s =
   (fn () =>
     let
@@ -2694,7 +2794,15 @@ fun n_init_impl A_ s t am =
               x
             end);
 
-fun cf_init_impl c n = mtx_new heap_int n n c;
+fun cf_init_impl c n =
+  mtx_tabulate (one_nat, plus_nat, zero_nat) (zero_int, heap_int) n n c;
+
+fun clc_get_impl x = (fn ai => fn bi => let
+  val (_, a2) = ai;
+in
+  nth heap_nat a2 bi
+end)
+                       x;
 
 fun am_is_in_V_impl A_ am u =
   (fn () => let
@@ -2712,7 +2820,7 @@ fun init_CQ_impl s t =
         in
           (if x_g
             then let
-                   val x_h = plus_nat a1 one_nata;
+                   val x_h = plus_nata a1 one_nata;
                  in
                    (fn () =>
                      (if not (equal_nata xf s) andalso not (equal_nata xf t)
@@ -2729,6 +2837,8 @@ fun n_reset_impl A_ am n u = (fn () => let
                                        in
  x
                                        end);
+
+val q_empty_impl : 'a list * 'b list = ([], []);
 
 fun min_adj_label_impl n =
   (fn ai => fn bib => fn bia => fn bi => fn () =>
@@ -2756,8 +2866,27 @@ fun relabel_impl n =
     let
       val x = min_adj_label_impl n ai bib bia bi ();
     in
-      upd heap_nat bi (plus_nat x one_nata) bia ()
+      upd heap_nat bi (plus_nata x one_nata) bia ()
     end);
+
+fun cnt_init_impl n c =
+  (fn () =>
+    let
+      val a =
+        new heap_nat (times_nat (nat_of_integer (2 : IntInf.int)) n) zero_nata
+          ();
+      val aa = upd heap_nat zero_nata (minus_nata c one_nata) a ();
+      val x = upd heap_nat c one_nata aa ();
+    in
+      x
+    end);
+
+fun clc_init_impl s n = (fn xi => fn () => let
+     val x = l_init_impl n s xi ();
+     val x_a = cnt_init_impl n xi ();
+   in
+     (x_a, x)
+   end);
 
 fun n_at_end_impl A_ n u = (fn () => let
                                        val nu = nth (heap_list A_) n u ();
@@ -2808,7 +2937,7 @@ fun discharge_impl n =
                                ())
                                (fn x_e =>
                                  (if not (equal_inta x_c zero_inta) andalso
-                                       equal_nata x_d (plus_nat x_e one_nata)
+                                       equal_nata x_d (plus_nata x_e one_nata)
                                    then (fn f_ => fn () => f_
   ((push_impl n a1a a2a (bi, x_b)) ()) ())
   (fn (a1c, a2c) => (fn () => ((a1c, a2c), (a1b, a2b))))
@@ -2818,6 +2947,88 @@ fun discharge_impl n =
             ()
         end)
       ((bid, bic), (bib, bia)));
+
+fun q_enqueue_impl x = (fn xa => fn (l, r) => (l, xa :: r)) x;
+
+fun fifo_push_impl s t n =
+  (fn ai => fn bib => fn bia => fn (a1, a2) => fn () =>
+    let
+      val x = nth heap_int ai a1 ();
+      val x_a = nth heap_int ai a2 ();
+      val x_b = cf_get_impl n bib (a1, a2) ();
+      val x_c = cf_get_impl n bib (a2, a1) ();
+    in
+      let
+        val x_d = min ord_int x x_b;
+      in
+        (fn f_ => fn () => f_
+          ((x_add_impl (plus_int, heap_int) ai a1 (uminus_inta x_d)) ()) ())
+          (fn x_f =>
+            (fn f_ => fn () => f_ ((x_add_impl (plus_int, heap_int) x_f a2 x_d)
+              ()) ())
+              (fn x_g =>
+                (fn f_ => fn () => f_
+                  ((cf_set_impl n bib (a1, a2) (minus_inta x_b x_d)) ()) ())
+                  (fn x_h =>
+                    (fn f_ => fn () => f_
+                      ((cf_set_impl n x_h (a2, a1) (plus_inta x_c x_d)) ()) ())
+                      (fn x_i =>
+                        (fn () =>
+                          (if not (equal_nata a2 s) andalso
+                                (not (equal_nata a2 t) andalso
+                                  equal_inta x_a zero_inta)
+                            then ((x_g, x_i), q_enqueue_impl a2 bia)
+                            else ((x_g, x_i), bia)))))))
+      end
+        ()
+    end);
+
+fun q_dequeue_impl x =
+  (fn a =>
+    (case a of ([], r) => let
+                            val xa :: l = rev r;
+                          in
+                            (xa, (l, []))
+                          end
+      | (xa :: l, r) => (xa, (l, r))))
+    x;
+
+fun q_is_empty_impl x = (fn (l, r) => is_Nil l andalso is_Nil r) x;
+
+fun clc_has_gap_impl x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       (fn () => let
+                                   val xa = nth heap_nat a1 bi ();
+                                 in
+                                   equal_nata xa zero_nata
+                                 end)
+                     end)
+    x;
+
+fun fifo_init_C_impl n =
+  (fn xi =>
+    imp_for zero_nata n
+      (fn xd => fn sigma => fn () =>
+        let
+          val x_d = am_is_in_V_impl heap_nat xi xd ();
+        in
+          (if x_d then plus_nata sigma one_nata else sigma)
+        end)
+      zero_nata);
+
+fun fifo_q_init_impl s t =
+  (fn xi => fn () =>
+    let
+      val x_a = nth (heap_list heap_nat) xi s ();
+    in
+      imp_nfoldli x_a (fn _ => (fn () => true))
+        (fn xc => fn sigma =>
+          (fn () =>
+            (if not (equal_nata xc t) then q_enqueue_impl xc sigma else sigma)))
+        q_empty_impl ()
+    end);
 
 fun pp_init_xcf_impl c s n =
   (fn xi => fn () =>
@@ -2845,6 +3056,184 @@ fun pp_init_xcf_impl c s n =
                             (fn x_i => (fn () => (x_g, x_i))))))))
         (x, x_a) ()
     end);
+
+fun fifo_push_relabel_init_impl c n = cf_init_impl c n;
+
+fun min_adj_label_clc_impl n =
+  (fn ai => fn bib => fn bia => fn bi => let
+   val (_, a2) = bia;
+ in
+   min_adj_label_impl n ai bib a2 bi
+ end);
+
+fun fifo_relabel_impl n =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val x = min_adj_label_clc_impl n ai bib bia bi ();
+    in
+      clc_set_impl bia bi (plus_nata x one_nata) ()
+    end);
+
+fun fifo_gap_relabel_impl n =
+  (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi =>
+    let
+      val x = q_enqueue_impl bi bia;
+    in
+      (fn () =>
+        let
+          val x_a = clc_get_impl bib bi ();
+          val x_b = fifo_relabel_impl n bid bic bib bi ();
+          val x_c = clc_has_gap_impl x_b x_a ();
+        in
+          (if x_c
+            then (fn f_ => fn () => f_ ((gap_impl n ai x_b x_a) ()) ())
+                   (fn x_d => (fn () => (x_d, x)))
+            else (fn () => (x_b, x)))
+            ()
+        end)
+    end);
+
+fun fifo_dis_loop_impl s t n =
+  (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
+    let
+      val x = nth (heap_list heap_nat) ai bi ();
+    in
+      imp_nfoldli x
+        (fn ((a1a, _), (_, _)) =>
+          (fn f_ => fn () => f_ ((nth heap_int a1a bi) ()) ())
+            (fn x_b => (fn () => (not (equal_inta x_b zero_inta)))))
+        (fn xb => fn ((a1a, a2a), (a1b, a2b)) =>
+          (fn f_ => fn () => f_ ((cf_get_impl n a2a (bi, xb)) ()) ())
+            (fn x_c =>
+              (if not (equal_inta x_c zero_inta)
+                then (fn f_ => fn () => f_ ((clc_get_impl a1b bi) ()) ())
+                       (fn x_e =>
+                         (fn f_ => fn () => f_ ((clc_get_impl a1b xb) ()) ())
+                           (fn x_f =>
+                             (if equal_nata x_e (plus_nata x_f one_nata)
+                               then (fn f_ => fn () => f_
+                                      ((fifo_push_impl s t n a1a a2a a2b
+ (bi, xb))
+                                      ()) ())
+                                      (fn (a1c, a2c) =>
+(fn () => let
+            val (a1d, a2d) = a1c;
+          in
+            ((a1d, a2d), (a1b, a2c))
+          end))
+                               else (fn () => ((a1a, a2a), (a1b, a2b))))))
+                else (fn () => ((a1a, a2a), (a1b, a2b))))))
+        ((bid, bic), (bib, bia)) ()
+    end);
+
+fun fifo_fifo_discharge_impl s t n =
+  (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi =>
+    let
+      val (a1, a2) = q_dequeue_impl bi;
+    in
+      (fn () =>
+        let
+          val a = fifo_dis_loop_impl s t n bid bic bib bia a2 a1 ();
+        in
+          let
+            val ((a1b, a2b), (a1c, a2c)) = a;
+          in
+            (fn f_ => fn () => f_ ((nth heap_int a1b a1) ()) ())
+              (fn x_b =>
+                (if not (equal_inta x_b zero_inta)
+                  then (fn f_ => fn () => f_
+                         ((fifo_gap_relabel_impl n ai bid a2b a1c a2c a1) ())
+                         ())
+                         (fn (a1d, a2d) => (fn () => ((a1b, a2b), (a1d, a2d))))
+                  else (fn () => ((a1b, a2b), (a1c, a2c)))))
+          end
+            ()
+        end)
+    end);
+
+fun pp_init_xcf2_impl s n =
+  (fn ai => fn bi => fn () =>
+    let
+      val x = new heap_int n zero_inta ();
+      val x_a = nth (heap_list heap_nat) ai s ();
+    in
+      imp_nfoldli x_a (fn _ => (fn () => true))
+        (fn xc => fn (a1, a2) =>
+          (fn f_ => fn () => f_ ((cf_get_impl n a2 (s, xc)) ()) ())
+            (fn x_d =>
+              (fn f_ => fn () => f_
+                ((x_add_impl (plus_int, heap_int) a1 s (uminus_inta x_d)) ())
+                ())
+                (fn x_e =>
+                  (fn f_ => fn () => f_
+                    ((x_add_impl (plus_int, heap_int) x_e xc x_d) ()) ())
+                    (fn x_f =>
+                      (fn f_ => fn () => f_
+                        ((cf_set_impl n a2 (s, xc) zero_inta) ()) ())
+                        (fn x_g =>
+                          (fn f_ => fn () => f_ ((cf_set_impl n x_g (xc, s) x_d)
+                            ()) ())
+                            (fn x_h => (fn () => (x_f, x_h))))))))
+        (x, bi) ()
+    end);
+
+fun fifo_push_relabel_run_impl s t n =
+  (fn ai => fn bi => fn () =>
+    let
+      val x = fifo_init_C_impl n ai ();
+      val a = pp_init_xcf2_impl s n ai bi ();
+    in
+      let
+        val (a1, a2) = a;
+      in
+        (fn f_ => fn () => f_ ((clc_init_impl s n x) ()) ())
+          (fn x_b =>
+            (fn f_ => fn () => f_ ((fifo_q_init_impl s t ai) ()) ())
+              (fn x_c =>
+                (fn f_ => fn () => f_
+                  ((heap_WHILET
+                     (fn (a1a, a2a) => (fn () => let
+           val (_, _) = a1a;
+           val (_, a2c) = a2a;
+         in
+           not (q_is_empty_impl a2c)
+         end))
+                     (fn ((a1b, a2b), (aa, b)) =>
+                       fifo_fifo_discharge_impl s t n x ai a1b a2b aa b)
+                     ((a1, a2), (x_b, x_c)))
+                  ()) ())
+                  (fn (a1a, a2a) => (fn () => let
+        val (_, a2b) = a1a;
+        val (_, _) = a2a;
+      in
+        a2b
+      end))))
+      end
+        ()
+    end);
+
+fun fifo_push_relabel_impl c s t n =
+  (fn xi => fn () => let
+                       val x = fifo_push_relabel_init_impl c n ();
+                     in
+                       fifo_push_relabel_run_impl s t n xi x ()
+                     end);
+
+fun fifo_push_relabel_impl_tab_am c s t n am =
+  (fn () => let
+              val x = make (heap_list heap_nat) n am ();
+            in
+              fifo_push_relabel_impl c s t n x ()
+            end);
+
+fun fifo_push_relabel el s t =
+  (case prepareNet el s t of NONE => (fn () => NONE)
+    | SOME (c, (am, n)) =>
+      (fn () => let
+                  val cf = fifo_push_relabel_impl_tab_am c s t n am ();
+                in
+                  SOME (c, (am, (n, cf)))
+                end));
 
 fun relabel_to_front_impl c s t n =
   (fn ai => fn bi => fn () =>
@@ -2917,13 +3306,14 @@ fun relabel_to_front_impl_tab_am c s t n am =
               relabel_to_front_impl c s t n n x ()
             end);
 
-fun fifo_push_relabel el s t =
+fun fifo_push_relabel_prepare_impl el s t =
   (case prepareNet el s t of NONE => (fn () => NONE)
     | SOME (c, (am, n)) =>
       (fn () => let
-                  val cf = relabel_to_front_impl_tab_am c s t n am ();
+                  val ami = make (heap_list heap_nat) n am ();
+                  val cfi = fifo_push_relabel_init_impl c n ();
                 in
-                  SOME (c, (am, (n, cf)))
+                  SOME (n, (am, (ami, (c, cfi))))
                 end));
 
 end; (*struct Prpu*)

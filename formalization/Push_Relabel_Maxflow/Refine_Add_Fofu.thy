@@ -211,4 +211,96 @@ lemma monadic_nfoldli_comb[sepref_monadify_comb]:
   by (simp_all)
       
 
+(* TODO: Move *)    
+lemma triv_exI[simp, intro!]: "Q x \<Longrightarrow>\<^sub>A \<exists>\<^sub>Ax. Q x"
+  by sep_auto
+    
+    
+(* TODO: Move. Add rule for imp_for! *)    
+lemma imp_for'_rule:
+  assumes LESS: "l\<le>u"
+  assumes PRE: "P \<Longrightarrow>\<^sub>A I l s"
+  assumes STEP: "\<And>i s. \<lbrakk> l\<le>i; i<u \<rbrakk> \<Longrightarrow> <I i s> f i s <I (i+1)>"
+  shows "<P> imp_for' l u f s <I u>"
+  apply (rule Hoare_Triple.cons_pre_rule[OF PRE])  
+  using LESS 
+proof (induction arbitrary: s rule: inc_induct)  
+  case base thus ?case by sep_auto  
+next
+  case (step k)
+  show ?case using step.hyps 
+    by (sep_auto heap: STEP step.IH)  
+qed 
+    
+    
+(************ Patch to make amtx_new more efficient, by avoiding div and mod. 
+  TODO: Integrate/replace in IICF_Array_Matrix.thy ! *)    
+    
+definition "mtx_tabulate N M c \<equiv> do {
+  m \<leftarrow> Array.new (N*M) 0;
+  (_,_,m) \<leftarrow> imp_for' 0 (N*M) (\<lambda>k (i,j,m). do {
+    Array.upd k (c (i,j)) m;
+    let j=j+1;
+    if j<M then return (i,j,m)
+    else return (i+1,0,m)
+  }) (0,0,m);
+  return m
+}"
+    
+
+lemma mtx_idx_unique_conv[simp]: 
+  fixes M :: nat
+  assumes "j<M" "j'<M"
+  shows "(i * M + j = i' * M + j') \<longleftrightarrow> (i=i' \<and> j=j')"
+  using assms  
+  apply auto  
+  subgoal
+    by (metis div_if msrevs(1) nat_add_left_cancel not_gr0 not_less0)  
+  subgoal
+    using \<open>\<lbrakk>j < M; j' < M; i * M + j = i' * M + j'\<rbrakk> \<Longrightarrow> i = i'\<close> by auto  
+  done
+    
+lemma mtx_tabulate_rule[sep_heap_rules]:
+  assumes NONZ: "mtx_nonzero c \<subseteq> {0..<N}\<times>{0..<M}"
+  shows "<emp> mtx_tabulate N M c <IICF_Array_Matrix.is_amtx N M c>"
+proof (cases "M=0")
+  case True thus ?thesis
+    unfolding mtx_tabulate_def  
+    using mtx_nonzeroD[OF _ NONZ]  
+    by (sep_auto simp: is_amtx_def)
+next
+  case False hence M_POS: "0<M" by auto
+  show ?thesis
+    unfolding mtx_tabulate_def  
+    apply (sep_auto 
+      decon: 
+        imp_for'_rule[where 
+          I="\<lambda>k (i,j,mi). \<exists>\<^sub>Am. mi \<mapsto>\<^sub>a m 
+          * \<up>( k=i*M+j \<and> j<M \<and> k\<le>N*M \<and> length m = N*M )
+          * \<up>( \<forall>i'<i. \<forall>j<M. m!(i'*M+j) = c (i',j) )
+          * \<up>( \<forall>j'<j. m!(i*M+j') = c (i,j') )
+        "]
+      simp: nth_list_update M_POS dest: Suc_lessI
+    )
+    unfolding is_amtx_def
+    using mtx_nonzeroD[OF _ NONZ] 
+    apply sep_auto  
+    by (metis add.right_neutral M_POS mtx_idx_unique_conv)  
+qed
+
+lemma mtx_tabulate_aref: 
+  "(mtx_tabulate N M, RETURN o op_mtx_new) 
+    \<in> [\<lambda>c. mtx_nonzero c \<subseteq> {0..<N}\<times>{0..<M}]\<^sub>a id_assn\<^sup>k \<rightarrow> IICF_Array_Matrix.is_amtx N M"  
+  by sepref_to_hoare sep_auto
+  
+sepref_decl_impl (no_register) amtx_new_by_tab: mtx_tabulate_aref uses op_mtx_new_fref'
+  by (auto simp: mtx_nonzero_zu_eq)
+    
+declare amtx_new_hnr'[sepref_fr_rules del]    
+
+lemma amtx_new_hnr_by_tab'[sepref_fr_rules]: "CONSTRAINT (IS_PURE PRES_ZERO_UNIQUE) A \<Longrightarrow>
+  (mtx_tabulate N M, (RETURN \<circ> PR_CONST (op_amtx_new N M)))
+  \<in> [\<lambda>x. mtx_nonzero x \<subseteq> {0..<N} \<times> {0..<M}]\<^sub>a (pure (nat_rel \<times>\<^sub>r nat_rel \<rightarrow> the_pure A))\<^sup>k \<rightarrow> amtx_assn N M A"
+  using amtx_new_by_tab_hnr[of A N M] by simp
+    
 end

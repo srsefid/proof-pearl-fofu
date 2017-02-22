@@ -12,6 +12,10 @@ fun
   the_fail NONE msg = fail msg
 | the_fail (SOME x) msg = x
 
+val int_of_gi = IntInf.toInt o integer_of_int
+val gi_of_int = Int_of_integer o IntInf.fromInt
+val int_of_gn = IntInf.toInt o integer_of_nat
+val gn_of_int = nat_of_integer o IntInf.fromInt
 
 
 fun readList (infile : string) = let
@@ -26,8 +30,8 @@ in
       SOME i => i
     | NONE => fail ("Expected integer, but got '" ^ s ^"'")  
 
-    val parse_int = Int_of_integer o parse_integer
-    val parse_nat = nat_of_integer o parse_integer
+    val parse_int = gi_of_int o parse_integer
+    val parse_nat = gn_of_int o parse_integer
 
     val tokenize = String.tokens (fn c => c = #" ")
     
@@ -98,7 +102,7 @@ local
   in (ts,raw_res) end  
 
   fun iterate n t f = let
-      val _ = print (IntInf.toString n)
+      val _ = print (Int.toString n)
       val (ts, raw_res) = measure f
       val t = Time.+ (t,ts)
       val _ = print ("(" ^ Time.toString ts ^ "s). ")
@@ -118,7 +122,7 @@ in
     
     val _ = print ("Fifo");
     val (t,res) = iterate n Time.zeroTime (run G)
-    val t = Time.fromNanoseconds (Time.toNanoseconds t div n)
+    val t = Time.fromNanoseconds (Time.toNanoseconds t div (IntInf.fromInt n))
     val res = "TODO" (*compres res*)
     val _ = print ("\n");
     val _ = print ("@@@time: " ^ IntInf.toString (Time.toMilliseconds t) ^ " ms\n");
@@ -129,17 +133,17 @@ end
 
 
 fun fifo_fun s t G = let
-  val s = nat_of_integer s
-  val t = nat_of_integer t
+  val s = gn_of_int s
+  val t = gn_of_int t
 in
   {
     prepare = fn () => let 
-      val (c,(am,N)) = the_fail (prepareNet G s t) "prepareNet failed"
+      val pr = the_fail (fifo_push_relabel_prepare_impl G s t ()) "prepareNet failed"
     in
-      SOME (c,am,N)
+      SOME pr
     end  ,
 
-    run = fn (c,am,N) => fn () => (N,c,am,relabel_to_front_impl_tab_am c s t N am ()) (*,
+    run = fn (N,(am,(ami,(c,cf)))) => fn () => fifo_push_relabel_run_impl s t N ami cf () (*,
     compres = fn (N,c,ps,f) => let
         val flow = compute_flow_val_imp c s t ps f ()
       in
@@ -155,8 +159,8 @@ fun main () = let
   
   fun perform s t G = (
     measure 1 (fifo_fun s t G);
-    print ("stat_outer_c = " ^ IntInf.toString (!stat.outer_c) ^ "\n");
-    print ("stat_inner_c = " ^ IntInf.toString (!stat.inner_c) ^ "\n");
+    print ("stat_outer_c = " ^ Int.toString (!stat.outer_c) ^ "\n");
+    print ("stat_inner_c = " ^ Int.toString (!stat.inner_c) ^ "\n");
     Profile.Data.write(profData,"mlmon.prof.out");
     Profile.Data.free(profData)
   )

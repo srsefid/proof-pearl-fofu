@@ -119,19 +119,19 @@ fun shrink (aref, sz) = case aref of
 structure IsabelleMapping = struct
 type 'a ArrayType = 'a array;
 
-fun new_array (a:'a) (n:int) = array (n, a);
+fun new_array (a:'a) (n:IntInf.int) = array (IntInf.toInt n, a);
 
-fun array_length (a:'a ArrayType) = length a;
+fun array_length (a:'a ArrayType) = IntInf.fromInt (length a);
 
-fun array_get (a:'a ArrayType) (i:int) = sub (a, i);
+fun array_get (a:'a ArrayType) (i:IntInf.int) = sub (a, IntInf.toInt i);
 
-fun array_set (a:'a ArrayType) (i:int) (e:'a) = update (a, i, e);
+fun array_set (a:'a ArrayType) (i:IntInf.int) (e:'a) = update (a, IntInf.toInt i, e);
 
 fun array_of_list (xs:'a list) = fromList xs;
 
-fun array_grow (a:'a ArrayType) (i:int) (x:'a) = grow (a, i, x);
+fun array_grow (a:'a ArrayType) (i:IntInf.int) (x:'a) = grow (a, IntInf.toInt i, x);
 
-fun array_shrink (a:'a ArrayType) (sz:int) = shrink (a,sz);
+fun array_shrink (a:'a ArrayType) (sz:IntInf.int) = shrink (a,IntInf.toInt sz);
 
 end;
 
@@ -222,25 +222,25 @@ structure FArray = struct
 structure IsabelleMapping = struct
 type 'a ArrayType = 'a array;
 
-fun new_array (a:'a) (n:int) = array (n, a);
+fun new_array (a:'a) (n:IntInf.int) = array (IntInf.toInt n, a);
 
-fun array_length (a:'a ArrayType) = length a;
+fun array_length (a:'a ArrayType) = IntInf.fromInt (length a);
 
-fun array_get (a:'a ArrayType) (i:int) = sub (a, i);
+fun array_get (a:'a ArrayType) (i:IntInf.int) = sub (a, IntInf.toInt i);
 
-fun array_set (a:'a ArrayType) (i:int) (e:'a) = update (a, i, e);
+fun array_set (a:'a ArrayType) (i:IntInf.int) (e:'a) = update (a, IntInf.toInt i, e);
 
 fun array_of_list (xs:'a list) = fromList xs;
 
-fun array_grow (a:'a ArrayType) (i:int) (x:'a) = grow (a, i, x);
+fun array_grow (a:'a ArrayType) (i:IntInf.int) (x:'a) = grow (a, IntInf.toInt i, x);
 
-fun array_shrink (a:'a ArrayType) (sz:int) = shrink (a,sz);
+fun array_shrink (a:'a ArrayType) (sz:IntInf.int) = shrink (a,IntInf.toInt sz);
 
-fun array_get_oo (d:'a) (a:'a ArrayType) (i:int) =
-  sub (a,i) handle Subscript => d
+fun array_get_oo (d:'a) (a:'a ArrayType) (i:IntInf.int) =
+  sub (a,IntInf.toInt i) handle Subscript => d
 
-fun array_set_oo (d:(unit->'a ArrayType)) (a:'a ArrayType) (i:int) (e:'a) =
-  update (a, i, e) handle Subscript => d ()
+fun array_set_oo (d:(unit->'a ArrayType)) (a:'a ArrayType) (i:IntInf.int) (e:'a) =
+  update (a, IntInf.toInt i, e) handle Subscript => d ()
 
 end;
 end;
@@ -249,15 +249,16 @@ end;
 
 
 
-    fun array_blit src si dst di len = 
+    fun array_blit src si dst di len = (
+      src=dst andalso raise Fail ("array_blit: Same arrays");
       ArraySlice.copy {
-        di=di,
-        src = ArraySlice.slice (src,si,SOME len),
-        dst=dst}
+        di = IntInf.toInt di,
+        src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
+        dst = dst})
 
-    fun array_nth_oo v a i () = Array.sub(a,i) handle Subscript => v
+    fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
     fun array_upd_oo f i x a () = 
-      (Array.update(a,i,x); a) handle Subscript => f ()
+      (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
     
 
@@ -1720,6 +1721,10 @@ val one_nata : nat = Nat (1 : IntInf.int);
 
 val one_nat = {one = one_nata} : nat one;
 
+fun plus_nata m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+val plus_nat = {plus = plus_nata} : nat plus;
+
 val zero_nata : nat = Nat (0 : IntInf.int);
 
 val zero_nat = {zero = zero_nata} : nat zero;
@@ -1790,10 +1795,8 @@ fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
 
-fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
-
 fun def_hashmap_size_prod A_ B_ =
-  (fn _ => plus_nat (def_hashmap_size A_ Type) (def_hashmap_size B_ Type));
+  (fn _ => plus_nata (def_hashmap_size A_ Type) (def_hashmap_size B_ Type));
 
 fun snd (x1, x2) = x2;
 
@@ -1832,22 +1835,26 @@ datatype ('a, 'b) pre_network_ext =
 datatype ('a, 'b, 'c) simple_state_nos_impl_ext =
   Simple_state_nos_impl_ext of 'a * 'b * 'c;
 
-fun len A_ a = (fn () => let
-                           val i = (fn () => Array.length a) ();
-                         in
-                           nat_of_integer i
-                         end);
+fun len A_ a =
+  (fn () => let
+              val i = (fn () => IntInf.fromInt (Array.length a)) ();
+            in
+              nat_of_integer i
+            end);
 
-fun new A_ = (fn a => fn b => (fn () => Array.array (a, b))) o integer_of_nat;
+fun new A_ =
+  (fn a => fn b => (fn () => Array.array (IntInf.toInt a, b))) o integer_of_nat;
 
-fun nth A_ a n = (fn () => Array.sub (a, integer_of_nat n));
+fun nth A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
 
 fun upd A_ i x a =
-  (fn () => let
-              val _ = (fn () => Array.update (a, integer_of_nat i, x)) ();
-            in
-              a
-            end);
+  (fn () =>
+    let
+      val _ =
+        (fn () => Array.update (a, IntInf.toInt (integer_of_nat i), x)) ();
+    in
+      a
+    end);
 
 fun fold f (x :: xs) s = fold f xs (f x s)
   | fold f [] s = s;
@@ -1858,7 +1865,8 @@ fun map f [] = []
 fun image f (Set xs) = Set (map f xs);
 
 fun make A_ n f =
-  (fn () => Array.tabulate (integer_of_nat n, f o nat_of_integer));
+  (fn () => Array.tabulate (IntInf.toInt (integer_of_nat n),
+    (f o nat_of_integer) o IntInf.fromInt));
 
 fun map_of A_ ((l, v) :: ps) k = (if eq A_ l k then SOME v else map_of A_ ps k)
   | map_of A_ [] k = NONE;
@@ -1901,7 +1909,7 @@ fun sup_set A_ (Coset xs) a = Coset (filter (fn x => not (member A_ x a)) xs)
   | sup_set A_ (Set xs) a = fold (insert A_) xs a;
 
 fun ln_N el =
-  plus_nat
+  plus_nata
     (maxa linorder_nat
       (sup_set equal_nat (image fst (Set el)) (image (fst o snd) (Set el))))
     one_nata;
@@ -2045,7 +2053,7 @@ fun ahm_update_aux (A1_, A2_) (HashMapa (a, n)) k v =
   in
     HashMapa
       (array_set a h (update A1_ k v m),
-        (if insert then plus_nat n one_nata else n))
+        (if insert then plus_nata n one_nata else n))
   end;
 
 fun minus_nat m n =
@@ -2084,7 +2092,7 @@ fun ahm_filled A_ (HashMapa (a, n)) =
     (times_nat n (nat_of_integer (100 : IntInf.int)));
 
 fun hm_grow A_ (HashMapa (a, n)) =
-  plus_nat (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
+  plus_nata (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
     (nat_of_integer (3 : IntInf.int));
 
 fun ahm_updatea (A1_, A2_) k v hm =
@@ -2275,7 +2283,7 @@ fun ahm_update_auxa eq bhc (HashMapb (a, n)) k v =
   in
     HashMapb
       (array_set a h (list_map_update eq k v m),
-        (if insert then plus_nat n one_nata else n))
+        (if insert then plus_nata n one_nata else n))
   end;
 
 fun idx_iteratei_aux get sz i l c f sigma =
@@ -2308,7 +2316,7 @@ fun ahm_filleda (HashMapb (a, n)) =
     (times_nat n (nat_of_integer (100 : IntInf.int)));
 
 fun hm_growa (HashMapb (a, n)) =
-  plus_nat (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
+  plus_nata (times_nat (nat_of_integer (2 : IntInf.int)) (array_length a))
     (nat_of_integer (3 : IntInf.int));
 
 fun ahm_updateb eq bhc k v hm =
@@ -2338,7 +2346,7 @@ fun ras_push x s =
         else aa);
     val ac = array_set ab n x;
   in
-    (ac, plus_nat n one_nata)
+    (ac, plus_nata n one_nata)
   end;
 
 fun new_hashmap_witha size = HashMapb (new_array [] size, zero_nata);
@@ -2621,8 +2629,8 @@ fun iam_update A_ k v a =
       in
         let
           val newsz =
-            max ord_nat (plus_nat k one_nata)
-              (plus_nat (times_nat (nat_of_integer (2 : IntInf.int)) l)
+            max ord_nat (plus_nata k one_nata)
+              (plus_nata (times_nat (nat_of_integer (2 : IntInf.int)) l)
                 (nat_of_integer (3 : IntInf.int)));
         in
           (fn f_ => fn () => f_ ((array_grow (heap_option A_) a newsz NONE) ())
@@ -2730,10 +2738,10 @@ fun bfs_impl_0 succ_impl ci ti x =
                          (fn () =>
                            (if a1d
                              then (a1d, (a1e,
-  (x_c, (a2e, plus_nat a2c one_nata))))
+  (x_c, (a2e, plus_nata a2c one_nata))))
                              else (if is_Nil x_c
                                     then (a1d,
-   (a1e, (a2e, ([], plus_nat a2c one_nata))))
+   (a1e, (a2e, ([], plus_nata a2c one_nata))))
                                     else (a1d, (a1e, (x_c, (a2e, a2c)))))))))
                end
                  ();
@@ -2762,7 +2770,7 @@ fun bfs_impl succ_impl ci si ti =
                ()
            end));
 
-fun mtx_get A_ m mtx e = nth A_ mtx (plus_nat (times_nat (fst e) m) (snd e));
+fun mtx_get A_ m mtx e = nth A_ mtx (plus_nata (times_nat (fst e) m) (snd e));
 
 fun succ_imp_0 n cfi ui x =
   (case x of ([], a2) => (fn () => a2)
@@ -2793,16 +2801,44 @@ fun swap p = (snd p, fst p);
 
 fun min A_ a b = (if less_eq A_ a b then a else b);
 
+fun imp_for i u f s =
+  (if less_eq_nat u i then (fn () => s)
+    else (fn () => let
+                     val x = f i s ();
+                   in
+                     imp_for (plus_nata i one_nata) u f x ()
+                   end));
+
 fun get_am am v = am v;
 
-fun divide_integer k l = fst (divmod_integer k l);
+fun mtx_tabulate (A1_, A2_, A3_) (B1_, B2_) n m c =
+  (fn () =>
+    let
+      val ma = new B2_ (times_nat n m) (zero B1_) ();
+      val a =
+        imp_for zero_nata (times_nat n m)
+          (fn k => fn (i, (j, maa)) =>
+            (fn f_ => fn () => f_ ((upd B2_ k (c (i, j)) maa) ()) ())
+              (fn _ =>
+                let
+                  val ja = plus_nata j one_nata;
+                in
+                  (if less_nat ja m then (fn () => (i, (ja, maa)))
+                    else (fn () => (plus A2_ i (one A1_), (zero_nata, maa))))
+                end))
+          (zero A3_, (zero_nata, ma)) ();
+    in
+      let
+        val (_, aa) = a;
+        val (_, ab) = aa;
+      in
+        (fn () => ab)
+      end
+        ()
+    end);
 
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
-fun mtx_new A_ n m c =
-  make A_ (times_nat n m) (fn i => c (divide_nat i m, modulo_nat i m));
-
-fun init_cf_impl c n = mtx_new heap_int n n c;
+fun init_cf_impl c n =
+  mtx_tabulate (one_nat, plus_nat, zero_nat) (zero_int, heap_int) n n c;
 
 fun edka_imp_tabulate c n am =
   (fn () => let
@@ -2813,7 +2849,7 @@ fun edka_imp_tabulate c n am =
             end);
 
 fun mtx_set A_ m mtx e v =
-  upd A_ (plus_nat (times_nat (fst e) m) (snd e)) v mtx;
+  upd A_ (plus_nata (times_nat (fst e) m) (snd e)) v mtx;
 
 fun augment_imp_0 n bi x =
   (case x of ([], a2) => (fn () => a2)

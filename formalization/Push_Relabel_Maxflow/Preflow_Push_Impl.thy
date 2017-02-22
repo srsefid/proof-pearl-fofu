@@ -1932,6 +1932,51 @@ proof -
   finally show ?thesis .  
 qed      
 
+(* Split initialization of adjacency matrix from rest of algorithm *)  
+definition "fifo_push_relabel_init2 \<equiv> cf_init"  
+definition "pp_init_xcf2' am cf \<equiv> do {
+  x \<leftarrow> x_init;
+
+  assert (s\<in>V);
+  adj \<leftarrow> am_get am s;
+  nfoldli adj (\<lambda>_. True) (\<lambda>v (x,cf). do {
+    assert ((s,v)\<in>E);
+    assert (s \<noteq> v);
+    a \<leftarrow> cf_get cf (s,v);
+    x \<leftarrow> x_add x s (-a);
+    x \<leftarrow> x_add x v a;
+    cf \<leftarrow> cf_set cf (s,v) 0; 
+    cf \<leftarrow> cf_set cf (v,s) a; 
+    return (x,cf)
+  }) (x,cf)
+}"
+  
+definition "fifo_push_relabel_run2 am cf \<equiv> do {
+  cardV \<leftarrow> init_C am;
+  (x,cf) \<leftarrow> pp_init_xcf2' am cf;
+  clc \<leftarrow> clc_init cardV;
+  Q \<leftarrow> q_init am;
+
+  ((x,cf),clc,Q) \<leftarrow> monadic_WHILEIT (\<lambda>_. True) 
+    (\<lambda>((x,cf),clc,Q). do {qe \<leftarrow> q_is_empty Q; return (\<not>qe)}) 
+    (\<lambda>((x,cf),clc,Q). do {
+      fifo_discharge2 cardV am x cf clc Q
+    }) 
+    ((x,cf),clc,Q);
+
+  return cf
+}"
+  
+lemma fifo_push_relabel2_alt:
+  "fifo_push_relabel2 am = do {
+    cf \<leftarrow> fifo_push_relabel_init2;
+    fifo_push_relabel_run2 am cf
+  }"  
+  unfolding fifo_push_relabel_init2_def fifo_push_relabel_run2_def
+    fifo_push_relabel2_def pp_init_xcf2_def pp_init_xcf2'_def
+    cf_init_def (* Unfolding this b/c it's a return and thus can be inlined.*)
+  by simp
+  
   
 (* Implementation of cnt, using array *)  
   
@@ -2139,11 +2184,36 @@ sepref_thm fifo_q_init_impl is "(PR_CONST q_init)"
   by sepref
 concrete_definition (in -) fifo_q_init_impl uses Network_Impl.fifo_q_init_impl.refine_raw is "(?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_q_init_impl.refine[OF nwi_this]
+
+sepref_register pp_init_xcf2'
+sepref_thm pp_init_xcf2'_impl is "uncurry (PR_CONST pp_init_xcf2')" 
+    :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>d \<rightarrow>\<^sub>a x_assn \<times>\<^sub>a cf_assn" 
+  unfolding pp_init_xcf2'_def PR_CONST_def
+  by sepref
+concrete_definition (in -) pp_init_xcf2'_impl uses Network_Impl.pp_init_xcf2'_impl.refine_raw is "(uncurry ?f,_)\<in>_"
+lemmas [sepref_fr_rules] = pp_init_xcf2'_impl.refine[OF nwi_this]
+  
+sepref_register fifo_push_relabel_run2
+sepref_thm fifo_push_relabel_run_impl is "uncurry (PR_CONST fifo_push_relabel_run2)" 
+    :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>d \<rightarrow>\<^sub>a cf_assn" 
+  unfolding fifo_push_relabel_run2_def PR_CONST_def
+  by sepref
+concrete_definition (in -) fifo_push_relabel_run_impl uses Network_Impl.fifo_push_relabel_run_impl.refine_raw is "(uncurry ?f,_)\<in>_"
+lemmas [sepref_fr_rules] = fifo_push_relabel_run_impl.refine[OF nwi_this]
+  
+sepref_register fifo_push_relabel_init2
+sepref_thm fifo_push_relabel_init_impl is "uncurry0 (PR_CONST fifo_push_relabel_init2)" 
+    :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a cf_assn" 
+  unfolding fifo_push_relabel_init2_def PR_CONST_def
+  by sepref
+concrete_definition (in -) fifo_push_relabel_init_impl uses Network_Impl.fifo_push_relabel_init_impl.refine_raw is "(uncurry0 ?f,_)\<in>_"
+lemmas [sepref_fr_rules] = fifo_push_relabel_init_impl.refine[OF nwi_this]
+
   
 sepref_register fifo_push_relabel2
 sepref_thm fifo_push_relabel_impl is "(PR_CONST fifo_push_relabel2)" 
     :: "am_assn\<^sup>k \<rightarrow>\<^sub>a cf_assn" 
-  unfolding fifo_push_relabel2_def PR_CONST_def
+  unfolding fifo_push_relabel2_alt PR_CONST_def
   by sepref
 concrete_definition (in -) fifo_push_relabel_impl uses Network_Impl.fifo_push_relabel_impl.refine_raw is "(?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_push_relabel_impl.refine[OF nwi_this]
@@ -2183,10 +2253,12 @@ context Network_Impl begin
   qed
 end    
 
+  
 definition "fifo_push_relabel_impl_tab_am c s t N am \<equiv> do {
   ami \<leftarrow> Array.make N am;  (* TODO/DUP: Called init_ps in Edmonds-Karp impl *)
   fifo_push_relabel_impl c s t N ami
 }"  
+  
   
 theorem fifo_push_relabel_impl_tab_am_correct[sep_heap_rules]: 
   assumes NW: "Network c s t"
@@ -2223,15 +2295,20 @@ definition "fifo_push_relabel el s t \<equiv> do {
   case prepareNet el s t of
     None \<Rightarrow> return None
   | Some (c,am,N) \<Rightarrow> do {
-      cf \<leftarrow> relabel_to_front_impl_tab_am c s t N am;
+      cf \<leftarrow> fifo_push_relabel_impl_tab_am c s t N am;
       return (Some (c,am,N,cf))
   }
 }"
-export_code fifo_push_relabel checking SML
+export_code fifo_push_relabel checking SML_imp
 
+  
+(* TODO: Also generate correctness theorem for fifo_push_relabel_run!
+  For this, push the split up to abstract level!
+*)  
+  
 text \<open>
   Main correctness statement:
-  If \<open>relabel_to_front\<close> returns \<open>None\<close>, the edge list was invalid or described an invalid network.
+  If \<open>fifo_push_relabel\<close> returns \<open>None\<close>, the edge list was invalid or described an invalid network.
   If it returns \<open>Some (c,am,N,cfi)\<close>, then the edge list is valid and describes a valid network.
   Moreover, \<open>cfi\<close> is an integer square matrix of dimension \<open>N\<close>, which describes a valid residual graph
   in the network, whose corresponding flow is maximal.
@@ -2255,4 +2332,32 @@ theorem fifo_push_relabel_correct:
   by (sep_auto simp: ln_rel_def in_br_conv)
   
   
+(* Justification of splitting into prepare and run phase. 
+  TODO: Show correctness theorems for both phases separately!  *)    
+    
+definition "fifo_push_relabel_prepare_impl el s t \<equiv> do {
+  case prepareNet el s t of
+    None \<Rightarrow> return None
+  | Some (c,am,N) \<Rightarrow> do {
+      ami \<leftarrow> Array.make N am;
+      cfi \<leftarrow> fifo_push_relabel_init_impl c N;
+      return (Some (N,am,ami,c,cfi))
+    }
+}"
+
+lemma justify_fifo_push_relabel_prep_run_split:
+  "fifo_push_relabel el s t = 
+  do {
+    pr \<leftarrow> fifo_push_relabel_prepare_impl el s t;
+    case pr of
+      None \<Rightarrow> return None
+    | Some (N,am,ami,c,cf) \<Rightarrow> do {
+        cf \<leftarrow> fifo_push_relabel_run_impl s t N ami cf;
+        return (Some (c,am,N,cf))
+      }
+  }"  
+  unfolding fifo_push_relabel_def fifo_push_relabel_prepare_impl_def
+    fifo_push_relabel_impl_tab_am_def fifo_push_relabel_impl_def
+  by (auto split: option.split)  
+    
 end
