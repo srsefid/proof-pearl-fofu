@@ -35,7 +35,7 @@ public class Prpu {
 
         CounterPR stat = G.getCounter();
 
-        return new MaxFlowResult(endTime - startTime, maxflow, stat.getDischargeCount(), stat.getPushCount(), stat.getRelabelCount());
+        return new MaxFlowResult(endTime - startTime, maxflow, stat.getDischargeCount(), stat.getPushCount(), stat.getRelabelCount(), stat.getGapCount());
     }
 
     // test client that reads input network, solves max flow, and prints results
@@ -64,6 +64,7 @@ public class Prpu {
             System.out.format(">>>disc: %d\n", result.getDischargeCount());
             System.out.format(">>>push: %d\n", result.getPushCount());
             System.out.format(">>>rlbl: %d\n", result.getRelabelCount());
+            System.out.format(">>>gap : %d\n", result.getGapCount());
 
         }
     }

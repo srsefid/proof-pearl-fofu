@@ -1,7 +1,7 @@
 package lib;
 
 public class CounterPR {
-    private int dc, pc, rc;
+    private int dc, pc, rc, gc;
 
     public CounterPR() {
     }
@@ -18,6 +18,10 @@ public class CounterPR {
         return rc;
     }
 
+    public int getGapCount() {
+        return gc;
+    }
+    
     public void incDischarge(){
         this.dc++;
     }
@@ -29,4 +33,9 @@ public class CounterPR {
     public void incRelabel(){
         this.rc++;
     }
+    
+    public void incGap(){
+        this.gc++;
+    }
+    
 }

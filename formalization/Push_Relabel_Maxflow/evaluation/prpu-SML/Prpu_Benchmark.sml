@@ -159,8 +159,9 @@ fun main () = let
   
   fun perform s t G = (
     measure 1 (fifo_fun s t G);
-    print ("stat_outer_c = " ^ Int.toString (!stat.outer_c) ^ "\n");
-    print ("stat_inner_c = " ^ Int.toString (!stat.inner_c) ^ "\n");
+    print ("stat_push_c = " ^ Int.toString (!stat.push_c) ^ "\n");
+    print ("stat_relabel_c = " ^ Int.toString (!stat.relabel_c) ^ "\n");
+    print ("stat_gap_c = " ^ Int.toString (!stat.gap_c) ^ "\n");
     Profile.Data.write(profData,"mlmon.prof.out");
     Profile.Data.free(profData)
   )

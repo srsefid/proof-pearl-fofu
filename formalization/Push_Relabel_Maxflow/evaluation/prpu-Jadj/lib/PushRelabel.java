@@ -39,13 +39,13 @@ public class PushRelabel {
     }
 
     private void push(int from, int to) {
-        sc.incPush();
-
         int amt = (int) (min(excess[from], G[from][to]));
 
         if (dist[from] <= dist[to] || amt == 0)
             return;
 
+        sc.incPush();
+          
         G[from][to] -= amt;
         G[to][from] += amt;
 
@@ -56,6 +56,7 @@ public class PushRelabel {
     }
 
     private void gap(int k) {
+        sc.incGap();
         for (int v = 0; v < N; v++) {
             if (dist[v] < k) continue;
             count[dist[v]]--;

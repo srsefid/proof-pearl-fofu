@@ -29,10 +29,12 @@ end; (* struct Uint *)
 
 
     structure stat = struct
-      val outer_c = ref 0;
-      fun outer_c_incr () = (outer_c := !outer_c + 1; ())
-      val inner_c = ref 0;
-      fun inner_c_incr () = (inner_c := !inner_c + 1; ())
+      val gap_c = ref 0;
+      fun gap_c_incr () = (gap_c := !gap_c + 1; ())
+      val push_c = ref 0;
+      fun push_c_incr () = (push_c := !push_c + 1; ())
+      val relabel_c = ref 0;
+      fun relabel_c_incr () = (relabel_c := !relabel_c + 1; ())
     end
     
 
@@ -2631,9 +2633,16 @@ fun imp_for i u f s =
 
 fun mtx_get A_ m mtx e = nth A_ mtx (plus_nata (times_nat (fst e) m) (snd e));
 
+fun mtx_get A_ M mtx (i,j) = 
+  nth A_ mtx (Nat (integer_of_nat i * integer_of_nat M + integer_of_nat j ))
+
 fun mtx_set A_ m mtx e v =
   upd A_ (plus_nata (times_nat (fst e) m) (snd e)) v mtx;
 
+fun mtx_set A_ M mtx (i,j) v = 
+  upd A_ (Nat (integer_of_nat i * integer_of_nat M + integer_of_nat j )) v mtx;
+  
+  
 fun op_list_prepend x = (fn a => x :: a);
 
 fun op_list_is_empty x = null x;
@@ -2679,19 +2688,21 @@ fun clc_set_impl x =
     end)
     x;
 
-fun gap_impl n =
-  (fn ai => fn bia => fn bi =>
-    imp_for zero_nata n
-      (fn xa => fn sigma => fn () =>
-        let
-          val x_b = clc_get_rlx_impl sigma xa ();
-        in
-          (if less_nat bi x_b andalso less_nat x_b ai
-            then clc_set_impl sigma xa (plus_nata ai one_nata)
-            else (fn () => sigma))
-            ()
-        end)
-      bia);
+fun gap_impl x =
+  (fn n => fn ai => fn bia => fn bi => fn () =>
+    let
+      val _ = stat.gap_c_incr ();
+    in
+      imp_for zero_nata n
+        (fn xa => fn sigma =>
+          (fn f_ => fn () => f_ ((clc_get_rlx_impl sigma xa) ()) ())
+            (fn x_b =>
+              (if less_nat bi x_b andalso less_nat x_b ai
+                then clc_set_impl sigma xa (plus_nata ai one_nata)
+                else (fn () => sigma))))
+        bia ()
+    end)
+    x;
 
 fun imp_nfoldli (x :: ls) c f s =
   (fn () =>
@@ -2950,38 +2961,51 @@ fun discharge_impl n =
 
 fun q_enqueue_impl x = (fn xa => fn (l, r) => (l, xa :: r)) x;
 
-fun fifo_push_impl s t n =
-  (fn ai => fn bib => fn bia => fn (a1, a2) => fn () =>
+fun fifo_push_impl x =
+  (fn s => fn t => fn n => fn ai => fn bib => fn bia => fn bi => fn () =>
     let
-      val x = nth heap_int ai a1 ();
-      val x_a = nth heap_int ai a2 ();
-      val x_b = cf_get_impl n bib (a1, a2) ();
-      val x_c = cf_get_impl n bib (a2, a1) ();
+      val _ = stat.push_c_incr ();
     in
       let
-        val x_d = min ord_int x x_b;
+        val (a1, a2) = bi;
       in
-        (fn f_ => fn () => f_
-          ((x_add_impl (plus_int, heap_int) ai a1 (uminus_inta x_d)) ()) ())
-          (fn x_f =>
-            (fn f_ => fn () => f_ ((x_add_impl (plus_int, heap_int) x_f a2 x_d)
-              ()) ())
-              (fn x_g =>
-                (fn f_ => fn () => f_
-                  ((cf_set_impl n bib (a1, a2) (minus_inta x_b x_d)) ()) ())
-                  (fn x_h =>
-                    (fn f_ => fn () => f_
-                      ((cf_set_impl n x_h (a2, a1) (plus_inta x_c x_d)) ()) ())
-                      (fn x_i =>
-                        (fn () =>
-                          (if not (equal_nata a2 s) andalso
-                                (not (equal_nata a2 t) andalso
-                                  equal_inta x_a zero_inta)
-                            then ((x_g, x_i), q_enqueue_impl a2 bia)
-                            else ((x_g, x_i), bia)))))))
+        (fn f_ => fn () => f_ ((nth heap_int ai a1) ()) ())
+          (fn xa =>
+            (fn f_ => fn () => f_ ((nth heap_int ai a2) ()) ())
+              (fn x_a =>
+                (fn f_ => fn () => f_ ((cf_get_impl n bib (a1, a2)) ()) ())
+                  (fn x_b =>
+                    (fn f_ => fn () => f_ ((cf_get_impl n bib (a2, a1)) ()) ())
+                      (fn x_c =>
+                        let
+                          val x_d = min ord_int xa x_b;
+                        in
+                          (fn f_ => fn () => f_
+                            ((x_add_impl (plus_int, heap_int) ai a1
+                               (uminus_inta x_d))
+                            ()) ())
+                            (fn x_f =>
+                              (fn f_ => fn () => f_
+                                ((x_add_impl (plus_int, heap_int) x_f a2 x_d)
+                                ()) ())
+                                (fn x_g =>
+                                  (fn f_ => fn () => f_
+                                    ((cf_set_impl n bib (a1, a2)
+                                       (minus_inta x_b x_d))
+                                    ()) ())
+                                    (fn x_h =>
+                                      (fn f_ => fn () => f_
+((cf_set_impl n x_h (a2, a1) (plus_inta x_c x_d)) ()) ())
+(fn x_i =>
+  (fn () =>
+    (if not (equal_nata a2 s) andalso
+          (not (equal_nata a2 t) andalso equal_inta x_a zero_inta)
+      then ((x_g, x_i), q_enqueue_impl a2 bia) else ((x_g, x_i), bia)))))))
+                        end))))
       end
         ()
-    end);
+    end)
+    x;
 
 fun q_dequeue_impl x =
   (fn a =>
@@ -3066,13 +3090,15 @@ fun min_adj_label_clc_impl n =
    min_adj_label_impl n ai bib a2 bi
  end);
 
-fun fifo_relabel_impl n =
-  (fn ai => fn bib => fn bia => fn bi => fn () =>
+fun fifo_relabel_impl x =
+  (fn n => fn ai => fn bib => fn bia => fn bi => fn () =>
     let
-      val x = min_adj_label_clc_impl n ai bib bia bi ();
+      val _ = stat.relabel_c_incr ();
+      val xa = min_adj_label_clc_impl n ai bib bia bi ();
     in
-      clc_set_impl bia bi (plus_nata x one_nata) ()
-    end);
+      clc_set_impl bia bi (plus_nata xa one_nata) ()
+    end)
+    x;
 
 fun fifo_gap_relabel_impl n =
   (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi =>
