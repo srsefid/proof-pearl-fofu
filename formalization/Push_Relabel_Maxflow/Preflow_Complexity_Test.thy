@@ -346,7 +346,7 @@ qed
   
 context Network begin    
     
-datatype op_type = RELABEL | UNSAT_PUSH | SAT_PUSH edge   
+datatype op_type = is_RELABEL: RELABEL | is_UNSAT_PUSH: UNSAT_PUSH | is_SAT_PUSH: SAT_PUSH edge   
 inductive_set algo_rel' where
   unsat_push': "\<lbrakk>Height_Bounded_Labeling c s t f l; unsat_push_precond f l e\<rbrakk> 
     \<Longrightarrow> ((f,l),UNSAT_PUSH,(push_effect f e,l))\<in>algo_rel'"
@@ -363,7 +363,7 @@ inductive_set algo_rel' where
 *************************************************************************************************)
 lemma
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (\<lambda>x. \<exists>e. x = SAT_PUSH e) p) < card V * sum_heights_measure (snd fxl) + card_adm_measure (fst fxl) (snd fxl) + 1"
+  shows "length (filter is_SAT_PUSH p) < card V * sum_heights_measure (snd fxl) + card_adm_measure (fst fxl) (snd fxl) + 1"
   using assms
   apply (induction rule: trcl.induct)
   apply (auto elim!: algo_rel'.cases)  
@@ -756,7 +756,7 @@ begin
 *************************************************************************************************)  
 lemma relabel_action_count:
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= RELABEL) p) < sum_heights_measure (snd fxl) + 1"
+  shows "length (filter (is_RELABEL) p) < sum_heights_measure (snd fxl) + 1"
   using assms
   apply (induction rule: trcl.induct)
   apply (auto elim!: algo_rel'.cases)  
@@ -766,14 +766,15 @@ lemma relabel_action_count:
 
 lemma sat_push_action_count: 
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)) p) \<le> 8 * card V * card E" (is "?L \<le> ?R")
+  shows "length (filter is_SAT_PUSH p) \<le> 8 * card V * card E" (is "?L \<le> ?R")
 proof -
   let ?set_abs = "\<lambda>P. {i. i < length p \<and> P (p ! i)}"
   
-  have "?L = card (?set_abs (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)))" using length_filter_conv_card by auto
+  have "?L = card (?set_abs is_SAT_PUSH)" using length_filter_conv_card by auto
   also {
-    have "?set_abs (\<lambda>a.\<exists>u v. a=SAT_PUSH (u,v)) = (?set_abs (\<lambda>a.\<exists>u v.((u,v)\<notin>E\<and>(v,u)\<notin>E) \<and> a=SAT_PUSH (u,v)))
-      \<union> (?set_abs (\<lambda>a. \<exists>u v. ((u,v)\<in>E\<or>(v,u)\<in>E) \<and> a = SAT_PUSH (u,v)))" (is "?SL = ?SR1 \<union> ?SR2") by auto
+    have "?set_abs (is_SAT_PUSH) = (?set_abs (\<lambda>a.\<exists>u v.((u,v)\<notin>E\<and>(v,u)\<notin>E) \<and> a=SAT_PUSH (u,v)))
+      \<union> (?set_abs (\<lambda>a. \<exists>u v. ((u,v)\<in>E\<or>(v,u)\<in>E) \<and> a = SAT_PUSH (u,v)))" (is "?SL = ?SR1 \<union> ?SR2") 
+      using is_SAT_PUSH_def by auto
     then have fct1: "card ?SL \<le> card ?SR1 + card?SR2" by (simp add: card_Un_le)
     
     have "?SR2 = (?set_abs (\<lambda>a. \<exists>u v. (u,v)\<in>E \<and> a = SAT_PUSH (u,v)))
@@ -846,8 +847,8 @@ qed
     
 lemma unsat_push_action_count:
   assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
-  shows "length (filter (op= UNSAT_PUSH) p) < unsat_potential (fst fxl) (snd fxl) +
-    2 * card V * length (filter (\<lambda>a. \<exists>u v. a = SAT_PUSH (u,v)) p) +
+  shows "length (filter (is_UNSAT_PUSH) p) < unsat_potential (fst fxl) (snd fxl) +
+    2 * card V * length (filter is_SAT_PUSH p) +
     2 * card V * sum_heights_measure (snd fxl) + 1"
   using assms
   apply (induction rule: trcl.induct)
@@ -874,35 +875,35 @@ next
   let ?set_abs = "\<lambda>P. {i. i < length p \<and> P (p ! i)}"
   
   have "length p = length (filter (\<lambda>_. True) p)" by auto
-  also have "\<dots> = length (filter (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v))) p)" 
-    by (metis op_type.exhaust prod_decode_aux.cases)
-  also have "\<dots> = card (?set_abs (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v))))"
+  also have "\<dots> = length (filter (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> is_SAT_PUSH a) p)" 
+    by (metis op_type.exhaust is_SAT_PUSH_def)
+  also have "\<dots> = card (?set_abs (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> is_SAT_PUSH a))"
     using length_filter_conv_card by auto
-  also have "\<dots> \<le> card (?set_abs (op= RELABEL)) + card (?set_abs (op= UNSAT_PUSH)) +
-    card (?set_abs (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)))" (is "?C0 \<le> ?C1 + ?C2 + ?C3")
+  also have "\<dots> \<le> card (?set_abs (is_RELABEL)) + card (?set_abs (is_UNSAT_PUSH)) +
+    card (?set_abs is_SAT_PUSH)" (is "?C0 \<le> ?C1 + ?C2 + ?C3")
   proof -
-    have "?set_abs (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v))) = 
-      ?set_abs (\<lambda>a. a = RELABEL) \<union> ?set_abs (\<lambda>a. a = UNSAT_PUSH \<or> (\<exists> u v. a = SAT_PUSH (u, v)))" 
+    have "?set_abs (\<lambda>a. a = RELABEL \<or> a = UNSAT_PUSH \<or> is_SAT_PUSH a) = 
+      ?set_abs (\<lambda>a. a = RELABEL) \<union> ?set_abs (\<lambda>a. a = UNSAT_PUSH \<or> is_SAT_PUSH a)" 
       (is "?SL = ?SR1 \<union> ?SR2") by auto
     then have fct1: "card ?SL \<le> card ?SR1 + card?SR2" by (simp add: card_Un_le)
     
-    have "?SR2 = ?set_abs (\<lambda>a. a = UNSAT_PUSH) \<union> ?set_abs (\<lambda>a. \<exists> u v. a = SAT_PUSH (u, v))"
+    have "?SR2 = ?set_abs (\<lambda>a. a = UNSAT_PUSH) \<union> ?set_abs is_SAT_PUSH"
       (is "_ = ?SR21 \<union> ?SR22") by auto
     then have fct2: "card ?SR2 \<le> card ?SR21 + card ?SR22" by (simp add: card_Un_le)
   
     note fct1 fct2  
     then have "?C0 \<le> card ?SR1 + card ?SR21 + card ?SR22" by auto
-    moreover have "card ?SR1 = ?C1" by metis
-    moreover have "card ?SR21 = ?C2" by metis
+    moreover have "card ?SR1 = ?C1" by (fo_rule arg_cong) auto
+    moreover have "card ?SR21 = ?C2" by (fo_rule arg_cong) auto
     moreover have "card ?SR22 = ?C3" by metis
     ultimately show ?thesis by metis
   qed
-  also have "?C1 = length (filter (op= RELABEL) p)" using length_filter_conv_card[symmetric] by auto
-  also have "?C2 = length (filter (op= UNSAT_PUSH) p)" using length_filter_conv_card[symmetric] by auto
-  also have "?C3 = length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p)" 
-    using length_filter_conv_card[symmetric, of p "\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)"] by auto
-  finally have p_spl:"length p \<le> length (filter (op= RELABEL) p) + length (filter (op= UNSAT_PUSH) p) +
-    length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p)" by auto
+  also have "?C1 = length (filter (is_RELABEL) p)" using length_filter_conv_card[symmetric] by auto
+  also have "?C2 = length (filter (is_UNSAT_PUSH) p)" using length_filter_conv_card[symmetric] by auto
+  also have "?C3 = length (filter is_SAT_PUSH p)" 
+    using length_filter_conv_card[symmetric, of p "is_SAT_PUSH"] by auto
+  finally have p_spl:"length p \<le> length (filter (is_RELABEL) p) + length (filter (is_UNSAT_PUSH) p) +
+    length (filter is_SAT_PUSH p)" by auto
   
   {
     have f1: "sum_heights_measure l \<le> 2 * card V * card V" for l
@@ -940,24 +941,24 @@ next
     
   note p_spl 
   also {
-    have "length (filter (op = UNSAT_PUSH) p) \<le> 2 * card V * card V +
-    2 * card V * length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) +
+    have "length (filter (is_UNSAT_PUSH) p) \<le> 2 * card V * card V +
+    2 * card V * length (filter is_SAT_PUSH p) +
     2 * card V * (sum_heights_measure (snd fxl))"
       using unsat_push_action_count[OF assms] sum_abs(2) by auto
     also have "\<dots> = 2 * card V * (card V + 
-      length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) + (sum_heights_measure (snd fxl)))"
+      length (filter is_SAT_PUSH p) + (sum_heights_measure (snd fxl)))"
       by (simp add: add_mult_distrib2)
-    also have "length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) \<le> 8 * card V * card E"
+    also have "length (filter is_SAT_PUSH p) \<le> 8 * card V * card E"
       using sat_push_action_count[OF assms] by auto
     also note sum_abs(1)[of "snd fxl"]
     also have "2 * card V * (card V + 8 * card V * card E + 2 * card V * card V) = 
        2 * card V * card V * (1 + 8 * card E + 2 * card V)" using add_mult_distrib2 by auto
-    finally have "length (filter (op = UNSAT_PUSH) p) \<le>
+    finally have "length (filter (is_UNSAT_PUSH) p) \<le>
        2 * card V * card V * (1 + 8 * card E + 2 * card V)" by auto
   }
-  also have "length (filter (op = RELABEL) p) \<le> 2 * card V * card V" 
+  also have "length (filter (is_RELABEL) p) \<le> 2 * card V * card V" 
     using relabel_action_count[OF assms] sum_abs(1)[of "snd fxl"] by auto
-  also have "length (filter (\<lambda>a.\<exists> u v. a = SAT_PUSH (u, v)) p) \<le> 8 * card V * card E"
+  also have "length (filter is_SAT_PUSH p) \<le> 8 * card V * card E"
     using sat_push_action_count[OF assms] by auto
   also have "2 * card V * card V + 2 * card V * card V * (1 + 8 * card E + 2 * card V) =
      2 * card V * card V * (1 + (1 + 8 * card E + 2 * card V))" by simp
@@ -970,6 +971,340 @@ next
     by (simp add: power2_eq_square power3_eq_cube)
   finally show ?thesis by auto
 qed
+
+lemma sum_heights_measure_bound: "sum_heights_measure l \<le> 2 * (card V)^2"
+  unfolding  sum_heights_measure_def
+proof -
+  have "2 * card V - l v \<le> 2 * card V" for v by auto
+  then have "(\<Sum>v\<in>V. 2 * card V - l v) \<le> (\<Sum>v\<in>V. 2 * card V)" by (meson sum_mono)
+  also have "(\<Sum>v\<in>V. 2 * card V) = card V * (2 * card V)" using finite_V by auto
+  finally show "(\<Sum>v\<in>V. 2 * card V - l v) \<le> 2 * (card V)^2" by (simp add: power2_eq_square)
+qed
+
+lemma (in Height_Bounded_Labeling) unsat_potential_bound:
+  shows "unsat_potential f l \<le> 2 * (card V)^2"
+proof -
+  have "unsat_potential f l = (\<Sum>v\<in>{v \<in> V. 0 < excess f v}. l v)" 
+    unfolding unsat_potential_def by auto
+  also have "\<dots> \<le> (\<Sum>v\<in>V. l v)"
+  proof -
+    have f1:"{v \<in> V. 0 < excess f v} \<subseteq> V" by auto
+    thus ?thesis using sum.subset_diff[OF f1 finite_V, of l] by auto
+  qed
+  also have "\<dots>  \<le> (\<Sum>v\<in>V. 2 * card V - 1)" using height_bound by (meson sum_mono)
+  also have "\<dots> = card V * (2 * card V - 1)" by auto
+  also have "card V * (2 * card V - 1) \<le> 2 * card V * card V" by auto
+  finally show ?thesis by (simp add: power2_eq_square)
+qed
+
+  
+lemma relabel_action_bound:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter is_RELABEL p) < 2*(card V)^2 + 1"
+proof -
+  note relabel_action_count[OF assms]
+  also note sum_heights_measure_bound
+  finally show ?thesis 
+    by (simp add: power2_eq_square)  
+qed
+  
+lemma unsat_push_action_bound:
+  assumes "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "length (filter (is_UNSAT_PUSH) p) < 
+    2* (card V)^2 +
+    16 * (card V)^2 * card E +
+    4 * (card V)^3 
+    + 1" (is "_ < ?B")
+proof (cases p)
+  case Nil thus ?thesis by simp
+next
+  case Cons then obtain f l where FXL[simp]: "fxl=(f,l)" "Height_Bounded_Labeling c s t f l"
+    using assms by (cases fxl;auto dest!: trcl_uncons elim!: algo_rel'.cases)
+  then interpret Height_Bounded_Labeling c s t f l by simp
     
+  note unsat_push_action_count[OF assms, unfolded FXL fst_conv snd_conv]
+  also note unsat_potential_bound
+  also note sat_push_action_count[OF assms]
+  also note sum_heights_measure_bound[of l]  
+  finally have "length (filter (is_UNSAT_PUSH) p)
+      < 2 * (card V)\<^sup>2 
+      + 2 * card V * (8 * card V * card E) 
+      + 2 * card V * (2 * (card V)\<^sup>2) 
+      + 1" 
+    by simp
+  also have "\<dots> = ?B" by (simp add: power2_eq_square power3_eq_cube)
+  finally show ?thesis .    
+qed    
+  
+  
+(* Estimating elementary operations: Push: O(1), Relabel: O(V) *)  
+  
+fun op_estimate where
+  "op_estimate (RELABEL) = (card V)"
+| "op_estimate (UNSAT_PUSH) = 1"
+| "op_estimate (SAT_PUSH _) = 1"
+  
+lemma op_estimate_alt: 
+  "op_estimate a = (case a of RELABEL \<Rightarrow> card V | _ \<Rightarrow> 1)" 
+  by (cases a) auto
+  
+lemma pp_split_op_sum:
+  fixes f :: "_ \<Rightarrow> _::comm_monoid_add"
+  shows "sum_list (map f l) = 
+    sum_list (map f (filter is_RELABEL l))
+  + sum_list (map f (filter is_UNSAT_PUSH l))
+  + sum_list (map f (filter is_SAT_PUSH l))"
+  apply (induction l)
+  applyS simp  
+  subgoal for x l by (cases x) (auto simp: algebra_simps)
+  done
+
 end
+  
+context Network begin  
+  
+definition "algo_rel'_bound \<equiv> 
+    card V
+  + 2 * (card V)^2
+  + 8 * card V * card E
+  + 6 * (card V)^3
+  + 16 * (card V)^2 * card E"
+  
+lemma algo_rel'_bound_is_OV2E: "algo_rel'_bound \<le> 39 * (card V)^2 * card E"  
+proof -
+  have "card V \<le> card (fst`E) + card (snd`E)"
+    by (auto simp: card_Un_le V_alt)
+  also note card_image_le[OF finite_E]
+  also note card_image_le[OF finite_E]
+  finally have "card V \<le> 2 * card E" by auto
+
+  let ?V2E = "(card V)^2 * card E"
+      
+  have AUX: "card V \<le> card V * card E" 
+    using \<open>card V \<le> 2 * card E\<close> by auto
+  have 1: "card V * card E \<le> ?V2E" 
+    by (simp add: power2_eq_square)
+  have 2: "card V \<le> ?V2E"
+    using 1 AUX order_trans by blast
+  have 3: "(card V)^2 \<le> ?V2E" 
+    using \<open>card V \<le> card V * card E\<close> by auto
+  have 4: "(card V)^3 \<le> 2*?V2E" 
+    by (simp add: \<open>card V \<le> 2 * card E\<close> power2_eq_square power3_eq_cube)
+      
+  from 1 2 3 4 show ?thesis
+    unfolding algo_rel'_bound_def
+    by linarith   
+qed      
+  
+theorem algo_rel'_bound: 
+  assumes P: "(fxl,p,fxl') \<in> trcl algo_rel'"
+  shows "sum_list (map op_estimate p) \<le> algo_rel'_bound"
+proof -  
+  have 1: "map op_estimate (filter is_RELABEL p) = map (\<lambda>_. card V) (filter is_RELABEL p)"
+    apply (rule map_cong)
+    by (auto simp: op_estimate_alt split: op_type.split)
+  have [simp]: "sum_list (map op_estimate (filter is_RELABEL p)) = card V * length (filter is_RELABEL p)"
+    by (auto simp: 1 sum_list_triv) 
+  
+
+  have 2: "map op_estimate (filter is_UNSAT_PUSH p) = map (\<lambda>_. 1) (filter is_UNSAT_PUSH p)"
+    apply (rule map_cong)
+    by (auto simp: op_estimate_alt split: op_type.split)
+  have [simp]: "sum_list (map op_estimate (filter is_UNSAT_PUSH p)) = length (filter is_UNSAT_PUSH p)"
+    by (auto simp: 2 sum_list_triv) 
+  
+  have 3: "map op_estimate (filter is_SAT_PUSH p) = map (\<lambda>_. 1) (filter is_SAT_PUSH p)"
+    apply (rule map_cong)
+    by (auto simp: op_estimate_alt split: op_type.split)
+  have [simp]: "sum_list (map op_estimate (filter is_SAT_PUSH p)) = length (filter is_SAT_PUSH p)"
+    by (auto simp: 3 sum_list_triv) 
+      
+  have "sum_list (map op_estimate p) = 
+      card V * length (filter is_RELABEL p) 
+    + length (filter is_UNSAT_PUSH p) 
+    + length (filter is_SAT_PUSH p)"
+    unfolding pp_split_op_sum[where l=p]
+    by simp
+  also note relabel_action_bound[OF P]    
+  also note unsat_push_action_bound[OF P]    
+  also note sat_push_action_count[OF P]    
+  finally show ?thesis  
+    unfolding algo_rel'_bound_def
+    using card_V_ge2
+    by (simp add: algebra_simps power2_eq_square power3_eq_cube less_Suc_eq_le)
+qed      
+      
+  
+  
+end
+  
+(* Let's show that our "algorithm" actually computes a maximum flow *)  
+  
+lemma trcl_len_bounded_imp_ex_terminal:
+  assumes BOUNDED: "\<And>p s'. (s,p,s')\<in>trcl R \<Longrightarrow> length p \<le> B"
+  shows "\<exists>p s'. (s,p,s')\<in>trcl R \<and> s'\<notin>Domain R"  
+proof (rule ccontr; clarsimp)
+  assume A: "\<forall>p s'. (s, p, s') \<in> trcl R \<longrightarrow> s' \<in> Domain R"
+  have "\<exists>p s'. (s,p,s') \<in> trcl R \<and> length p = l" for l
+  proof (induction l)
+    case 0 thus ?case by auto
+  next
+    case (Suc n)
+    then obtain p s' where STEPS: "(s, p, s') \<in> trcl R" and [simp]: "n = length p" by auto
+    note STEPS
+    also from A[rule_format, OF STEPS] obtain a s'' where "(s',a,s'') \<in> R" by auto
+    finally show ?case by auto    
+  qed      
+  with BOUNDED show False by (metis impossible_Cons)
+qed      
+  
+  
+context Network begin
+  definition "gpp_results \<equiv> { 
+    f'. \<exists>p l'. ((pp_init_f,pp_init_l),p,(f',l')) \<in> trcl algo_rel' 
+    \<and> (f',l')\<notin>Domain algo_rel' }"
+  
+  
+  theorem has_result:
+    shows "gpp_results \<noteq> {}"
+    unfolding gpp_results_def
+    apply clarsimp
+    using trcl_len_bounded_imp_ex_terminal[of "(pp_init_f,pp_init_l)" algo_rel']
+      algo_rel'_complexity[of "(pp_init_f,pp_init_l)"]
+      by (simp;blast)
+      
+  lemma trcl_algo_rel'_Height_Bounded_Labeling_snd:
+    assumes "((pp_init_f,pp_init_l),p,(f,l)) \<in> trcl algo_rel'"
+    shows "Height_Bounded_Labeling c s t f l"  
+    using assms
+    apply (induction p arbitrary: f l rule: rev_induct)  
+    by (auto simp: pp_init_height_bound algo_rel'_Height_Bounded_Labeling_snd dest!: trcl_rev_uncons)
+        
+  theorem results_correct: "gpp_results \<subseteq> Collect isMaxFlow"
+    unfolding gpp_results_def
+  proof (clarsimp)    
+    fix p f l
+    assume "((pp_init_f, pp_init_l), p, f, l) \<in> trcl algo_rel'" 
+    then interpret Height_Bounded_Labeling c s t f l 
+      by (rule trcl_algo_rel'_Height_Bounded_Labeling_snd)
+      
+    assume "(f,l)\<notin>Domain algo_rel'"    
+    hence "\<forall>u v. \<not>sat_push_precond f l (u,v) \<and> \<not>unsat_push_precond f l (u,v) \<and> \<not>relabel_precond f l u"  
+      by (meson Domain.DomainI Height_Bounded_Labeling_axioms algo_rel'.relabel' algo_rel'.sat_push' algo_rel'.unsat_push')
+
+    thus "isMaxFlow f" 
+      by (simp add: push_precond_eq_sat_or_unsat push_relabel_term_imp_maxflow)
+  qed      
+  
+    
+subsection \<open>Complexity Result Summary\<close>    
+text \<open>
+  We summarize the complexity result of \<open>O(V\<^sup>2E)\<close>.
+\<close>
+  
+text \<open>
+  First, we define a relation that describes steps of the generic push-relabel
+  algorithm:
+\<close>  
+datatype relabel_or_push = is_RELABEL: RELABEL | is_PUSH: PUSH    
+inductive_set pp_algo where
+  push: "\<lbrakk>push_precond f l e\<rbrakk> 
+    \<Longrightarrow> ((f,l),PUSH,(push_effect f e,l))\<in>pp_algo"
+| relabel: "\<lbrakk>relabel_precond f l u\<rbrakk>
+    \<Longrightarrow> ((f,l),RELABEL,(f,relabel_effect f l u))\<in>pp_algo"
+
+text \<open>
+  Next, we estimate that relabel steps need \<open>V\<close> units, and push steps need \<open>1\<close> 
+  unit of work.
+\<close>  
+fun cost_estimate :: "relabel_or_push \<Rightarrow> nat" where
+  "cost_estimate RELABEL = card V"
+| "cost_estimate PUSH = 1"  
+
+text \<open>
+  Finally, we show our main theorem:
+  If the algorithm executes some steps from the beginning, then
+    \<^enum> The cost of these steps is bounded by \<open>O(V\<^sup>2E)\<close>. Note that this also implies termination.
+    \<^enum> If no further steps are possible from the reached state, we have computed a maximum flow.
+\<close>  
+theorem generic_preflow_push_OV2E_and_correct:
+  assumes A: "((pp_init_f, pp_init_l), p, (f, l)) \<in> trcl pp_algo" 
+  shows "(\<Sum>x\<leftarrow>p. cost_estimate x) \<le> 39 * (card V)^2 * card E" (is ?G1)
+    and "(f,l)\<notin>Domain pp_algo \<longrightarrow> isMaxFlow f" (is ?G2)
+proof -
+  from A have "\<exists>p'. ((pp_init_f, pp_init_l), p', (f, l)) \<in> trcl algo_rel' 
+    \<and> (\<Sum>x\<leftarrow>p. cost_estimate x) = (\<Sum>x\<leftarrow>p'. op_estimate x)" 
+  proof (induction p arbitrary: f l rule: rev_induct)
+    case Nil then show ?case by (auto intro: exI[where x="[]"])
+  next
+    case (snoc a p) 
+    then obtain fh lh where 
+      PREFIX: "((pp_init_f, pp_init_l), p, (fh,lh)) \<in> trcl pp_algo" 
+      and LAST: "((fh,lh),a,(f,l)) \<in> pp_algo" 
+      by (auto dest!: trcl_rev_uncons)
+        
+    from snoc.IH[OF PREFIX] obtain p' where IH:
+      "((pp_init_f, pp_init_l), p', fh, lh) \<in> trcl algo_rel'"
+      "sum_list (map cost_estimate p) = sum_list (map op_estimate p')"
+      by auto
+        
+    from IH(1) trcl_algo_rel'_Height_Bounded_Labeling_snd 
+    interpret Height_Bounded_Labeling c s t fh lh by simp
+        
+    from LAST have "\<exists>a'. ((fh,lh),a',(f,l))\<in>algo_rel' \<and> cost_estimate a = op_estimate a'"
+    proof cases
+      case (push e) note [simp] = push(1-3)
+      from \<open>push_precond fh lh e\<close> have "sat_push_precond fh lh e \<or> unsat_push_precond fh lh e"
+        by (simp add: push_precond_eq_sat_or_unsat)
+      thus ?thesis
+        apply (rule disjE)
+        subgoal  
+          apply (rule exI[where x="SAT_PUSH e"])
+          apply (simp add: algo_rel'.intros Height_Bounded_Labeling_axioms)
+          done  
+        subgoal  
+          apply (rule exI[where x="UNSAT_PUSH"])
+          apply (simp add: algo_rel'.intros Height_Bounded_Labeling_axioms)
+          done  
+        done    
+    next
+      case (relabel u)
+      then show ?thesis
+        apply -
+        apply (rule exI[where x="op_type.RELABEL"])
+        apply (auto intro: algo_rel'.intros Height_Bounded_Labeling_axioms)
+        done
+    qed
+    then obtain a' where "((fh,lh),a',(f,l))\<in>algo_rel'" and "cost_estimate a = op_estimate a'" by blast
+    with IH show ?case 
+      apply (rule_tac exI[where x="p'@[a']"])
+      by (auto intro: trcl_rev_cons)  
+      
+  qed
+  then obtain p' where
+    A': "((pp_init_f, pp_init_l), p', (f, l)) \<in> trcl algo_rel'"
+    and [simp]: "(\<Sum>x\<leftarrow>p. cost_estimate x) = (\<Sum>x\<leftarrow>p'. op_estimate x)" 
+    by blast
+
+  show ?G1
+    using order_trans[OF algo_rel'_bound[OF A'] algo_rel'_bound_is_OV2E]
+    by simp  
+      
+  show ?G2 proof
+    have D_AUX: "Domain pp_algo = { (f,l). (\<exists>e. push_precond f l e) \<or> (\<exists>u. relabel_precond f l u) }"
+      by (auto simp: Domain_iff pp_algo.simps; blast)
+    
+    assume "(f, l) \<notin> Domain pp_algo"
+    hence ND: "(f, l) \<notin> Domain algo_rel'"  
+      apply clarify
+      apply (erule algo_rel'.cases; auto simp: D_AUX push_precond_eq_sat_or_unsat)  
+      done  
+    thus "isMaxFlow f"    
+      using results_correct A' unfolding gpp_results_def
+      by auto
+  qed      
+qed    
+    
+end  
+  
 end
