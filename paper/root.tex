@@ -611,64 +611,68 @@ results in a program that refines the original program. This gives us a natural 
   combinators in the monad must terminate. However, it does not guarantee that we have not injected spurious code equations like $f~x = f~x$, 
   which is provable by reflexivity, but causes the generated program to diverge.
 
-  \section{Push-Relabel algorithms}\label{sec:push_relabel}
-  In this section we present the formalization of Push-relabel algorithms by
-  Goldberg(XXX) that build up on Karzanov's idea of a preflow ---a relaxation
-  of the flow definition by allowing the sum of flows over incoming edges to be
-  greater equal than the sum of flows over outgoing edges of each vertex of the
-  network. Karzanov was the first to leave the augmenting path idea in research
-  on finding the maximum-flow in networks. He came up with an $O(V^3)$
-  maximum-flow algorithm by relaxing some of the invariants in Dinitz's
-  algorithm (XXX Dinitz paper). Years later, Goldberg proposed the generic
-  Push-relabel algorithm which shares some ideas with Karzanov's algorithm, yet
-  it provides freedom for choosing the order of ``push'' and ``relabel''
-  operations. The push–relabel algorithm is considered one of the most efficient
-  maximum flow algorithms. The generic algorithm has a strongly polynomial
-  $O(V^2 E)$ time complexity, while specific variants of the algorithms achieve
-  even lower time complexities up to $O(V^2 \sqrt{E})$. In what follows we first
-  overview the transition from Ford-Fulkerson method to Push-relabel algorithm,
-  and then provide the formal explanation of Goldberg's generic algorithm.
+  \section{Preflow-Push algorithms}\label{sec:push_relabel}
+  In this section we present the formalization of Preflow-push algorithms (a.k.a
+  Push-relabel algorithms) by Goldberg et al.~\cite{GoTa88}  that build up on
+  Karzanov's idea of a preflow~\cite{karzanov1974determination}. Karzanov was
+  the first to leave the augmenting path idea in research on finding the
+  maximum-flow in networks. He came up with an $O(V^3)$ maximum-flow algorithm
+  by relaxing some of the invariants in Dinitz's algorithm~\cite{Di06}. Years
+  later, Goldberg proposed the generic Preflow-push algorithm which shares some
+  ideas with Karzanov's algorithm, yet it provides freedom for choosing the
+  order of ``push'' and ``relabel'' operations. The Preflow-push algorithm is
+  considered one of the most efficient maximum flow algorithms. The generic
+  algorithm has a strongly polynomial $O(V^2 E)$ time complexity, while specific
+  variants of the algorithms achieve even lower time complexities up to $O(V^2
+  \sqrt{E})$.
 
-  One year after publication of Edmonds-Karp algorithm and without being aware
-  of their result, Dinitz proposed another strongly polynomial algorithm based
-  on Ford-Fulkerson method with $O(V^2 E)$ complexity. Original intention of
-  Dinitz was just to accelerate iterations of Ford-Fulkerson method by means of
-  a smart data structure. As finding the augmenting path is the bottleneck in each
-  iteration of the Ford-Fulkerson method, he decided to keep track of all shortest
-  paths from source to sink in a data-structure called the layered-network.
-  Therefore, unless the length of the shortest path from source to sink has
-  increased, we could use the layered-network for finding augmenting paths.
-  Finding an augmenting path in the layered-network would require O(V)
-  operations which is considerably more efficient than O(E) complexity of
-  finding such path by searching the residual graph. Note that initializing the
-  layered-network would has O(E) complexity, however this is only required
-  whenever the length of the shortest path from source to sink has increased.
+  % TODO
+  % @Peter: I think this first paragraph is enough for history, if you think
+  % more is required, you can look into the following paragraphs (for intro mabybe)
+  % TODO
 
-  Karzanov observed that at each phase of the Dinitz's algorithm it is
-  sufficient to use a blocking-flow for increasing the current flow, and
-  hence determining the next layered-network. He uses the term to refere to an
-  augmenting flow in the current layared-network that saturates at least one edge
-  on each path from source to the sink. During each phase, Karzanov's algorithm
-  maintains a preflow in a layered-network. The algorithm ``pushes'' flow
-  through the network to find a blocking-flow, and then ``balances'' the
-  resulting preflow to obtain a valid flow at the end of each phase. Cherkarsky
-  tired to eliminate balancing operation by canceling the previous goal of
-  Karzanov's algorithm for constructing a feasible flow at the end of each
-  phase. He proved that balancing the flow at some vertex is equivalent to
-  pushing from it in future when it will appear in some layared-network at a
-  greater distance from the sink. However, Cherkarsky could not come up with the
-  generic push-relabel algorithm. The leftovers of phase structures of Dinitz's
-  and Karsanov's algorithms prevented Cherkarsky from canceling the devision of
-  his algorithm into phases.
 
-  Goldberg's generic Push-relabel algorithm takes Karzanov's idea of using preflows
-  to the next level. This algorithm abandons the idea of finding a flow in each
-  phase, and also abandons the idea of global phases. Instead, Goldberg idea
-  maintains a preflow in the original network and pushes flow toward the sink
-  along what it estimates to be shortest paths. When the algorithm terminates,
-  the preflow becomes a valid flow which is also proved to be a maximum flow. 
+  
+  %One year after publication of Edmonds-Karp algorithm and without being aware
+  %of their result, Dinitz proposed another strongly polynomial algorithm based
+  %on Ford-Fulkerson method with $O(V^2 E)$ complexity. Original intention of
+  %Dinitz was just to accelerate iterations of Ford-Fulkerson method by means of
+  %a smart data structure. As finding the augmenting path is the bottleneck in each
+  %iteration of the Ford-Fulkerson method, he decided to keep track of all shortest
+  %paths from source to sink in a data-structure called the layered-network.
+  %Therefore, unless the length of the shortest path from source to sink has
+  %increased, we could use the layered-network for finding augmenting paths.
+  %Finding an augmenting path in the layered-network would require O(V)
+  %operations which is considerably more efficient than O(E) complexity of
+  %finding such path by searching the residual graph. Note that initializing the
+  %layered-network would has O(E) complexity, however this is only required
+  %whenever the length of the shortest path from source to sink has increased.
 
-  The Push-relabels algorithms maintain a preflow as well as a height-labeling
+  %Karzanov observed that at each phase of the Dinitz's algorithm it is
+  %sufficient to use a blocking-flow for increasing the current flow, and
+  %hence determining the next layered-network. He uses the term to refere to an
+  %augmenting flow in the current layared-network that saturates at least one edge
+  %on each path from source to the sink. During each phase, Karzanov's algorithm
+  %maintains a preflow in a layered-network. The algorithm ``pushes'' flow
+  %through the network to find a blocking-flow, and then ``balances'' the
+  %resulting preflow to obtain a valid flow at the end of each phase. Cherkarsky
+  %tired to eliminate balancing operation by canceling the previous goal of
+  %Karzanov's algorithm for constructing a feasible flow at the end of each
+  %phase. He proved that balancing the flow at some vertex is equivalent to
+  %pushing from it in future when it will appear in some layared-network at a
+  %greater distance from the sink. However, Cherkarsky could not come up with the
+  %generic push-relabel algorithm. The leftovers of phase structures of Dinitz's
+  %and Karsanov's algorithms prevented Cherkarsky from canceling the devision of
+  %his algorithm into phases.
+
+  %Goldberg's generic Push-relabel algorithm takes Karzanov's idea of using preflows
+  %to the next level. This algorithm abandons the idea of finding a flow in each
+  %phase, and also abandons the idea of global phases. Instead, Goldberg idea
+  %maintains a preflow in the original network and pushes flow toward the sink
+  %along what it estimates to be shortest paths. When the algorithm terminates,
+  %the preflow becomes a valid flow which is also proved to be a maximum flow. 
+
+  The Push-relabel algorithms maintain a preflow as well as a height-labeling
   during the execution. A preflow in a network with source $s$ and sink $t$ is a
   function $f: V \times V \mapsto \mathbb{R}$ that satisfies the capacity
   constraint as well as a relaxed conservation constraint\footnote{every flow
@@ -728,7 +732,7 @@ results in a program that refines the original program. This gives us a natural 
   \end{cases}
 \]
 
-Goldberg distinguishes two types of pushes which are latered used for proving
+Goldberg distinguishes two types of pushes which are later used for proving
 the correctness and complexity of his algorithm. A push is called saturating if
 the edge $(u, v)$ is removed from the residual graph after the push operation,
 i.e. $e(u) \ge c_f(u, v)$. Otherwise, the push is called non-saturating, and the
@@ -761,14 +765,66 @@ other edge of the network. The algorithm, terminates when no more push or
 relabel operation is applicable, and according to correctness theorem of the
 algorithm the resulting preflow upon termination is indeed a maximum-flow of the network.
 
+\texttt{\\\\---Present either the refinement code or pseudocode---}
 
-\texttt{---Present either the refinement code or pseudocode---}
+Correctness of the generic Push-relabel algorithm is proved in two steps. First,
+we show that algorithm returns a maximum flow if it terminates. Second, we show
+that the algorithm always terminates, hence, it is totaly correct. 
 
-\texttt{---Discuss correctness and termination proofs if required}
+We start with the first step, and try to prove computation of a maximum flow
+upon termination of the algorithm. Maintaining helight-labeling function as well
+as a preflow during the execution of the algorithm is crucial for its
+correctness. Goldberg's idea is to use these functions to estimate a shortest
+path for pushing flow toward the sink.
 
-\texttt{---Corelate to the FIFO and gap heuristic implementations}
+We proceed by proving that generic Push-relabel maintains a height-labeling
+function. Using the definition of relabel operation $\relabel$, we observe that
+the height-labeling $l(u)$ of any vertex $u \in V$ never decreases during the
+execution of the algorithm, and $(l \relabel u)$ increases $u$'s height by at
+least one. These two basic results prove that $l$ remains a height-labeling
+whenever it is modified by applying the relabel operation. Note taht, we also
+need to consider push operations. Pushing more flow along an edge $(u, v)$ in
+the residual graph, not only may remove $(u, v)$ from the residual graph, but
+also it can add $(v, u)$ to it. However, both of these modifications still
+maintain the height-labeling function because of the preconditions that push
+operator has.
 
-\texttt{---Discuss our time complexity proof, if required}
+The maintanance of the preflow during the execution of the algorithm can be
+similiarly proved using the definition of the push operation $\push$. Next, we
+proceed to prove the correctness of the algorithm, by showing that it computes a
+maximum flow upon its termination. We use the fact about maintanance of
+height-labeling function to build an isabelle context \isa{Labeling}. We embed
+the rest of the correctness theorems inside this context, as it simplifies the
+proofs and gives us a cleaner formalization. That is, as we can access the
+height-labeling assumptions whenever they are required in some proof step.
+
+As an intermediate step, we should fist prove that for any preflow $f$ and
+height-labeling $l$, the residual graph corresponding to $f$ does not contain a
+path from the source $s$ to the sink $t$. In order to see this, let's by
+contradiction assume there is such a path. Using this path, we could obtain a
+simple path $p$ conntecting $s$ to $t$. As $l$ is a valid labeling, for each
+edge $(u, v)$ on $p$ we must have $l(u) \le l(v) + 1$, hence, $l(s) \le l(t) +
+\vert p \vert$. This yeilds the result that $l(s) \le \vert V \vert$, since
+$l(t) = 0$ and $p$ is assumed to be a simple path in the residual graph.
+However, this contradicts the assumption that $l$ is a height-labeling function,
+and completes the proof.
+
+We use the previous results to complete the proof of the first step. It is easy
+to see that \isai{init-preflow} and \isa{init-labeling} produce a valid preflow
+as well as a valid height-labeling function. We have also shown the maintanance
+of these properties earlier. When the algorithm terminates, the excess value
+$e(v)$ of each vertex $v \in V$ is equal to $0$. So, the preflow that was
+maintained during the execution becomes a valid flow. Given the fact that the
+height-labeling assumptions are also maintained and using the latest auxillary
+lemma, we can conclude that there is no path from source to sink in the residual
+graph. Hence, the result of the algorithm is a maximum flow using the
+Ford-fulkerson theorem.
+
+\texttt{\\\\---Discuss termination proofs if required}
+
+\texttt{\\\\---Discuss our time complexity proof, if required}
+
+\texttt{\\\\---talk about relabel-to-front and fifo instances}
 
 
   
