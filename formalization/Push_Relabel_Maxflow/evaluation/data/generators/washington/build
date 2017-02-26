@@ -1,0 +1,2 @@
+#!/bin/bash
+gcc washington.c -o gen
