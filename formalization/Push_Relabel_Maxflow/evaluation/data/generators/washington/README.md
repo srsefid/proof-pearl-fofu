@@ -1,8 +1,7 @@
 Washington Network Generator
 ============================
 A C language program to generate ten types of networks/graphs in DIMACS format.
-It was originally posted to 
-[DIMACS maximum flow problems](ftp://dimacs.rutgers.edu/pub/netflow/generators/network/)
+It was originally posted to [DIMACS maximum flow problems](http://lpsolve.sourceforge.net/5.5/DIMACS_maxf.htm)
 
 > Contributed by seminar students working with Richard Anderson. 
 

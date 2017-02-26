@@ -2,7 +2,7 @@ RMFGEN Network Generator
 ========================
 
 This generator produces the RMFGEN networks developed by Goldfarb and Grigoriadis. It 
-was submitted by Tamas Badics to [DIMACS maximum flow problems](ftp://dimacs.rutgers.edu/pub/netflow/generators/network/)
+was submitted by Tamas Badics to [DIMACS maximum flow problems](http://lpsolve.sourceforge.net/5.5/DIMACS_maxf.htm)
 
 > This generator produces the RMFGEN networks developed by 
 > Goldfarb and Grigoriadis (see ``A computational comparison of the Dinic
