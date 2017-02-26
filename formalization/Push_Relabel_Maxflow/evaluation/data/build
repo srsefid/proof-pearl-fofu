@@ -1,5 +1,20 @@
 #!/bin/bash
 gcc data-gen.c -o data-gen
+gcc data-cnv.c -o data-cnv
+
+cd generators
+cd ac-net
+./build
+cd ..
+
+cd gen-rmf
+./build
+cd ..
+
+cd washington
+./build
+cd ..
+cd ..
 
 mkdir -p samples
 cd samples

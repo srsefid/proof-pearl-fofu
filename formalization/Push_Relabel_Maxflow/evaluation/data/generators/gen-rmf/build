@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc genio.c genrmf.c genmain.c -o gen
+gcc -w genio.c genrmf.c genmain.c -o gen

@@ -13,6 +13,8 @@ paper/root.pdf
 paper/old-papers/itp/root.pdf
 paper/auto
 formalization/Push_Relabel_Maxflow/evaluation/data/data-gen
+formalization/Push_Relabel_Maxflow/evaluation/data/data-cnv
+formalization/Push_Relabel_Maxflow/evaluation/data/generators/*/gen
 formalization/Push_Relabel_Maxflow/evaluation/data/samples/*.txt
 formalization/Push_Relabel_Maxflow/evaluation/fofu-C++/Fofu
 formalization/Push_Relabel_Maxflow/evaluation/fofu-C++/Fofu2
