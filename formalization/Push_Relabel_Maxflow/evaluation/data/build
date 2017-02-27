@@ -7,13 +7,14 @@ cd ac-net
 ./build
 cd ..
 
-cd gen-rmf
-./build
-cd ..
-
 cd washington
 ./build
 cd ..
+
+# uncomment, if you are including the GENRMF tests into benchmarks
+#cd gen-rmf
+#./build
+#cd ..
 cd ..
 
 mkdir -p samples
@@ -29,16 +30,17 @@ for ((i=1000;$i<=5500;i+=500)); do
   test -f g-$i-S.txt || ../data-gen $i .02 S 1
 done
 
-for ((i=10;$i<=100;i*=10)); do
+for ((i=1000;$i<=1450;i+=50)); do
 	test -f g-$i-ACNET.txt || (../generators/ac-net/gen $i $(( ( RANDOM % 100 )  + 1 )) | ../data-cnv g-$i-ACNET.txt)
 done
 
-for ((i=10;$i<=100;i*=10)); do
-	test -f g-$i-GENRMF.txt || (../generators/gen-rmf/gen -a 4 -b $i -c1 0 -c2 $i | ../data-cnv g-$i-GENRMF.txt)
-done
-
-for ((i=10;$i<=100;i*=10)); do
+for ((i=1000;$i<=5500;i+=500)); do
 	test -f g-$i-WASH1.txt || (../generators/washington/gen 10 $i 0 0 0 | ../data-cnv g-$i-WASH1.txt)
 done
+
+# uncomment, if you are including the GENRMF tests into benchmarks
+#for ((i=1000;$i<=5500;i+=500)); do
+#	test -f g-$i-GENRMF.txt || (../generators/gen-rmf/gen -a 4 -b $i -c1 0 -c2 800000 | ../data-cnv g-$i-GENRMF.txt)
+#done
 
 cd ..

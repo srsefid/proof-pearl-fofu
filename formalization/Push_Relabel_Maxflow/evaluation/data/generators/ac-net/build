@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc ac.c -o gen
+gcc -w ac.c -o gen

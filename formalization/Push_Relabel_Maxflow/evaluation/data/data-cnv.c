@@ -10,12 +10,12 @@
  * or total edges are read. We add the source at index 0 
  * and sink at index size - 1. Then we connect DIMACS s t
  * to these new srouce sink. (Compatible with cleanup) */
-int** graph_init (int* v_count, int* e_count) {
-	int** graph;
+long** graph_init (long* v_count, long* e_count) {
+	long** graph;
     
     char dummy;
     char dummies[10]; 
-    int in_edges = -1;
+    long in_edges = -1;
     bool graph_init = false;
     bool read_complete = false;
     while(!read_complete){
@@ -31,8 +31,8 @@ int** graph_init (int* v_count, int* e_count) {
                    cases either. (i assume all inputs are correct...) */
                 case 'p':
                     {
-                        int vs, es;
-                        sscanf(line, "%c %s %d %d", &dummy, dummies, &vs, &es);
+                        long vs, es;
+                        sscanf(line, "%c %s %ld %ld", &dummy, dummies, &vs, &es);
 
                         /* index 0 and index *v_count - 1, are used for s an t. no matter what the input is */
                         *v_count = vs + 2;
@@ -41,11 +41,11 @@ int** graph_init (int* v_count, int* e_count) {
                         /* set the counter for the loop. When all edges are read (in_edges = 0), exit */
                         in_edges = es;
 
-                        graph = malloc(*v_count * sizeof(int*));
+                        graph = malloc(*v_count * sizeof(long*));
                         
-                        int i;
+                        long i;
                         for (i = 0; i < *v_count; i++)
-		                    graph[i] = calloc(*v_count, sizeof(int));
+		                    graph[i] = calloc(*v_count, sizeof(long));
                     }
                     break;
 
@@ -53,8 +53,8 @@ int** graph_init (int* v_count, int* e_count) {
                 case 'n':
                     {
                         char ts;
-                        int id;
-                        sscanf(line, "%c %d %c", &dummy, &id, &ts);
+                        long id;
+                        sscanf(line, "%c %ld %c", &dummy, &id, &ts);
 
                         /* if it is s, connect our s (index 0) to it with infinit capacity 
                          * if it is t, connect out t (index *v_count - 1) to it with infinite capacity */
@@ -68,8 +68,8 @@ int** graph_init (int* v_count, int* e_count) {
                 /* Add next edge to the graph and decrease in_edge. (termination check...)*/
                 case 'a':
                     {
-                        int from, to, cap;
-                        sscanf(line, "%c %d %d %d", &dummy, &from, &to, &cap);
+                        long from, to, cap;
+                        sscanf(line, "%c %ld %ld %ld", &dummy, &from, &to, &cap);
 
                         /* no self-loop or parallel edge otw. ignore (according to DIMACS spec. this should never happer) */
                         if (graph[to][from] == 0 && from != to)
@@ -97,9 +97,9 @@ int** graph_init (int* v_count, int* e_count) {
 	return graph;
 }
 
-/* As our matrix is a int** we have to clean it up in a loop */
-void graph_free (int** graph, int size) {
-	int i;
+/* As our matrix is a long** we have to clean it up in a loop */
+void graph_free (long** graph, long size) {
+	long i;
 	for (i = 0; i < size; i++)
 		free(graph[i]);
 
@@ -111,12 +111,12 @@ void graph_free (int** graph, int size) {
  * if we have to use the original graph or its reverse. We use this function to
  * computing the set of nodes that are reachable from source, and the set of no-
  * des that are reaching sink. */
-void dfs (int** graph, bool* visited, int start, int size, bool reverse) {
+void dfs (long** graph, bool* visited, long start, long size, bool reverse) {
 	visited[start] = true;
 
-	int i;
+	long i;
 	for (i = 0; i < size; i++) {
-		int edge_cap = (!reverse) ? graph[start][i] : graph[i][start];
+		long edge_cap = (!reverse) ? graph[start][i] : graph[i][start];
 
 		if (edge_cap != 0 && !visited[i])
 			dfs(graph, visited, i, size, reverse);
@@ -127,14 +127,14 @@ void dfs (int** graph, bool* visited, int start, int size, bool reverse) {
 /* This function removes all those vertices that are not contained
  * in any path connecting the source to the sink. acc_nodes is the
  * vector which represents all the acceptable nodes */
-void net_clean (int** graph, int size, bool* acc_nodes) {
+void net_clean (long** graph, long size, bool* acc_nodes) {
 	bool* s_reachable = calloc(size, sizeof(bool));
 	bool* t_reaching = calloc(size, sizeof(bool));
 
 	dfs(graph, s_reachable, 0, size, false);
 	dfs(graph, t_reaching, size - 1, size, true);
 
-	int i = 0;
+	long i = 0;
 	for (i = 0; i < size; i++)
 		acc_nodes[i] = s_reachable[i] && t_reaching[i];
 
@@ -148,18 +148,18 @@ int main (int argc, char** argv) {
 		printf("\t use STD instead of <output-path> to print in console\n");
 	}
 	else {
-        int v_count = 0;
-        int e_count = 0;
+        long v_count = 0;
+        long e_count = 0;
 
-        int** G = graph_init(&v_count, &e_count);
+        long** G = graph_init(&v_count, &e_count);
 		bool* acc_nodes = calloc(v_count, sizeof(bool));
-		int* index_chg = calloc(v_count, sizeof(int));
+		long* index_chg = calloc(v_count, sizeof(long));
 
 		net_clean(G, v_count, acc_nodes);
 
 		/* For every node i we compute the count of vertices that have an
 		 * index lower than i, and they are removed from the graph. */
-		int i, j;
+		long i, j;
 		for (i = 0; i < v_count; i++) {
 			for (j = 0; j < i; j++) {
 				if (!acc_nodes[j])
@@ -168,8 +168,8 @@ int main (int argc, char** argv) {
 		}
 
 		/* We count total number of edges. This loop can be used for printing*/
-        int node_count = v_count - index_chg[v_count - 1];
-		int edge_count = 0;
+        long node_count = v_count - index_chg[v_count - 1];
+		long edge_count = 0;
 		for (i = 0; i < v_count; i++) {
 			if (acc_nodes[i]) {
                 for (j = 0; j < v_count; j++) {
@@ -192,12 +192,12 @@ int main (int argc, char** argv) {
         if (strcmp(argv[1], "STD") != 0)
             fw = fopen(argv[1], "w");
 
-        fprintf(fw, "%d %d\n", node_count, edge_count);
+        fprintf(fw, "%ld %ld\n", node_count, edge_count);
         for (i = 0; i < v_count; i++) {
             if (acc_nodes[i]) {
                 for (j = 0; j < v_count; j++) {
                     if (acc_nodes[j] && G[i][j] != 0)
-                        fprintf(fw, "%d %d %d\n", i - index_chg[i], j - index_chg[j], G[i][j]);
+                        fprintf(fw, "%ld %ld %ld\n", i - index_chg[i], j - index_chg[j], G[i][j]);
                 }
             }
         }
@@ -208,9 +208,9 @@ int main (int argc, char** argv) {
         free(acc_nodes);
         graph_free(G, v_count);
 
-        float density = (float)edge_count / (node_count * (node_count - 1));
+        double density = (double)edge_count / (node_count * (node_count - 1));
     
-        printf("Successfully generated a graph with %d nodes and %d edges. Density is %.2f\n", node_count, edge_count, density);
+        printf("Generated* a graph with %ld nodes and %ld edges. Density is %.2lf\n", node_count, edge_count, density);
 	}
 
 	return 0;
