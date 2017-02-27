@@ -8,7 +8,7 @@ It was originally posted to [DIMACS maximum flow problems](http://lpsolve.source
 We have made a minor modification to the code, so the program outputs to the standard output.
   
 ```
-EXECUTABLE function arg1 arg2 arg3 
+EXECUTABLE function arg1 arg2 arg3 0
 
   Command line arguments have the following meanings: 
  

@@ -26,14 +26,19 @@ int** graph_init (int* v_count, int* e_count) {
             char command = line[0];
 
             switch (command) {
+                /* Each Dimacs file must have only one p line, and it must occure before everything else. 
+                 * Hence, no requirement to check for recreation of the graph, or its existance in orther 
+                   cases either. (i assume all inputs are correct...) */
                 case 'p':
-                    if (!graph_init){
+                    {
                         int vs, es;
                         sscanf(line, "%c %s %d %d", &dummy, dummies, &vs, &es);
 
+                        /* index 0 and index *v_count - 1, are used for s an t. no matter what the input is */
                         *v_count = vs + 2;
                         *e_count = es + 2;
 
+                        /* set the counter for the loop. When all edges are read (in_edges = 0), exit */
                         in_edges = es;
 
                         graph = malloc(*v_count * sizeof(int*));
@@ -41,40 +46,42 @@ int** graph_init (int* v_count, int* e_count) {
                         int i;
                         for (i = 0; i < *v_count; i++)
 		                    graph[i] = calloc(*v_count, sizeof(int));
-
-                        graph_init = true;
                     }
                     break;
+
+                /* Read souce and sink nodes*/
                 case 'n':
                     {
                         char ts;
                         int id;
                         sscanf(line, "%c %d %c", &dummy, &id, &ts);
 
-                        if (graph_init){
-                            if(ts == 's')
-                                graph[0][id] = INT_MAX;
-                            else
-                                graph[id][*v_count - 1] = INT_MAX;                                
-                        }
+                        /* if it is s, connect our s (index 0) to it with infinit capacity 
+                         * if it is t, connect out t (index *v_count - 1) to it with infinite capacity */
+                        if(ts == 's')
+                            graph[0][id] = INT_MAX;
+                        else
+                            graph[id][*v_count - 1] = INT_MAX;                                
                     }
                     break;
+
+                /* Add next edge to the graph and decrease in_edge. (termination check...)*/
                 case 'a':
                     {
                         int from, to, cap;
                         sscanf(line, "%c %d %d %d", &dummy, &from, &to, &cap);
 
-                        if (graph_init) {
-							/* no self-loop or parallel edge otw. ignore */
-                            if (graph[to][from] == 0 && from != to)
-                                graph[from][to] = cap;
+                        /* no self-loop or parallel edge otw. ignore (according to DIMACS spec. this should never happer) */
+                        if (graph[to][from] == 0 && from != to)
+                            graph[from][to] = cap;
 
-                            in_edges--;
-                            if (in_edges == 0)
-                                read_complete = true;
-                        }
+                        in_edges--;
+                        if (in_edges == 0)
+                            read_complete = true;
                     }                    
                     break;
+
+                /* Ignore comment lines, and any other lines that start with unknown symbols */    
                 case 'c':
                 default:
                     break;
@@ -185,8 +192,6 @@ int main (int argc, char** argv) {
         if (strcmp(argv[1], "STD") != 0)
             fw = fopen(argv[1], "w");
 
-        
-        
         fprintf(fw, "%d %d\n", node_count, edge_count);
         for (i = 0; i < v_count; i++) {
             if (acc_nodes[i]) {
