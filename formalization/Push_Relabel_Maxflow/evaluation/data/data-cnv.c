@@ -65,7 +65,8 @@ int** graph_init (int* v_count, int* e_count) {
                         sscanf(line, "%c %d %d %d", &dummy, &from, &to, &cap);
 
                         if (graph_init) {
-                            if (graph[to][from] == 0)
+							/* no self-loop or parallel edge otw. ignore */
+                            if (graph[to][from] == 0 && from != to)
                                 graph[from][to] = cap;
 
                             in_edges--;
