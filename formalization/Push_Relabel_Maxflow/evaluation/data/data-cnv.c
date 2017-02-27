@@ -59,9 +59,9 @@ long** graph_init (long* v_count, long* e_count) {
                         /* if it is s, connect our s (index 0) to it with infinit capacity 
                          * if it is t, connect out t (index *v_count - 1) to it with infinite capacity */
                         if(ts == 's')
-                            graph[0][id] = LONG_MAX;
+                            graph[0][id] = INT_MAX;
                         else
-                            graph[id][*v_count - 1] = LONG_MAX;                                
+                            graph[id][*v_count - 1] = INT_MAX;                                
                     }
                     break;
 
