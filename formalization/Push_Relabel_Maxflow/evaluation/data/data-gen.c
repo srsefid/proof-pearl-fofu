@@ -182,7 +182,7 @@ int main (int argc, char** argv) {
 
       float density = (float)edge_count / (v_count * (v_count - 1));
       
-			printf("Successfully generated a graph with %d nodes and %d edges. Density is %.2f\n", v_count, edge_count, density);
+			printf("Generated a graph with %d nodes and %d edges. Density is %.2f\n", v_count, edge_count, density);
 		}
 		else {
 			printf("Number of vertices must be positive integer, target density must be in ]0..1].\n");
