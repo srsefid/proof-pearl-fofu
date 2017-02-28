@@ -1398,21 +1398,24 @@ Ford-fulkerson theorem.
     
 
 \section{Conclusion}\label{sec:concl}
-  We have presented a verification of the Edmonds-Karp algorithm, using a stepwise refinement approach.
-  Starting with a proof of the Ford-Fulkerson theorem, we have verified the generic Ford-Fulkerson method, 
-  specialized it to the Edmonds-Karp algorithm, and proved the upper bound $O(VE)$ for the number of outer loop iterations.
-  We then conducted several refinement steps to derive an efficiently executable implementation of the algorithm, 
-  including a verified breadth first search algorithm to obtain shortest augmenting paths. 
-  Finally, we added a verified algorithm to check whether the input is a valid network, and generated executable code in SML.
-  The runtime of our verified implementation compares well to that of an unverified reference implementation in Java.
+  We have presented a mechanical verification of the correctness and time complexity of maximum flow algorithms based on both, 
+  the augmenting path and the push-relabel approaches, as well as the Ford-Fulkerson (min-cut-max-flow) theorem, which underlies all these algorithms.
+  
+  For the augmenting path algorithms, we start with a verification of the generic Ford-Fulkerson method, 
+  specialize it to the Edmonds-Karp algorithm, and prove its time complexity of $O(VE^2)$.
+  For the push-relabel approaches, we start with a verification of the generic push-relabel algorithm of Goldberg and Tarjan, show its time complexity of $O(V^2E)$, and
+  instantiate it to both, the relabel-to-front and the FIFO push-relabel algorithm.
+  We then conduct several refinement steps to derive efficiently executable implementations of all three algorithm, from which we extract SML code.
+  The runtime of our verified implementations compares well to that of unverified reference implementations.
   
   Our formalization has combined several techniques to achieve an elegant and accessible formalization: 
   Using the Isar proof language~\cite{Wenzel99}, we were able to provide a completely rigorous but 
   still accessible proof of the Ford-Fulkerson theorem. The Isabelle Refinement Framework~\cite{LaTu12,La12} and the Sepref tool~\cite{La15,La16}
-  allowed us to present the Ford-Fulkerson method on a level 
-  of abstraction that closely resembles pseudocode presentations found in textbooks, and then formally link this presentation to an efficient
-  implementation. Moreover, modularity of refinement allowed us to develop the breadth first search algorithm independently, and later link it to the 
-  main algorithm. The BFS algorithm can be reused as building block for other algorithms. The data structures are re-usable, too: although we had to implement the array representation of (capacity) matrices for this project, it will be added to the growing library of verified imperative data structures 
+  allowed us to present the algorithms on a level 
+  of abstraction that closely resembles pseudocode presentations found in textbooks, and then formally link this presentation to efficient
+  implementations. Moreover, modularity of refinement allowed us to independently develop subroutines like the breadth first search algorithm, 
+  which can be reused as building block for other algorithms.
+  The data structures are re-usable, too: although we had to implement the array representation of (capacity) matrices for this project, it will be added to the growing library of verified imperative data structures 
   supported by the Sepref tool, such that it can be re-used for future formalizations.
   
   During this project, we have learned some lessons on verified algorithm development: 
@@ -1432,10 +1435,10 @@ Ford-fulkerson theorem.
   \end{itemize}
   
   We conclude with some statistics:
-  The formalization consists of roughly 13000 lines of proof text, where the graph theory up to the Ford-Fulkerson algorithm requires 3000 lines.
+  The formalization consists of roughly 14000 lines of proof text, where the graph theory up to the Ford-Fulkerson algorithm requires 2500 lines.
   The abstract Edmonds-Karp algorithm and its complexity analysis contribute 800 lines, and its implementation (including BFS) another 1700 lines.
-  The generic push relabel algorithm and its complexity analysis is 1700 lines, the abstract implementations of relabel-to-front and FIFO push-relabel is another 1000 lines,
-  and their refinement to an efficient implementation takes 2000 lines.
+  The generic push relabel algorithm and its complexity analysis is 1700 lines, the abstract implementations of relabel-to-front and FIFO push-relabel is another 1100 lines,
+  and their refinement to an efficient implementation takes 3000 lines.
   
   The remaining lines are contributed by the network checker and some auxiliary theories. The development of the theories required roughly 5 man month, a significant amount of this time going into a first, purely functional implementation of the Edmonds-Karp algorithm, which was later dropped in favor of the faster imperative version.
   
@@ -1456,10 +1459,11 @@ Ford-fulkerson theorem.
   
   \subsection{Future Work}
   While we implemented a simple version of the push-relabel algorithm, there are more advanced implementations, like the one of Cherkassky et el.~\cite{ChGo97} that 
-  we also use in the benchmarks. The same authors also provide an implementation based on the highest label selection rule, which is reported to be even more efficient 
-  in practice. Our formalized algorithm misses two important heuristics of these advanced algorithms: First, the global relabeling heuristics periodically performs a breadth first search on the reversed residual graph, to determine exact node labels based on their distance to the sink. Second, the algorithm is split in two phases: 
+  we use in the benchmarks. The same authors also provide an implementation based on the highest label selection rule, which is reported to be even more efficient 
+  in practice. 
+  Compared to these advanced algorithms, our formalization misses two important heuristics: First, the global relabeling heuristics periodically performs a breadth first search on the reversed residual graph, to determine exact node labels based on their distance to the sink. Second, the algorithm is split in two phases: 
   The first phase ignores nodes with labels greater $|V|$, and already determines the exact value of the flow. The second phase only pushes excess flow back to the source. 
-  Using different heuristics for both phases is reported to improve practical performance~\cite{ChGo97}. 
+  Using different implementations for the two phases is reported to improve practical performance~\cite{ChGo97}. 
   Thus, the main focus of future work will be to verify these heuristics in order to obtain more efficient verified algorithms.
   
 
