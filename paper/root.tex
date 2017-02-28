@@ -1064,7 +1064,7 @@ Ford-fulkerson theorem.
     ]
     
     %start data for plotting
-      \addplot table {
+      \addplot+[mark=square] table {
         1000 .024   
         1500 .098  
         2000 .211  
@@ -1077,7 +1077,7 @@ Ford-fulkerson theorem.
         5500 11.749    
       }; \addlegendentry{edka-SML, sparse};
 
-      \addplot table {
+      \addplot+[mark=*] table {
         1000 .024   
         1500 .054   
         2000 .103  
@@ -1090,7 +1090,7 @@ Ford-fulkerson theorem.
         5500 6.079     
       }; \addlegendentry{edka-Java, sparse};
 
-      \addplot table {
+      \addplot+[mark=square*] table {
         1000 .005   
         1500 .013  
         2000 .024  
@@ -1131,7 +1131,7 @@ Ford-fulkerson theorem.
     ]
     
     %start data for plotting
-      \addplot table {
+      \addplot+[mark=square] table {
         1000	2.794
         1050	2.9
         1100	4.405
@@ -1144,7 +1144,7 @@ Ford-fulkerson theorem.
         1450	10.042 
       }; \addlegendentry{edka-SML, dense};
 
-      \addplot table {
+      \addplot+[mark=*] table {
         1000	3.982
         1050	4.463
         1100	5.278
@@ -1157,7 +1157,7 @@ Ford-fulkerson theorem.
         1450	13.11  
       }; \addlegendentry{edka-Java, dense};
 
-      \addplot table {
+      \addplot+[mark=square*] table {
         1000	0.074
         1050	0.059
         1100	0.068
@@ -1199,7 +1199,7 @@ Ford-fulkerson theorem.
     %start data for plotting
 
 
-      \addplot table {
+      \addplot+[mark=square*] table {
         3000	1.185
         4500	3.524
         6000	6.457
@@ -1212,7 +1212,7 @@ Ford-fulkerson theorem.
         16500	89.661
       }; \addlegendentry{prpu-SML, wash};
 
-      \addplot table {
+      \addplot+[mark=o] table {
         3000	0.906
         4500	2.708
         6000	5.083
@@ -1225,7 +1225,7 @@ Ford-fulkerson theorem.
         16500	67.039
       }; \addlegendentry{prpu-C++, wash};
 
-      \addplot table {
+      \addplot+[mark=otimes*] table {
         3000	0.006
         4500	0.015
         6000	0.029
@@ -1266,7 +1266,7 @@ Ford-fulkerson theorem.
     ]
     
     %start data for plotting
-      \addplot table {
+      \addplot+[mark=square*] table {
         1000	0.141
         1050	0.202
         1100	0.157
@@ -1279,7 +1279,7 @@ Ford-fulkerson theorem.
         1450	0.806
       }; \addlegendentry{prpu-SML, acnet};
 
-      \addplot table {
+      \addplot+[mark=o] table {
         1000	0.121
         1050	0.17
         1100	0.123
@@ -1292,7 +1292,7 @@ Ford-fulkerson theorem.
         1450	0.486
       }; \addlegendentry{prpu-C++, acnet};
 
-      \addplot table {
+      \addplot+[mark=otimes*] table {
         1000	0.056
         1050	0.09
         1100	0.069
@@ -1332,7 +1332,7 @@ Ford-fulkerson theorem.
     ]
     
     %start data for plotting
-      \addplot table {
+      \addplot+[mark=square*] table {
         16000	3.602
         17600	4.223
         19200	4.839
@@ -1345,7 +1345,7 @@ Ford-fulkerson theorem.
         30400	21.437
       }; \addlegendentry{prpu-SML, genrmf};
 
-      \addplot table {
+      \addplot+[mark=o] table {
         16000	4.51
         17600	4.804
         19200	5.899
@@ -1358,7 +1358,7 @@ Ford-fulkerson theorem.
         30400	13.791
       }; \addlegendentry{prpu-C++, genrmf};
 
-      \addplot table {
+      \addplot+[mark=otimes*] table {
         16000	0.009
         17600	0.012
         19200	0.015
