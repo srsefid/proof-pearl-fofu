@@ -1055,7 +1055,7 @@ Ford-fulkerson theorem.
         smooth,
         cycle list name = black white,
         legend style = { 
-          at={(0.59,0.4)}, 
+          at={(0.515,0.24)}, 
             anchor=north west,
             draw=black, 
             fill= white,
@@ -1102,58 +1102,6 @@ Ford-fulkerson theorem.
         5000 .194 
         5500 .192    
       }; \addlegendentry{prpu-SML, sparse};
-
-      \addplot table {
-        1000 .053   
-        1500 .089   
-        2000 .091   
-        2500 .120 
-        3000 .256 
-        3500 .210 
-        4000 .265 
-        4500 .499 
-        5000 .457 
-        5500 .522     
-      }; \addlegendentry{prpu-Java2, sparse};
-
-      \addplot table {
-        1000 .014 
-        1500 .029 
-        2000 .027 
-        2500 .037 
-        3000 .043 
-        3500 .051 
-        4000 .053 
-        4500 .080 
-        5000 .084 
-        5500 .085 
-      }; \addlegendentry{prpu-Java1, sparse};
-
-      \addplot table {
-        1000 .006 
-        1500 .013
-        2000 .014
-        2500 .019
-        3000 .041
-        3500 .035
-        4000 .042
-        4500 .076
-        5000 .079
-        5500 .082    
-      }; \addlegendentry{prpu-C++, sparse};
-
-      \addplot table {
-        1000 0  
-        1500 .001  
-        2000 .003  
-        2500 .002  
-        3000 .003  
-        3500 .004  
-        4000 .005  
-        4500 .007  
-        5000 .010 
-        5500 .009      
-      }; \addlegendentry{prpu-C, sparse};
     %end data for plotting
     \end{axis}
   \end{tikzpicture}
@@ -1168,13 +1116,13 @@ Ford-fulkerson theorem.
 %         xlabel = Number of vertices in the network,
 %         ylabel = Execution time in seconds, 
         xtick = {0,1000,1100,...,1400},
-        ytick = {2,4,...,10},
+        ytick = {1,4,...,16},
         xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, 
-        yticklabels = {$2$, $4$,$6$,$8$,$10$}, 
+        yticklabels = {$1$,$4$,$8$,$12$,$16$}, 
         smooth,
         cycle list name = black white,
         legend style = { 
-          at={(0.59,0.4)}, 
+          at={(0.53,0.6)}, 
             anchor=north west,
             draw=black, 
             fill= white,
@@ -1221,58 +1169,6 @@ Ford-fulkerson theorem.
         1400	0.088
         1450	0.114  
       }; \addlegendentry{prpu-SML, dense};
-
-      \addplot table {
-        1000	0.035
-        1050	0.037
-        1100	0.043
-        1150	0.044
-        1200	0.051
-        1250	0.065
-        1300	0.058
-        1350	0.068
-        1400	0.059
-        1450	0.069  
-      }; \addlegendentry{prpu-Java2, dense};
-
-      \addplot table {
-        1000	0.046
-        1050	0.05
-        1100	0.048
-        1150	0.059
-        1200	0.056
-        1250	0.056
-        1300	0.058
-        1350	0.062
-        1400	0.062
-        1450	0.066
-      }; \addlegendentry{prpu-Java1, dense};
-
-      \addplot table {
-        1000	0.034
-        1050	0.035
-        1100	0.039
-        1150	0.042
-        1200	0.052
-        1250	0.052
-        1300	0.054
-        1350	0.057
-        1400	0.064
-        1450	0.066  
-      }; \addlegendentry{prpu-C++, dense};
-
-      \addplot table {
-        1000	0.006
-        1050	0.004
-        1100	0.006
-        1150	0.005
-        1200	0.007
-        1250	0.007
-        1300	0.007
-        1350	0.007
-        1400	0.007
-        1450	0.008
-      }; \addlegendentry{prpu-C, dense};
     \end{axis}
   \end{tikzpicture}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1285,14 +1181,14 @@ Ford-fulkerson theorem.
         ymode = log,
 %         xlabel = Number of vertices in the network,
 %         ylabel = Execution time in seconds, 
-        xtick = {0,1000,...,5000},
-        ytick = {0.01,0.1,1,10},
-        xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$},
-        yticklabels = {$0.01$,$0.1$,$1$,$10$}, 
+        xtick = {3000, 6000, 10500, 13500, 16500},
+        ytick = {0.1,1,10,50,100},
+        xticklabels = {$3k$, $6k$, $10k$, $13k$, $16k$},
+        yticklabels = {$\text{\ \,}0.1$,$1$,$10$,$50$,$100$}, 
         smooth,
         cycle list name = black white,
         legend style = { 
-          at={(0.59,0.4)}, 
+          at={(0.53,0.24)}, 
             anchor=north west,
             draw=black, 
             fill= white,
@@ -1301,95 +1197,45 @@ Ford-fulkerson theorem.
     ]
     
     %start data for plotting
-      \addplot table {
-        1000	0.356
-        1500	0.805
-        2000	1.539
-        2500	2.43
-        3000	3.28
-        3500	4.639
-        4000	5.61
-        4500	7.198
-        5000	8.904
-        5500	11.302
-      }; \addlegendentry{edka-SML, wash};
+
 
       \addplot table {
-        1000	0.105
-        1500	0.228
-        2000	0.385
-        2500	0.466
-        3000	0.7
-        3500	0.992
-        4000	1.194
-        4500	1.503
-        5000	1.735
-        5500	2.243
-      }; \addlegendentry{edka-Java, wash};
-
-      \addplot table {
-        1000	1.185
-        1500	3.524
-        2000	6.457
-        2500	11.509
-        3000	17.529
-        3500	26.185
-        4000	36.828
-        4500	48.614
-        5000	86.449
-        5500	89.661
+        3000	1.185
+        4500	3.524
+        6000	6.457
+        7500	11.509
+        9000	17.529
+        10500	26.185
+        12000	36.828
+        13500	48.614
+        15000	86.449
+        16500	89.661
       }; \addlegendentry{prpu-SML, wash};
 
       \addplot table {
-        1000	11.515
-        1500	37.224
-        2000	60.226
-        2500	96.657
-        3000	134.77
-        3500	199.812
-        4000	328.824
-        4500	383.112
-        5000	745.695
-        5500	661.721
-      }; \addlegendentry{prpu-Java2, wash};
-
-      \addplot table {
-        1000	0.654
-        1500	1.626
-        2000	3.096
-        2500	5.313
-        3000	8.572
-        3500	12.552
-        4000	18.103
-        4500	18.646
-        5000	40.456
-        5500	39.012
-      }; \addlegendentry{prpu-Java1, wash};
-
-      \addplot table {
-        1000	0.906
-        1500	2.708
-        2000	5.083
-        2500	8.792
-        3000	12.951
-        3500	19.075
-        4000	27.466
-        4500	35.964
-        5000	61.839
-        5500	67.039
+        3000	0.906
+        4500	2.708
+        6000	5.083
+        7500	8.792
+        9000	12.951
+        10500	19.075
+        12000	27.466
+        13500	35.964
+        15000	61.839
+        16500	67.039
       }; \addlegendentry{prpu-C++, wash};
 
       \addplot table {
-        1000	0.006
-        1500	0.015
-        2000	0.029
-        2500	0.042
-        3000	0.063
-        3500	0.084
-        4000	0.115
-        4500	0.144
-        5000	0.183
-        5500	0.223
+        3000	0.006
+        4500	0.015
+        6000	0.029
+        7500	0.042
+        9000	0.063
+        10500	0.084
+        12000	0.115
+        13500	0.144
+        15000	0.183
+        16500	0.223
       }; \addlegendentry{prpu-C, wash};
     %end data for plotting
     \end{axis}
@@ -1405,13 +1251,13 @@ Ford-fulkerson theorem.
 %         xlabel = Number of vertices in the network,
 %         ylabel = Execution time in seconds, 
         xtick = {0,1000,1100,...,1400},
-        ytick = {2,4,...,10},
+        ytick = {0.01, 0.1, 0.2, 0.5, 1},
         xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, 
-        yticklabels = {$2$, $4$,$6$,$8$,$10$}, 
+        yticklabels = {$0.01$, $0.1$,$0.2$,$0.5$,$1$}, 
         smooth,
         cycle list name = black white,
         legend style = { 
-          at={(0.59,0.4)}, 
+          at={(0.52,0.24)}, 
             anchor=north west,
             draw=black, 
             fill= white,
@@ -1420,32 +1266,6 @@ Ford-fulkerson theorem.
     ]
     
     %start data for plotting
-      \addplot table {
-        1000	28.6
-        1050	42.725
-        1100	45.527
-        1150	56.67
-        1200	57.768
-        1250	78.733
-        1300	89.811
-        1350	103.254
-        1400	80.91
-        1450	87.823
-      }; \addlegendentry{edka-SML, acnet};
-
-      \addplot table {
-        1000	21.355
-        1050	23.84
-        1100	27.647
-        1150	36.513
-        1200	35.793
-        1250	40.851
-        1300	45.18
-        1350	49.515
-        1400	60.096
-        1450	65.875
-      }; \addlegendentry{edka-Java, acnet};
-
       \addplot table {
         1000	0.141
         1050	0.202
@@ -1458,32 +1278,6 @@ Ford-fulkerson theorem.
         1400	0.657
         1450	0.806
       }; \addlegendentry{prpu-SML, acnet};
-
-      \addplot table {
-        1000	0.069
-        1050	0.08
-        1100	0.066
-        1150	0.094
-        1200	0.091
-        1250	0.094
-        1300	0.101
-        1350	0.209
-        1400	0.16
-        1450	0.185
-      }; \addlegendentry{prpu-Java2, acnet};
-
-      \addplot table {
-        1000	0.081
-        1050	0.112
-        1100	0.091
-        1150	0.151
-        1200	0.141
-        1250	0.135
-        1300	0.16
-        1350	0.29
-        1400	0.21
-        1450	0.269
-      }; \addlegendentry{prpu-Java1, acnet};
 
       \addplot table {
         1000	0.121
@@ -1512,7 +1306,72 @@ Ford-fulkerson theorem.
       }; \addlegendentry{prpu-C, acnet};
     \end{axis}
   \end{tikzpicture}
-  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
+    \begin{axis}[
+      %title={Benchmark of the Edmonds-Karp algorithm},
+        axis x line*= bottom,
+        axis y line*= left,
+        xmode = log,
+        ymode = log,
+%         xlabel = Number of vertices in the network,
+%         ylabel = Execution time in seconds, 
+        xtick = {16000,19000,23000,27000,30000},
+        ytick = {0.1,1,5,10,25},
+        xticklabels = {$16k$, $19k$, $23k$, $27k$, $30k$}, 
+        yticklabels = {$\text{\ \,}0.1$, $1$,$5$,$10$,$25$}, 
+        smooth,
+        cycle list name = black white,
+        legend style = { 
+          at={(0.49,0.6)}, 
+            anchor=north west,
+            draw=black, 
+            fill= white,
+            align=left
+        }
+    ]
+    
+    %start data for plotting
+      \addplot table {
+        16000	3.602
+        17600	4.223
+        19200	4.839
+        20800	8.201
+        22400	8.273
+        24000	13.426
+        25600	10.089
+        27200	15.889
+        28800	16.431
+        30400	21.437
+      }; \addlegendentry{prpu-SML, genrmf};
+
+      \addplot table {
+        16000	4.51
+        17600	4.804
+        19200	5.899
+        20800	8.052
+        22400	8.448
+        24000	11.555
+        25600	8.878
+        27200	13.999
+        28800	12.99
+        30400	13.791
+      }; \addlegendentry{prpu-C++, genrmf};
+
+      \addplot table {
+        16000	0.009
+        17600	0.012
+        19200	0.015
+        20800	0.021
+        22400	0.021
+        24000	0.019
+        25600	0.023
+        27200	0.028
+        28800	0.026
+        30400	0.026
+      }; \addlegendentry{prpu-C, genrmf};
+    \end{axis}
+  \end{tikzpicture}
   \caption{Benchmark of different implementations. The x-axis shows the number of nodes, the y axis the execution time in seconds.}\label{fig:benchmark}
   \end{figure}
 
