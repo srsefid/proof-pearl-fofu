@@ -1037,168 +1037,161 @@ Ford-fulkerson theorem.
   We have done the comparison on randomly generated sparse and dense networks, the sparse networks having a \emph{density} (${} = \frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
   For sparse networks, we varied the number of nodes between $1000$ and $5500$, for dense networks between $1000$ and $1450$.
   The results are shown in Figure~\ref{fig:benchmark}, in a double-logarithmic scale.
- 
-  \begin{figure}[!h]
+
+
+\begin{figure}[!h]    
   \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
-    \begin{axis}[
-      %title={Benchmark of the Edmonds-Karp algorithm},
+    \begin{groupplot}[
+        group style={
+            group size=2 by 3,
+            vertical sep=1.5cm,
+        }
+    ]
+    
+    \nextgroupplot[
+        title={Random Sparse Graphs},
+        title style={yshift=-2ex},
         axis x line*= bottom,
         axis y line*= left,
         xmode = log,
         ymode = log,
-%         xlabel = Number of vertices in the network,
-%         ylabel = Execution time in seconds, 
         xtick = {0,1000,...,5000},
         ytick = {0.01,0.1,1,10},
         xticklabels = {$1000$, $2000$, $3000$, $4000$, $5000$},
-        yticklabels = {$0.01$,$0.1$,$1$,$10$}, 
+        yticklabels = {$0.01$,$0.1$,$1$,$10$},
         smooth,
         cycle list name = black white,
-        legend style = { 
-          at={(0.515,0.24)}, 
-            anchor=north west,
-            draw=black, 
-            fill= white,
-            align=left
-        }
+        legend cell align={left},
+        legend to name=grouplegend
     ]
+    % legend information
+      \addlegendimage{fill=gray, mark=square}
+      \addlegendimage{fill=gray, mark=square*}
+      \addlegendimage{fill=gray, mark=*}
+      \addlegendimage{fill=gray, mark=o}
+      \addlegendimage{fill=gray, mark=otimes*}
+      \addlegendentry{Edmonds-Karp, SML}
+      \addlegendentry{FIFO push-relabel, SML}
+      \addlegendentry{Edmonds-Karp, Java}
+      \addlegendentry{FIFO push-relabel, C++}
+      \addlegendentry{FIFO push-relabel, C}
+    % end legend information
+
+
+		%start data for plotting
+		  \addplot+[mark=square] table {
+		    1000 .024   
+		    1500 .098  
+		    2000 .211  
+		    2500 .693  
+		    3000 2.014 
+		    3500 3.153 
+		    4000 3.679 
+		    4500 8.364 
+		    5000 10.328 
+		    5500 11.749    
+		  }; %Sparse, Edka, SML
+		  
+		  \addplot+[mark=*] table {
+		    1000 .024   
+		    1500 .054   
+		    2000 .103  
+		    2500 .399  
+		    3000 .719  
+		    3500 1.362 
+		    4000 2.036 
+		    4500 3.334 
+		    5000 4.785 
+		    5500 6.079     
+		  }; %Sparse, Edka, Java
+		  
+		  \addplot+[mark=square*] table {
+		    1000 .005   
+		    1500 .013  
+		    2000 .024  
+		    2500 .037  
+		    3000 .066 
+		    3500 .077 
+		    4000 .096 
+		    4500 .146 
+		    5000 .194 
+		    5500 .192    
+		  }; %Sparse, Prpu, SML 
+		%end data for plotting    
     
+
+	\nextgroupplot[
+    	title={Random Dense Graphs},
+    	title style={yshift=-2ex},
+      axis x line*= bottom,
+      axis y line*= left,
+      xmode = log,
+      ymode = log,
+      xtick = {0,1000,1100,...,1400},
+      ytick = {1,4,...,16},
+      xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, 
+      yticklabels = {$1$,$4$,$8$,$12$,$16$}, 
+      smooth,
+      cycle list name = black white
+	]
+
+		%start data for plotting 
+		  \addplot+[mark=square] table {
+		    1000	2.794
+		    1050	2.9
+		    1100	4.405
+		    1150	4.435
+		    1200	5.232
+		    1250	6.029
+		    1300	7.699
+		    1350	8.91
+		    1400	7.225
+		    1450	10.042 
+		  }; %Dense, Edka, SML 
+      
+		  \addplot+[mark=*] table {
+		    1000	3.982
+		    1050	4.463
+		    1100	5.278
+		    1150	6.27
+		    1200	6.939
+		    1250	7.953
+		    1300	9.392
+		    1350	10.317
+		    1400	14.71
+		    1450	13.11  
+		  }; %Dense, Edka, Java 
+      
+		  \addplot+[mark=square*] table {
+		    1000	0.074
+		    1050	0.059
+		    1100	0.068
+		    1150	0.075
+		    1200	0.102
+		    1250	0.085
+		    1300	0.096
+		    1350	0.103
+		    1400	0.088
+		    1450	0.114  
+		  }; %Dense, Prpu, SML  
+		%end data for plotting    
+
+	\nextgroupplot[
+      title={Goldberg's Bad Case (Washington)},
+      title style={yshift=-2ex},
+      axis x line*= bottom,
+      axis y line*= left,
+      xmode = log,
+      ymode = log,
+      xtick = {3000, 6000, 10500, 13500, 16500},
+      ytick = {0.1,1,10,50,100},
+      xticklabels = {$3k$, $6k$, $10k$, $13k$, $16k$},
+      yticklabels = {$0.1$,$1$,$10$,$50$,$100$}, 
+      smooth,
+      cycle list name = black white
+	]
+
     %start data for plotting
-      \addplot+[mark=square] table {
-        1000 .024   
-        1500 .098  
-        2000 .211  
-        2500 .693  
-        3000 2.014 
-        3500 3.153 
-        4000 3.679 
-        4500 8.364 
-        5000 10.328 
-        5500 11.749    
-      }; \addlegendentry{edka-SML, sparse};
-
-      \addplot+[mark=*] table {
-        1000 .024   
-        1500 .054   
-        2000 .103  
-        2500 .399  
-        3000 .719  
-        3500 1.362 
-        4000 2.036 
-        4500 3.334 
-        5000 4.785 
-        5500 6.079     
-      }; \addlegendentry{edka-Java, sparse};
-
-      \addplot+[mark=square*] table {
-        1000 .005   
-        1500 .013  
-        2000 .024  
-        2500 .037  
-        3000 .066 
-        3500 .077 
-        4000 .096 
-        4500 .146 
-        5000 .194 
-        5500 .192    
-      }; \addlegendentry{prpu-SML, sparse};
-    %end data for plotting
-    \end{axis}
-  \end{tikzpicture}
-%
-  \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
-    \begin{axis}[
-      %title={Benchmark of the Edmonds-Karp algorithm},
-        axis x line*= bottom,
-        axis y line*= left,
-        xmode = log,
-        ymode = log,
-%         xlabel = Number of vertices in the network,
-%         ylabel = Execution time in seconds, 
-        xtick = {0,1000,1100,...,1400},
-        ytick = {1,4,...,16},
-        xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, 
-        yticklabels = {$1$,$4$,$8$,$12$,$16$}, 
-        smooth,
-        cycle list name = black white,
-        legend style = { 
-          at={(0.53,0.6)}, 
-            anchor=north west,
-            draw=black, 
-            fill= white,
-            align=left
-        }
-    ]
-    
-    %start data for plotting
-      \addplot+[mark=square] table {
-        1000	2.794
-        1050	2.9
-        1100	4.405
-        1150	4.435
-        1200	5.232
-        1250	6.029
-        1300	7.699
-        1350	8.91
-        1400	7.225
-        1450	10.042 
-      }; \addlegendentry{edka-SML, dense};
-
-      \addplot+[mark=*] table {
-        1000	3.982
-        1050	4.463
-        1100	5.278
-        1150	6.27
-        1200	6.939
-        1250	7.953
-        1300	9.392
-        1350	10.317
-        1400	14.71
-        1450	13.11  
-      }; \addlegendentry{edka-Java, dense};
-
-      \addplot+[mark=square*] table {
-        1000	0.074
-        1050	0.059
-        1100	0.068
-        1150	0.075
-        1200	0.102
-        1250	0.085
-        1300	0.096
-        1350	0.103
-        1400	0.088
-        1450	0.114  
-      }; \addlegendentry{prpu-SML, dense};
-    \end{axis}
-  \end{tikzpicture}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
-    \begin{axis}[
-      %title={Benchmark of the Edmonds-Karp algorithm},
-        axis x line*= bottom,
-        axis y line*= left,
-        xmode = log,
-        ymode = log,
-%         xlabel = Number of vertices in the network,
-%         ylabel = Execution time in seconds, 
-        xtick = {3000, 6000, 10500, 13500, 16500},
-        ytick = {0.1,1,10,50,100},
-        xticklabels = {$3k$, $6k$, $10k$, $13k$, $16k$},
-        yticklabels = {$\text{\ \,}0.1$,$1$,$10$,$50$,$100$}, 
-        smooth,
-        cycle list name = black white,
-        legend style = { 
-          at={(0.53,0.24)}, 
-            anchor=north west,
-            draw=black, 
-            fill= white,
-            align=left
-        }
-    ]
-    
-    %start data for plotting
-
-
       \addplot+[mark=square*] table {
         3000	1.185
         4500	3.524
@@ -1210,7 +1203,7 @@ Ford-fulkerson theorem.
         13500	48.614
         15000	86.449
         16500	89.661
-      }; \addlegendentry{prpu-SML, wash};
+      }; %WASH, Prpu, SML  
 
       \addplot+[mark=o] table {
         3000	0.906
@@ -1223,8 +1216,8 @@ Ford-fulkerson theorem.
         13500	35.964
         15000	61.839
         16500	67.039
-      }; \addlegendentry{prpu-C++, wash};
-
+      }; %WASH, Prpu, C++  
+      
       \addplot+[mark=otimes*] table {
         3000	0.006
         4500	0.015
@@ -1236,36 +1229,25 @@ Ford-fulkerson theorem.
         13500	0.144
         15000	0.183
         16500	0.223
-      }; \addlegendentry{prpu-C, wash};
-    %end data for plotting
-    \end{axis}
-  \end{tikzpicture}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
-    \begin{axis}[
-      %title={Benchmark of the Edmonds-Karp algorithm},
-        axis x line*= bottom,
-        axis y line*= left,
-        xmode = log,
-        ymode = log,
-%         xlabel = Number of vertices in the network,
-%         ylabel = Execution time in seconds, 
-        xtick = {0,1000,1100,...,1400},
-        ytick = {0.01, 0.1, 0.2, 0.5, 1},
-        xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, 
-        yticklabels = {$0.01$, $0.1$,$0.2$,$0.5$,$1$}, 
-        smooth,
-        cycle list name = black white,
-        legend style = { 
-          at={(0.52,0.24)}, 
-            anchor=north west,
-            draw=black, 
-            fill= white,
-            align=left
-        }
-    ]
+      }; %WASH, Prpu, C  
     
-    %start data for plotting
+
+	\nextgroupplot[
+      title={Fully Dense Acyclic Networks (Waissi)},
+      title style={yshift=-2ex},
+      axis x line*= bottom,
+      axis y line*= left,
+      xmode = log,
+      ymode = log,
+      xtick = {0,1000,1100,...,1400},
+      ytick = {0.01, 0.1, 0.2, 0.5, 1},
+      xticklabels = {$1000$, $1100$, $1200$, $1300$, $1400$}, 
+      yticklabels = {$0.01$, $0.1$,$0.2$,$0.5$,$1$}, 
+      smooth,
+      cycle list name = black white
+	]
+    
+    %start data for plotting 
       \addplot+[mark=square*] table {
         1000	0.141
         1050	0.202
@@ -1277,8 +1259,8 @@ Ford-fulkerson theorem.
         1350	1.416
         1400	0.657
         1450	0.806
-      }; \addlegendentry{prpu-SML, acnet};
-
+      }; %ACNET, Prpu, SML  
+      
       \addplot+[mark=o] table {
         1000	0.121
         1050	0.17
@@ -1290,8 +1272,8 @@ Ford-fulkerson theorem.
         1350	0.621
         1400	0.399
         1450	0.486
-      }; \addlegendentry{prpu-C++, acnet};
-
+      }; %ACNET, Prpu, C++  
+      
       \addplot+[mark=otimes*] table {
         1000	0.056
         1050	0.09
@@ -1303,34 +1285,23 @@ Ford-fulkerson theorem.
         1350	0.176
         1400	0.223
         1450	0.209
-      }; \addlegendentry{prpu-C, acnet};
-    \end{axis}
-  \end{tikzpicture}
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
-    \begin{axis}[
-      %title={Benchmark of the Edmonds-Karp algorithm},
-        axis x line*= bottom,
-        axis y line*= left,
-        xmode = log,
-        ymode = log,
-%         xlabel = Number of vertices in the network,
-%         ylabel = Execution time in seconds, 
-        xtick = {16000,19000,23000,27000,30000},
-        ytick = {0.1,1,5,10,25},
-        xticklabels = {$16k$, $19k$, $23k$, $27k$, $30k$}, 
-        yticklabels = {$\text{\ \,}0.1$, $1$,$5$,$10$,$25$}, 
-        smooth,
-        cycle list name = black white,
-        legend style = { 
-          at={(0.49,0.6)}, 
-            anchor=north west,
-            draw=black, 
-            fill= white,
-            align=left
-        }
-    ]
-    
+      }; %ACNET, Prpu, C  
+
+	\nextgroupplot[
+      title={RMFGEN Networks (Goldfarb et. al)},
+      title style={yshift=-2ex},
+      axis x line*= bottom,
+      axis y line*= left,
+      xmode = log,
+      ymode = log,
+      xtick = {16000,19000,23000,27000,30000},
+      ytick = {0.1,1,5,10,25},
+      xticklabels = {$16k$, $19k$, $23k$, $27k$, $30k$}, 
+      yticklabels = {$0.1$, $1$,$5$,$10$,$25$}, 
+      smooth,
+      cycle list name = black white
+	]
+  
     %start data for plotting
       \addplot+[mark=square*] table {
         16000	3.602
@@ -1343,8 +1314,8 @@ Ford-fulkerson theorem.
         27200	15.889
         28800	16.431
         30400	21.437
-      }; \addlegendentry{prpu-SML, genrmf};
-
+      }; %RPFGEN, Prpu, SML  
+      
       \addplot+[mark=o] table {
         16000	4.51
         17600	4.804
@@ -1356,8 +1327,8 @@ Ford-fulkerson theorem.
         27200	13.999
         28800	12.99
         30400	13.791
-      }; \addlegendentry{prpu-C++, genrmf};
-
+      }; %RPFGEN, Prpu, C++ 
+ 
       \addplot+[mark=otimes*] table {
         16000	0.009
         17600	0.012
@@ -1369,11 +1340,14 @@ Ford-fulkerson theorem.
         27200	0.028
         28800	0.026
         30400	0.026
-      }; \addlegendentry{prpu-C, genrmf};
-    \end{axis}
+      }; %RPFGEN, Prpu, C  
+    \end{groupplot}
+    
+    \node at (group c1r3.east) [anchor=west, xshift= 1cm] {\ref{grouplegend}};
   \end{tikzpicture}
-  \caption{Benchmark of different implementations. The x-axis shows the number of nodes, the y axis the execution time in seconds.}\label{fig:benchmark}
-  \end{figure}
+\caption{Benchmark of different implementations. The x-axis shows the number of nodes, the y axis the execution time in seconds.}\label{fig:benchmark}
+\end{figure}
+
 
   We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
   operates on residual graphs (\cf Section~\ref{sec:impl_res_graph}). Moreover, the Java implementation does not store the augmenting 
