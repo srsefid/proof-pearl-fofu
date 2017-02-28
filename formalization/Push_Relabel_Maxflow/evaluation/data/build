@@ -11,10 +11,9 @@ cd washington
 ./build
 cd ..
 
-# uncomment, if you are including the GENRMF tests into benchmarks
-#cd gen-rmf
-#./build
-#cd ..
+cd gen-rmf
+./build
+cd ..
 cd ..
 
 mkdir -p samples
@@ -38,9 +37,8 @@ for ((i=1000;$i<=5500;i+=500)); do
 	test -f g-$i-WASH1.txt || (../generators/washington/gen 10 $i 0 0 0 | ../data-cnv g-$i-WASH1.txt)
 done
 
-# uncomment, if you are including the GENRMF tests into benchmarks
-#for ((i=1000;$i<=5500;i+=500)); do
-#	test -f g-$i-GENRMF.txt || (../generators/gen-rmf/gen -a 4 -b $i -c1 0 -c2 999999999 | ../data-cnv g-$i-GENRMF.txt)
-#done
+for ((i=1000;$i<=5500;i+=500)); do
+	test -f g-$i-GENRMF.txt || (../generators/gen-rmf/gen -a 4 -b $i -c1 0 -c2 999999999 | ../data-cnv g-$i-GENRMF.txt)
+done
 
 cd ..
