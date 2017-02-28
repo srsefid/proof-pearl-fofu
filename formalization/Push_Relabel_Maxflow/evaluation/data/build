@@ -31,7 +31,7 @@ for ((i=1000;$i<=5500;i+=500)); do
 done
 
 for ((i=1000;$i<=1450;i+=50)); do
-	test -f g-$i-ACNET.txt || (../generators/ac-net/gen $i $(( ( RANDOM % 100 )  + 1 )) | ../data-cnv g-$i-ACNET.txt)
+	test -f g-$i-ACNET.txt || (../generators/ac-net/gen $i $(( ( RANDOM % 999 )  + 1 )) | ../data-cnv g-$i-ACNET.txt)
 done
 
 for ((i=1000;$i<=5500;i+=500)); do
@@ -40,7 +40,7 @@ done
 
 # uncomment, if you are including the GENRMF tests into benchmarks
 #for ((i=1000;$i<=5500;i+=500)); do
-#	test -f g-$i-GENRMF.txt || (../generators/gen-rmf/gen -a 4 -b $i -c1 0 -c2 800000 | ../data-cnv g-$i-GENRMF.txt)
+#	test -f g-$i-GENRMF.txt || (../generators/gen-rmf/gen -a 4 -b $i -c1 0 -c2 999999999 | ../data-cnv g-$i-GENRMF.txt)
 #done
 
 cd ..
