@@ -31,6 +31,7 @@
 \usepackage[boxed]{algorithm}
 \usepackage{enumerate}
 \usepackage{listings}
+\usepackage{lstautogobble}
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage{booktabs}
@@ -73,6 +74,8 @@
 \lstset{basicstyle=\footnotesize\ttfamily\slshape}
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
+\lstset{autogobble=true}
+
 
 \newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
 
@@ -110,7 +113,7 @@
 \institute{
   Peter Lammich \at
   Institut f\"ur Informatik,
-  Technische Universit\"at M\"unchen \\
+  Technische Universit\"at M\"unchen, Germany \\
   \email{lammich@in.tum.de} %
 \and
   S. Reza Sefidgar \at
@@ -127,16 +130,17 @@
 \maketitle
 
 \begin{abstract}
-We present a formalization of two classical algorithms for computing the maximum flow in a network:
-The Edmonds-Karp algorithm and Goldberg's Generic Push-Relabel algorithm. We prove the correctness and complexity of the algorithms.
+We present a formalization of classical algorithms for computing the maximum flow in a network:
+The Edmonds-Karp algorithm and the push-relabel algorithm. 
+We prove correctness and time complexity of these algorithms.
 Our formal proof closely follows a standard textbook proof, and is accessible even without being
 an expert in Isabelle/HOL --- the interactive theorem prover used for the formalization.
 
-Using stepwise refinement, we obtain the Fifo-Push-Relabel algorithm with gap heuristics. 
-Further refinement yields verified efficient implementations of both, Edmonds-Karp and Fifo-Push-Relabel, 
-which compare well to unverified reference implementations in Java.
+Using stepwise refinement techniques, we instantiate the generic Ford-Fulkerson method to Edmonds-Karp algorithm, 
+and the generic push-relabel algorithm of Goldberg and Tarjan to both, the relabel-to-front and the FIFO push-relabel algorithm.
+Further refinement then yields verified efficient implementations of the algorithms, which compare well to unverified reference implementations.
 
-\keywords{Maxflow Algorithm \and Edmonds-Karp Algorithm \and Push-Relabel Algorithm \and Formal Verification \and Isabelle/HOL \and Stepwise Refinement}
+\keywords{Maximum Flow Problem \and Edmonds-Karp Algorithm \and Push-Relabel Algorithm \and Formal Verification \and Isabelle/HOL \and Stepwise Refinement}
 % \PACS{PACS code1 \and PACS code2 \and more}
 % \subclass{MSC code1 \and MSC code2 \and more}
 \end{abstract}
@@ -158,8 +162,8 @@ The basic idea is to repeatedly search for \emph{augmenting path} along which mo
 An important instance is the Edmonds-Karp algorithm~\cite{EK72},
 which was one of the first algorithms to solve the maximum flow problem in polynomial time ($O(VE^2)$) for the general case of networks with real-valued capacities.
 Dinitz~\cite{Di06} generalized the idea of augmenting paths to blocking flows, obtaining an $O(V^2E)$ algorithm. 
-Karzanov~\cite{Ka74} was the first to propose an $O(V^3)$ algorithm based on the idea of \emph{preflows}. Based on Karzanov's ideas, Goldberg et al.\ proposed
-the generic push-relabel algorithm, which consists of repeated application of two local operations, push and relabel, in any order.
+Karzanov~\cite{Ka74} was the first to propose an $O(V^3)$ algorithm based on the idea of \emph{preflows}. Based on Karzanov's ideas, Goldberg and Tarjan proposed
+the generic push-relabel algorithm~\cite{GoTa88}.
 Implementations of the push-relabel algorithm are among the most efficient maximum flow algorithms. While the generic algorithm has a time complexity of $O(V^2E)$,
 specific variants of the algorithms achieve even lower complexities up to $O(V^2\sqrt{E})$.
 
@@ -168,21 +172,26 @@ We prove correctness of the algorithms as well as the time complexity bounds of 
 The formalization is conducted in the Isabelle/HOL proof assistant~\cite{NPW02}. 
 Stepwise refinement techniques~\cite{Wirth71,Back78,BaWr98} allow us to elegantly structure our verification to separate the abstract algorithmic ideas from
 the implementation details: After proving the min-cut-max-flow theorem, it is straightforward to verify a generic version of the Ford-Fulkerson algorithm,
-which we then refine to Edmonds-Karp algorithm and finally to an efficient implementation. Similar, the generic push-relabel algorithm is refined to 
-the fifo-push-relabel algorithm, which, in turn, is refined to an efficient implementation.
+which we then refine to Edmonds-Karp algorithm and finally to an efficient implementation. 
+Similarly, the generic push-relabel algorithm is refined to both, the relabel-to-front algorithm~\cite{CLRS09} and the FIFO push-relabel algorithm~\cite{GoTa88},
+which, in turn, are refined to efficient implementations. The efficiency of our verified implementations compare well to unverified reference implementations of 
+the algorithms.
+
 The abstract parts of our verification closely follow the textbook presentation of Cormen et al.~\cite{CLRS09}. 
 Using the Isar~\cite{Wenzel99} proof language, we were able to produce proofs that are accessible even to non-Isabelle experts.
 
 This paper is an extended version of our conference paper~\cite{LaSe16}, which only covered the Edmonds-Karp algorithm.
-
 While there exists another formalization of the Ford-Fulkerson method in Mizar~\cite{Lee05}\footnote{Section~\ref{sec:related_work} provides a detailed discussion}, we are, to the best of our knowledge, the first that verify a polynomial time maximum flow algorithm, prove the polynomial complexity bound, or provide a verified executable implementation. Moreover, this paper is a case study on elegantly formalizing algorithms.
 
-The rest of this paper is structured as follows: In Section~\ref{sec:background} we give a short informal introduction to the Ford-Fulkerson method.
-In Section~\ref{sec:abs-formalization}, we report on our formalization of the abstract method. 
-Section~\ref{sec:refinement} gives a brief overview of the Isabelle Refinement Framework~\cite{LaTu12,La12}, which supports stepwise refinement based algorithm development in Isabelle/HOL. In Section~\ref{sec:edka}, we report on our instantiation of the Ford-Fulkerson method to the Edmonds-Karp algorithm and the proof of its complexity.
-Section~\ref{sec:executable} reports on the further refinement steps required to yield an efficient implementation. Section~\ref{sec:benchmark} reports on 
-benchmarking our implementation against a reference implementation of the Edmonds-Karp algorithm from Sedgewick et al.~\cite{SeWa11}. 
-Finally, Section~\ref{sec:concl} gives a conclusion and discusses related and future work. The source code of our formalization is available at \url{http://www21.in.tum.de/~lammich/edmonds_karp/}.
+In the rest of this paper, we give a short informal introduction to flow networks and the Ford-Fulkerson method (\S\ref{sec:background}).
+We then present our formalization of these material (\S\ref{sec:abs-formalization}). After introducing the Isabelle Refinement Framework~\cite{LaTu12,La12} (\S\ref{sec:refinement}), we report on the instantiation of the Ford-Fulkerson method to the Edmonds-Karp algorithm, and on the complexity proof (\S\ref{sec:edka}).
+Next, we describe the correctness and complexity proof of the generic push-relabel algorithm (\S\ref{sec:gen-prpu}), and its instantiations 
+to the relabel-to-front and FIFO push-relabel algorithms (\S\ref{sec:prpu-inst}).
+We then report on the refinement of all three algorithms to efficient implementations (\S\ref{sec:executable}), and their comparison to unverified reference 
+implementations (\S\ref{sec:benchmark}).
+
+The source code of our formalization is available at \url{http://www21.in.tum.de/~lammich/edmonds_karp/}. 
+The part on Edmonds-Karp algorithm is also available in the Archive of Formal Proofs~\cite{LaSe16_afp}.
 
 
 % Despite its importance, no formalization of the Ford-Fulkerson algorithm has been developed in modern proof assistants. The only similar work that the authors are aware of is formalization of the Ford-Fulkerson algorithm in Mizar~\cite{Lee05}. This formalization defines and proves correctness of the algorithm at the level of graph manipulations without providing concrete implementation of the algorithm. Providing such an implementation is specially important, as it could provide the basis for many verfied programs with practical importance.
@@ -233,12 +242,15 @@ In this section, we give a short introduction to the Ford-Fulkerson method, clos
 A (flow) network is a directed graph over a finite set of vertices $V$ and edges $E$, where each edge $(u,v)\in E$ is labeled by a positive real-valued capacity $c(u,v)>0$.
 Moreover, there are two distinct vertices $s,t\in V$, which are called \emph{source} and \emph{sink}. 
 
-A \emph{preflow} $f$ on a network is a labeling of the edges with real values satisfying the following constraints: 1) \emph{Capacity constraint}: the flow on each edge is a non-negative value smaller or equal to the edge's capacity; 2) \emph{Non-generation constraint}: For all vertices except $s$ and $t$, the sum of flows over all incoming edges is not smaller than the sum of flows over all outgoing edges.
-We define the \emph{excess} flow $x_f(u)$ of a node $u$ to be the difference of the incoming and outgoing flow of $u$.
-Intuitively, a \emph{preflow} must not send more flow over an edge than its capacity allows, and only the source node may generate flow. 
-The excess flow is the amount of flow that is stuck at a node, \ie which flows in but does not flow out.
-A \emph{flow} is a \emph{preflow} that satisfies the \emph{Conservation constraint}: For all vertices except $s$ and $t$, the excess flow is zero.
-Intuitively, only the source may generate flow, and only the sink may consume flow, and for all other nodes, the incoming flow must be equal to the outgoing flow.
+A \emph{flow} $f$ on a network is a labeling of the edges with real values satisfying the following constraints: 1) \emph{Capacity constraint}: the flow on each edge is a non-negative value smaller or equal to the edge's capacity; 2) \emph{Conservation constraint}: For all vertices except $s$ and $t$, the sum of incoming flows equals the 
+sum of outgoing flows.
+% 
+% \emph{Non-generation constraint}: For all vertices except $s$ and $t$, the sum of flows over all incoming edges is not smaller than the sum of flows over all outgoing edges.
+% We define the \emph{excess} flow $x_f(u)$ of a node $u$ to be the difference of the incoming and outgoing flow of $u$.
+% Intuitively, a \emph{preflow} must not send more flow over an edge than its capacity allows, and only the source node may generate flow. 
+% The excess flow is the amount of flow that is stuck at a node, \ie which flows in but does not flow out.
+% A \emph{flow} is a \emph{preflow} that satisfies the \emph{Conservation constraint}: For all vertices except $s$ and $t$, the excess flow is zero.
+% Intuitively, only the source may generate flow, and only the sink may consume flow, and for all other nodes, the incoming flow must be equal to the outgoing flow.
 The value of a flow $f$ is denoted by $|f|$, and defined to be the sum over the outgoing flows of $s$ minus the sum over the incoming flows of $s$.
 Given a network $G$, the maximum flow problem is to find a flow with a maximum value among all flows of the network. 
 
@@ -285,7 +297,8 @@ by any \emph{augmenting flow} $f'$, \ie any flow in the residual graph:
 Note that, for any edge in the network, the augmenting flow in the same direction is added to the flow, while the augmenting flow in the opposite direction is subtracted. 
 This matches the intuition of passing flow in the indicated direction, by either increasing or decreasing the flow of an edge in the network.
 
-The correctness of the Ford-Fulkerson algorithm follows from the Ford-Fulkerson theorem, which is usually stated as the following three statements being equivalent:
+The correctness of the Ford-Fulkerson algorithm follows from the Ford-Fulkerson theorem, which is also known as min-cut-max-flow theorem.
+It states that the following three propositions are equivalent:
 \begin{enumerate}
 \item $f$ is a maximum flow in a network $G$.
 \item there is no augmenting path in the residual graph $G_f$.
@@ -424,9 +437,9 @@ The Isabelle Refinement Framework also supports data refinement. The representat
 which relates concrete with abstract results: Given a relation \isai{R}, \isai{\<Down>R m} is the set of concrete results that are related to an 
 abstract result in \isai{m} by \isai{R}. If \isai{m = fail}, then also \isai{\<Down>R m = fail}.
 
-In a typical program development, one first comes up with an initial version \isai{m_0} of
+In a typical program development, one first designs an initial version \isai{m_0} of
 the algorithm and its specification \isai{P,Q}, and shows \isai{P ==> m_0 <= spec Q}. Then, one iteratively provides refined versions \isai{m$_i$} of the algorithm,
-proving \isai{m$_i$ <= \<Down>R$_i$ m$_{i-1}$}. Using transitivity and composability of data refinement, one 
+proving \isai{m$_i$ <= \<Down>R$_i$ m$_{i-1}$}. Using transitivity and composability of refinement, one 
 gets \isai{P ==> m$_i$ <= \<Down>R$_i$...R$_1$ spec Q}, showing the correctness of the refined algorithm.
 If no data refinement is performed, \isai{R$_i$} is set to the identity relation, in which case \isai{\<Down>R$_i$} becomes the identity function.
 
@@ -500,29 +513,34 @@ results in a program that refines the original program. This gives us a natural 
   Having defined the measure function and shown that it decreases on augmentation, it is straightforward to refine the partial correct while loop to a total correct one. Moreover, to make explicit the bound on the number of loop iterations, we instrument the loop to count its iterations, and assert the upper bound after the loop.
 
 
-\section{The Generic Push-Relabel Algorithm}  
-  We present our formalization of the generic push relabel algorithm of Goldberg et al.~\cite{GoTa88}. 
+\section{The Generic Push-Relabel Algorithm}\label{sec:gen-prpu}
+  We present our formalization of the generic push relabel algorithm of Goldberg and Tarjan~\cite{GoTa88}. 
   Again, our formalization closely follows the textbook presentation of Cormen et al.~\cite{CLRS09}.
+  
+  Push-relabel algorithms are based on a generalization of flows called \emph{preflows}: 
+  The conservation constraint is relaxed to allow more incoming flow than outgoing flow on a vertex.
+  For a vertex $u\in V$, the \emph{excess} $x_f(u)$ is the difference between incoming and outgoing flow. 
+  For a preflow, the excess of any node but the source must not be negative.
+  A non-sink vertex with positive excess is called \emph{active}. Thus, a preflow without any active vertices is actually a flow.
+  
   The push-relabel algorithm maintains a preflow $f$ and a height-labeling $l: V \to \mathbb {N}$ of the nodes, 
   with the invariant that for every edge $(u, v)$ of the residual graph we have that $l(u) \le l(v) + 1$. 
   Moreover, the height of the source is fixed to $\left\vert{V}\right\vert$, and the height of the sink is fixed to $0$.
-  By generalizing the labeling invariant to paths, we get that for each path $p$ from $u$ to $v$, we have $l(u) \le l(v) + |p|$.
+  By generalizing the labeling invariant to paths, we get that for each path $p$ from $u$ to $v$ in the residual graph, we have $l(u) \le l(v) + |p|$.
   This implies that there cannot be a path from $s$ to $t$: The length of any (simple) path is less than $|V|$, however, a valid labeling 
-  implies a length greater than or equal to $|V|$. 
+  implies a length greater than or equal to $|V|$. Upon termination of the algorithm, there will be no active nodes. 
+  Thus, the preflow is actually a flow, and as we have no $s$--$t$ paths, the Ford-Fulkerson theorem implies that it is maximal.
   
-  A node that has positive excess is called \emph{active}. Upon termination of the algorithm, there will be no active nodes. 
-  Thus, the preflow is actually a flow, and as we have no $s$--$t$ paths, the min-cut-max-flow theorem implies that it is maximal.
-  
-  Initially, the height of all nodes but the source is $0$, and the outgoing edges of the source get the maximum possible flow, 
-  and all other edges get no flow at all. Then, the algorithm repeats the following operations:
+  The push relabel algorithm initializes the heights of all nodes but the source to zero. Moreover, the outgoing edges of the source are 
+  set to carry maximum flow, all other edges get zero flow. Then, the algorithm repeats the following operation as long as they apply:
   \begin{description}
-    \item[push] Send as much flow as possible over an edge $(u,v)$ with $l(u) = l(v)+1$. The maximum possible flow is constrained
-      by the residual capacity of the edge, and the excess flow available at $u$.
-    \item[relabel] Increase the height of an active (non-sink) node from which no push operation is possible. 
-      The height is increased to the minimum value such that a push becomes possible.
+    \item[$\textrm{push}(u,v)$] for an edge $(u,v)$ of the residual graph with $l(u) = l(v)+1$ and $u$ active: Move as much flow as possible from $u$ to $v$.
+    The maximum possible flow is constrained by the residual capacity of the edge, and the excess flow available at $u$.
+    \item[$\textrm{relabel}(u)$] for an active node $u$ from which no push operation is possible: Increase the height of $u$ to the minimum value such that a push
+      becomes possible.
   \end{description}
-  The algorithm is generic in the sense that it leaves open the order in which the push and relabel operations on the different nodes and edges are performed.
-  The algorithm terminates if no more operations apply. Then, there are no active nodes left, and the algorithm has constructed a maximum flow.
+  Obviously, if none of the operations apply, all nodes are inactive and the resulting preflow is a maximum flow.
+  The algorithm is generic in the sense that it leaves open the order in which the operations are applied to the different nodes and edges.
   
 \subsection{Formalization of the Generic Algorithm}
 For the complexity reasoning, we will count the different types of operations. Thus, it is convenient to formalize the algorithm as a labeled transition system
@@ -535,95 +553,110 @@ over flows and heights, the labels indicating the performed operation:
 \end{lstlisting}  
 Here, the \isai{inductive_set} construction defines the least relation that can be derived by the specified rules. 
 A push operation can be implemented in time $O(1)$, (only the flow on a single edge has to be modified) and a relabel operation can be implemented in time $O(V)$.
-(to find the new height, we have to consider the heights of all adjacent nodes in the residual graph) To this end, we define 
-\isai{cost PUSH == 1 | cost RELABEL == card(V)}. We prove the following theorem:
+(to find the new height, we have to consider the heights of all successor nodes in the residual graph) We define 
+\isai{cost PUSH == 1 | cost RELABEL == card(V)} and prove the following theorem:
 \begin{lstlisting}
 theorem (in Network) generic_preflow_push_OV2E_and_correct:
   assumes "((f_0, l_0), p, (f, l)) \<in> pr_lts^*" 
   shows "(\<sum>x<-p. cost x) \<le> 38 * (card V)$^2$ * card E"
     and "(f,l)\<notin>Domain pr_lts --> isMaxFlow f"
 \end{lstlisting}  
-where \isai$(f_0,l_0)$ is the initial flow and height-labeling. Intuitively, the cost of any (partial) run \isai$p$ is bounded by $O(V^2E)$, and if the 
+where \isai$(f_0,l_0)$ is the initial flow and height-labeling and \isai{pr_lts^*} denotes the reflexive transitive closure of \isai{pr_lts}. 
+Intuitively, the cost of any (partial) run \isai$p$ from the initial state to $(f,l)$ is bounded by $O(V^2E)$, and if the 
 run is complete, \ie no more operations apply (\isai$(f,l)\<notin>Domain pr_lts$), the resulting flow is maximal. 
 
-For the proof of this theorem, we follow the presentation of Cormen~\cite{CLRS09}. 
-However, at several places, we trade precision of the constant for simplicity of the proof. 
-Thus, our constant of $38$ is somewhat higher than what would result from Cormen's proof.
+For the proof of this theorem, we follow the presentation of Cormen et al.~\cite{CLRS09}.
+The correctness proof shows that the algorithm maintains a valid labeling, and its formalization poses no further difficulties. 
+It consists of less than 500 lines, and took us only a few days to complete.
 
-For the correctness argument, we show that the operations of the algorithm maintain a valid labeling, and that existence of an active node implies applicability of 
-a push or relabel operation.
-The complexity argument is more tricky: First, we show that the labels of each node remain smaller than $2|V|$. This bounds the number of relabel operations to $O(V^2)$.
-For the push operations, we first define a push to be \emph{saturating}, if the excess at the source node of the push is not less than the capacity of the edge.
+The complexity argument is more tricky. Instead of defining a single measure function,
+Cormen counts the different types of operations separately, using quite involved arguments.
+For our formalization, we have adapted some Cormen's proofs, trading precision of the constant factors for simplicity of the formalization. 
+Thus, our constant of $38$ is somewhat higher than the $17$ that would result from Cormen's proof.
+
+First, we show that the labels of each node remain smaller than $2|V|$. This bounds the number of relabel operations to $O(V^2)$.
+For the push operations, we define a push to be \emph{saturating}, if the excess at the source node of the push is not less than the capacity of the edge.
 In this case, the edge is completely saturated by the push and disappears from the residual graph. However, the source node of the push remains active.
 On the other hand, a non-saturating push deactivates the source node of the push.
 
 We count the number of saturating and non-saturating pushes separately. For saturating pushes, we regard the number of saturating pushes for each edge $(u,v)$ during execution of the algorithm: After a saturating push, the edge has disappeared from the residual graph. Thus, before the next saturating push on the same edge, 
 there must be an operation that restores the edge. This can only be a push on the reverse edge $(v,e)$. 
 However, this push can only occur after the labeling of $v$ has increased. This can only happen $O(V)$ times, which yields a bound of $O(VE)$ on the number 
-of saturating push operations. Finally, the number of non-saturating pushes is bounded by defining a potential function that is decreased by non-saturating pushes,
-and increased by at most $O(V)$ by the other operations. The initial potential is $O(V)$, and with the already established bounds on the other operations we get a bound of
+of saturating push operations. 
+Finally, the number of non-saturating pushes is bounded by defining a potential function that is decreased by a non-saturating push.
+A saturating push or relabel operation increases the potential by $O(V)$.
+The initial potential is $O(V)$, and with the already established bounds on the other operations we get a bound of
 $O(V^3 + V^2E) = O(V^2E)$ on the number of non-saturating push operations. Combining the bounds for the different operation types with the costs for the operations 
 then yields the desired time complexity bound of $O(V^2E)$.
 
-The simple structure of the generic algorithm allowed us to conveniently define it as labeled transition system, such that the above intuitive arguments could be formalized
-as counting different operation types on execution paths of the algorithm. Moreover, the powerful Isabelle/HOL standard library, in particular the lemmas for summations
-over finite sets, were very helpful. Anyway, the whole complexity proof is roughly 1000 lines of Isabelle text, and took a few men weeks to complete.
+The simple structure of the generic algorithm allowed us to conveniently define it as labeled transition system, such that the above informal proof could be formalized
+by inductive arguments over the runs of the algorithm.
+Moreover, the powerful Isabelle/HOL standard library, in particular the lemmas for summations
+over finite sets, were very helpful to keep the formalization effort manageable. 
+Anyway, the whole complexity proof is roughly 1000 lines of Isabelle text, and took a few weeks to complete.
+This includes the time that we spent on an initial termination proof that used simpler arguments, but did not derive an exact complexity bound.
 
-\section{Implementing the Push-Relabel Algorithm}
-The generic algorithm does not specify the order in which the operations should be applied. 
-Moreover, choosing the right ordering may further decrease the worst-case time complexity, and, more important, the practical efficiency of the algorithm.
+\section{Instantiating the Generic Push-Relabel Algorithm}\label{sec:prpu-inst}
+The generic algorithm does not specify the order in which the operations are applied. 
+Choosing the right order decreases the worst-case time complexity, and, more important, the practical efficiency of the algorithm.
 
-We refine the generic push-relabel algorithm to different implementations. However, these have a more complicated algorithmic structure that
-prevents a convenient specification as labeled transition system, and thus a complexity proof in the style of the generic algorithm.
-Thus, we specify the algorithms using the Monadic Refinement Framework, and only prove correctness and termination 
-(which we get for free, as the complexity bound for the generic algorithm is also valid for all implementations).
-We leave it to future work to integrate complexity reasoning tools into the Refinement Framework and prove tighter complexity bounds for the specific implementations.
+We consider two common instantiations of the generic algorithm: The relabel-to-front algorithm~\cite{CLRS09}, and tzhe FIFO push-relabel algorithm~\cite{GoTa88}.
+Both have a theoretical time complexity of $O(V^3)$, which is better than the $O(V^2E)$ bound of the generic algorithm.
+However, the more complicated structure of these algorithms prevent a convenient specification as labeled transition system, and thus 
+a complexity proof in the style of the generic algorithm.
+Instead, we use the Monadic Refinement Framework to specify the algorithms and only prove correctness and 
+termination.\footnote{Which we get for free from the bound of the generic algorithm.} We leave it to future work to integrate complexity reasoning tools into 
+the Refinement Framework and prove the tighter complexity bounds for the specific implementations.
+
+A general idea of most efficient implementations is to \emph{discharge} a node by repeatedly applying push operations until the node gets inactive or needs to be relabeled.
 
 \subsection{Relabel-to-Front Algorithm}
-A general idea of the implementation is to \emph{discharge} a node by repeatedly applying push and relabel operations to the same node, until it gets inactive.
-Cormen et al.\ present the relabel to front algorithm, which scans through a list of all nodes, discharging every node as it is visited.
-If the node gets relabeled during discharging, it is moved to the front of the list, and the scan of the list is restarted at the beginning of the list.
+Cormen et al.\ present the relabel to front algorithm.
+It discharges a node until it gets inactive, applying relabel operations as necessary. 
+Moreover, if a node was discharged without being relabeled, the already saturated edges during this discharge are stored, and not considered 
+during the next discharge. This reduces the work required to find the next edge to push.
+The algorithm scans through a list of all nodes, discharging every node as it is visited.
+If the node gets relabeled during discharging, it is moved to the front of the list, and the scan of the list begins anew.
 The algorithm terminates if it reaches the end of the list. 
-During discharging a node $u$, the algorithm iterates over the list of all adjacent nodes $v$ in the network, and checks whether there is an edge $(u,v)$ in 
-the residual graph. When the discharge operation stops without relabeling $u$, the current position in the list of adjacent nodes is stored, and 
-the next discharge operations starts at exactly this position.
 
 The main idea of the correctness proof is to show that all nodes left of 
 the current position in the list are inactive. Thus, upon reaching the end of the list, all nodes are inactive, and the current flow is maximal.
 In order to show maintenance of this invariant, one has to strengthen it by adding that the list is a topological ordering of the 
 \emph{admissible network}, which consists of all edges $(u,v)$ of the residual graph with $l(u) = l(v) + 1$. 
 
-Following the outline by Cormen et al., and using the Isabelle Refinement Framework to conveniently describe the abstract algorithm,
+Following the proof by Cormen et al., and using the Isabelle Refinement Framework to conveniently describe the abstract algorithm,
 the correctness proof offered no surprises. It is about 700 lines of Isabelle text plus 150 lines of general lemmas on topological orderings, 
 and took only a few days to develop.
 
 \subsection{FIFO Push-Relabel Algorithm}
 While the relabel-to-front algorithm has a theoretical worst case complexity of $O(V^3)$, it seems to be rather inefficient in practice.\footnote{We have not found any implementation based on relabel-to-front, and our own experiments indicate a rather poor performance.}
 An alternative implementation is the FIFO push-relabel algorithm, which maintains a first-in-first-out queue of the active nodes. 
-In each iteration, it pulls a node from the FIFO, and repeatedly pushes flow out of it.
-If no push operations are possible any more, but the node is still active, it is relabeled and appended to the FIFO.
+In each iteration, it dequeues a node from the FIFO, and tries to discharge it by only using push operations.
+If the node is still active, it is relabeled and enqueued.
 
-The FIFO push relabel algorithm has several advantages: It's correctness is straightforward to prove, 
-the only required additional invariant is that the queue contains exactly the active nodes. 
+
+The FIFO push-relabel algorithm has several advantages: It's correctness is straightforward to prove, 
+as the only required additional invariant is that the queue contains exactly the active nodes. 
 Moreover, it performs well in practice, and we have found several implementations of it~\cite{ChGo97,ICPC-notebook}.
 
 Our algorithm follows the implementation that we found in the Stanford ACM-ICPC notebook~\cite{ICPC-notebook}, 
 which uses an additional gap heuristics: If there is a value $0<k<|V|$ such that there is no node that has height $k$, 
-all nodes with $k<l(v)<|V|$ may be relabeled to $|V|+1$, preserving a valid labeling. In practice, this may drastically accelerate convergence of the algorithm,
-as it prevents unnecessary pushes of flow towards the sink when the path to the sink is already blocked.
-The correctness proof of this heuristics is straightforward from the definitions, and also the overall correctness proof 
-is straightforward: It's size is about 400 lines of code, and it took roughly a day to complete.
+all nodes with $k<l(v)<|V|$ may be relabeled to $|V|+1$, preserving a valid labeling. 
+This heuristics prevents unnecessary pushes of flow towards the sink when the path to the sink is already blocked.
+The correctness of the heuristics follows easily from the definitions of a valid height-labeling.
+In total, the correctness proof of the FIFO push-relabel algorithm is about 400 lines of code and, building on the experience from relabel-to-front, it 
+took only a day to complete.
 
   
     
 \section{Refinement to Executable Code}\label{sec:executable}
   In the previous section, we have presented our abstract formalization of the Edmonds-Karp and push-relabel algorithms.
   However, we left open several algorithmic aspects. For example, we did not specify how to find a shortest augmenting path.
-  Moreover, some of the used operations require additional auxiliary data structures to be maintained. For example, 
-  we maintain the current excess of each node explicitly, instead of summing up the flows of incoming and outgoing edges each time 
+  Moreover, some of the operations require additional auxiliary data structures to be maintained. For example, 
+  we maintain the current excess of each node explicitly, instead of summing up the incoming and outgoing flows each time 
   we need to check whether a node is active.
   Finally, we have to specify the concrete data structures that we want to use for implementation. 
-  For example, the residual graph is modeled as a function from edges to capacities on the abstract level. In the implementation, we want to use a two-dimensional array.
+  For example, the residual graph is modeled as a function from edges to capacities on the abstract level. In the implementation, we use a two-dimensional array.
   
   In this section, we outline the further refinement steps that were necessary to obtain an efficient implementation.
 
@@ -631,7 +664,8 @@ is straightforward: It's size is about 400 lines of code, and it took roughly a 
   A standard way to find a shortest path in a graph is breadth first search (BFS). Luckily, we had already formalized a BFS algorithm as an example for the 
   Isabelle Refinement Framework. Unfortunately, this algorithm only computed the minimum distance between two nodes, without returning an actual path. For this project, we extended the formalization accordingly, and added an efficient imperative implementation, using the same stepwise refinement techniques as for the main algorithm. Note that the resulting BFS algorithm is independent, and can be reused for finding shortest paths in other applications. 
   
-  Implementing shortest path finding by BFS in Edmonds-Karp algorithm yields a specification that algorithmically describes all major operations, but still leaves open the data structures used for implementation.
+%   Implementing shortest path finding by BFS in the Edmonds-Karp algorithm yields a specification that algorithmically describes all major operations, 
+%   but still leaves open the data structures used for implementation.
   
 %   
 %   We briefly report on our adapted formalization here, which is displayed in Figure~\ref{TODO: Snippet}: 
@@ -655,8 +689,8 @@ is straightforward: It's size is about 400 lines of code, and it took roughly a 
 %   Using this to refine the Edmonds-Karp formalization yields a program that algorithmically specifies all major operations.
      
   \subsection{Manipulating Residual Graphs Directly}\label{sec:impl_res_graph}
-  Next, we observe that the Edmonds-Karp algorithm is phrased in terms of a flow, which is updated until it is maximal. 
-  In each iteration, the augmenting path is searched on the residual graph induced by the current flow.
+  The Edmonds-Karp algorithm is phrased in terms of a flow, which is updated until it is maximal. 
+  In each iteration, an augmenting path is searched on the residual graph induced by the current flow.
   Obviously, computing the complete residual graph in each iteration is a bad idea. 
   One solution to this problem is to compute the edges of the residual graph on the fly from the network and the current flow.
   Although this solution seems to be common, it has the disadvantage that for each edge of the residual graph, two (or even three) 
@@ -674,29 +708,28 @@ is straightforward: It's size is about 400 lines of code, and it took roughly a 
   relates pairs of excess values and residual graphs to the corresponding flow.
   
   \subsection{Height Frequencies}
-  For an efficient implementation of the gap heuristics, we introduce an explicit map from height-values to then number of nodes with this height.
-  Using this map, it is easy to detect when we relabel the last node of a specific height and the gap heuristics applies.
+  For an efficient implementation of the gap heuristics, we introduce an explicit map from height-values to the number of nodes with this height.
+  Using this map, it is easy to detect when we relabel the last node of a specific height such that the gap heuristics applies.
   
   \subsection{Implementing Augmentation}    
-  In our abstract formalization, which matches the presentation in Section~\ref{sec:background}, we have formulated augmentation by first defining 
+  In our abstract formalization of the Ford-Fulkerson method, which matches the presentation in Section~\ref{sec:background}, we have formulated augmentation by first defining 
   the residual capacity $c_p$ of the augmenting path. Using $c_p$, we have defined the residual flow $f_p$, which was finally added to the current flow.
   In the refinement to operate on residual graphs, we have refined this to augment the residual graph.
   For the implementation, we compute the residual capacity in a first iteration over the augmenting path, and modify the residual graph 
   in a second iteration. Proving this implementation correct is straightforward by induction on the augmenting path.
       
   \subsection{Algorithms for Relabel and Discharge}    
-  For the discharge operation, it is straightforward to find the new label by iterating over the adjacent edges in the residual graph.
+  For the relabel operation, it is straightforward to find the new label by iterating over the outgoing edges in the residual graph.
   The discharge operation is a bit more tricky: Abstractly, we nondeterministically select a new edge to push, until we find no more edges.
-  For the push-to-front algorithm, we select the edges from a set of unprocessed edges which is maintained globally.
-  In the concrete implementation, however, we fold over a list of edges. The structure of the resulting concrete algorithms is somewhat different from the structure
-  of the abstract algorithm --- too different for the heuristics of our verification condition generator. Thus, we had to manually prove some rules specifically 
-  tailored to the required structural changes.
+  In the concrete implementation, however, we fold over the list of successor nodes.
+  This structural difference between abstract and concrete algorithm cannot be handled by the heuristics of the Refinement Framework's verification condition generator.
+  Thus, we had to manually prove some refinement rules that are specifically tailored to our case.
       
   \subsection{Computing Successors}
   In order to find an augmenting path, the BFS algorithm has to compute the successors of a node in the residual graph. 
-  Similar, the relabel operation has to iterate over all successors to find the new minimal labeling, and the discharge operations iterate over all outgoing edges of a node.
-  Although these iterations can be implemented on the edge labeling function by iterating over all nodes, this implementation tends to be inefficient for sparse graphs,
-  where we would have to iterate over many possible successor nodes just to find that there is no edge. 
+  Similar, the relabel operation has to iterate over all successors to find the new minimal labeling, and the discharge operation iterates over all outgoing edges of a node.
+  Although these iterations can be implemented by iterating over all nodes, this would be inefficient for sparse graphs,
+  where we would iterate over many possible successor nodes just to find that there is no edge. 
   
   A common optimization is to pre-compute an \emph{adjacency map} from nodes to adjacent nodes in the network. 
   As an edge in the residual graph is either in the same or opposite direction of 
@@ -705,11 +738,7 @@ is straightforward: It's size is about 400 lines of code, and it took roughly a 
   
 
   \subsection{Using Efficient Data Structures}\label{sec:impl_data_structures}
-  In a final step, we have to choose efficient data structures for the algorithm. 
-
-  %   The objects that the algorithm works with are
-%   capacities, nodes, edges, the graph of the input network, residual graphs, the adjacency map, paths, and the resulting maximum flow. 
-  
+  In a final step, we choose efficient data structures. 
   We implement capacities as (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation as fixed precision numbers would also be possible,
   but requires additional checks on the network to ensure that no overflows can happen. 
   % TODO: Can we trick the Java reference implementation on integer overflow?
@@ -735,10 +764,10 @@ is straightforward: It's size is about 400 lines of code, and it took roughly a 
   in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
   expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
   
-  For the push-relabel algorithms, the map from nodes to the excess, and the height frequency map are implemented by arrays. 
+  For the push-relabel algorithms, the maps from a node to its height and excess, as well as the height frequency map are implemented by arrays. 
   The queue of the FIFO push-relabel algorithm is implemented by two stacks, yielding amortized constant time enqueue and dequeue operations.
-  Similar, the list of the relabel to front algorithm is implemented as two lists, \emph{left} and \emph{right}, that contain the nodes left and right of the current position,
-  the left list being stored in reverse order. Thus, advancing the position is implemented in constant time by popping the first element of the right list, and pushing 
+  Similarly, the list of the relabel-to-front algorithm is implemented by two lists, \emph{left} and \emph{right}, that contain the nodes left and right of the current position,
+  the left list being stored in reverse order. Advancing the position is implemented in constant time by popping the first element of the right list, and pushing 
   it to the left list. Resetting the position to the front of the list is implemented by pushing all elements from the left list to the right list. 
   By accounting these push operations to the operations that created the left list, resetting the position can be estimated to be amortized constant time.
   
@@ -748,17 +777,17 @@ is straightforward: It's size is about 400 lines of code, and it took roughly a 
   For example, the BFS algorithm computes a predecessor map $P$. It then iterates over $P$ to extract the shortest path as a list of edges.
   A subsequent iteration over this list computes the residual capacity, and a final iteration performs the augmentation. 
   This calls for a deforestation optimization to get rid of the intermediate list, and iterate only two times over the predecessor map directly.
-  Also the FIFO queue could be implemented by a ring buffer based on an array, yielding true constant-time operations with less overhead.
+  Also the FIFO queue could be implemented by a ring buffer based on a fixed size array, yielding true constant-time operations with less overhead.
   Fortunately, our profiling data shows that these operations do not significantly contribute to the runtime of our implementations, such that 
   we leave these optimizations for future work.
   
-  Note that we performed the last refinement step using our Sepref tool~\cite{La15,La16}, which provides tool support for refinement from the
-  purely functional programs of the Isabelle Refinement Framework into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
-  The formalization of this refinement step consists of setting up the mappings between the abstract and concrete data structures,
+  Note that we performed the last refinement step using our Sepref tool~\cite{La15,La16}, which automates the refinement from 
+  purely functional programs into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
+  This refinement step consists of setting up the mappings between the abstract and concrete data structures,
   and then using Sepref to synthesize the Imperative/HOL programs and their refinement proofs.
   Finally, Imperative/HOL comes with a setup for the Isabelle code generator~\cite{Haft09,HaNi10} to generate imperative programs in OCaml, SML, Scala, and Haskell.
 
-  \subsection{Network Checker}
+  \subsection{Network Checker and Main Correctness Theorem}
   Additionally, we implemented an algorithm that takes as input a list of edges, a source node, and a target node.
   It converts these to a capacity matrix and an adjacency map, and checks whether the resulting graph satisfies our network assumptions.
   We proved that this algorithm returns the correct capacity matrix and adjacency map iff the input describes a valid network,
