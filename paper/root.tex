@@ -45,6 +45,8 @@
 \usepackage{multirow}
 \usepackage{pgfplots}
 
+\usepgfplotslibrary{groupplots}
+
 
 \usepackage{packages/isabelle}
 \usepackage{packages/isabelletags}
@@ -1039,12 +1041,13 @@ Ford-fulkerson theorem.
   The results are shown in Figure~\ref{fig:benchmark}, in a double-logarithmic scale.
 
 
-\begin{figure}[!h]    
-  \begin{tikzpicture}[thick,scale=.8, every node/.style={scale=1}] %change the scales if you like to reduce the size
+\begin{figure}[!h]
+\begin{center}    
+  \begin{tikzpicture}[thick,scale=.75, every node/.style={scale=1}] %change the scales if you like to reduce the size
     \begin{groupplot}[
         group style={
             group size=2 by 3,
-            vertical sep=1.5cm,
+            vertical sep=1.4cm,
         }
     ]
     
@@ -1067,7 +1070,7 @@ Ford-fulkerson theorem.
     % legend information
       \addlegendimage{fill=gray, mark=square}
       \addlegendimage{fill=gray, mark=square*}
-      \addlegendimage{fill=gray, mark=*}
+      \addlegendimage{dashed, every mark/.append style={solid, fill=gray}, mark=*}
       \addlegendimage{fill=gray, mark=o}
       \addlegendimage{fill=gray, mark=otimes*}
       \addlegendentry{Edmonds-Karp, SML}
@@ -1092,7 +1095,7 @@ Ford-fulkerson theorem.
 		    5500 11.749    
 		  }; %Sparse, Edka, SML
 		  
-		  \addplot+[mark=*] table {
+		  \addplot+[dashed, every mark/.append style={solid, fill=gray},mark=*] table {
 		    1000 .024   
 		    1500 .054   
 		    2000 .103  
@@ -1149,7 +1152,7 @@ Ford-fulkerson theorem.
 		    1450	10.042 
 		  }; %Dense, Edka, SML 
       
-		  \addplot+[mark=*] table {
+		  \addplot+[dashed, every mark/.append style={solid, fill=gray},mark=*] table {
 		    1000	3.982
 		    1050	4.463
 		    1100	5.278
@@ -1343,10 +1346,12 @@ Ford-fulkerson theorem.
       }; %RPFGEN, Prpu, C  
     \end{groupplot}
     
-    \node at (group c1r3.east) [anchor=west, xshift= 1cm] {\ref{grouplegend}};
+    \node at (group c1r3.east) [anchor=west, xshift= 1.1cm] {\ref{grouplegend}};
   \end{tikzpicture}
+\end{center}
 \caption{Benchmark of different implementations. The x-axis shows the number of nodes, the y axis the execution time in seconds.}\label{fig:benchmark}
 \end{figure}
+
 
 
   We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
