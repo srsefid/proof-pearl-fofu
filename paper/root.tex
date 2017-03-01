@@ -662,118 +662,54 @@ took only a day to complete.
   
   In this section, we outline the further refinement steps that were necessary to obtain an efficient implementation.
 
-  \subsection{Using Breadth First Search}
-  A standard way to find a shortest path in a graph is breadth first search (BFS). Luckily, we had already formalized a BFS algorithm as an example for the 
-  Isabelle Refinement Framework. Unfortunately, this algorithm only computed the minimum distance between two nodes, without returning an actual path. For this project, we extended the formalization accordingly, and added an efficient imperative implementation, using the same stepwise refinement techniques as for the main algorithm. Note that the resulting BFS algorithm is independent, and can be reused for finding shortest paths in other applications. 
+  \subsection{Algorithms}
+  The most complex problem for which we specified no algorithm is finding a shortest augmenting path.
+  We use breadth first search (BFS) for this. We adapted a BFS formalization from the examples collection of the Isabelle Refinement Framework to
+  our needs and added an efficient imperative implementation. The resulting algorithm 
+  is independent of flow networks, and can be re-used to find shortest path in directed graphs also in other applications.
   
-%   Implementing shortest path finding by BFS in the Edmonds-Karp algorithm yields a specification that algorithmically describes all major operations, 
-%   but still leaves open the data structures used for implementation.
-  
-%   
-%   We briefly report on our adapted formalization here, which is displayed in Figure~\ref{TODO: Snippet}: 
-%   TODO: Reference to figure (line numbers?)
-%   The abstract algorithm keeps track of a set $C$ of current nodes, a set $N$ of new nodes, and a partial map $P$ from already visited nodes to predecessor nodes.
-%   Initially, only the start node is in $C$ and $N$ is empty. In each iteration of the loop, a node $u\in C$ is picked, and its successors $v$ that have not yet been 
-%   visited are added to $N$, and $P~v$ is set to $u$. If $C$ becomes empty, $C$ and $N$ are swapped. If the target node is encountered, the algorithm immediately terminates.
-%   Note that this implementation is a generalized version of the usual queue implementation of BFS: While a queue enforces a complete order on the encountered nodes, our 
-%   implementation only enforces an ordering between nodes on the current level and nodes on the next level. 
-% 
-%   For the actual algorithm, we wrap this algorithm by a procedure to handle the special case where source and target nodes are the same, and to extract a shortest path 
-%   from $P$ upon termination. Moreover, we implement the abstract specification of adding the successor nodes of a node by a loop.
-%   
-%   Finally, we prove the following theorem: %TODO: Not actually true, the impls are oly done in bfs2!
-% %     theorem
-% %       assumes "src∈V" 
-% %       shows "bfs src dst ≤ (spec p. 
-% %         case p of None ⇒ ¬conn src dst | Some p ⇒ shortestPath src p dst)"
-%   
-%   Obviously, the BFS algorithm refines the specification for obtaining a shortest path.
-%   Using this to refine the Edmonds-Karp formalization yields a program that algorithmically specifies all major operations.
-     
-  \subsection{Manipulating Residual Graphs Directly}\label{sec:impl_res_graph}
-  The Edmonds-Karp algorithm is phrased in terms of a flow, which is updated until it is maximal. 
-  In each iteration, an augmenting path is searched on the residual graph induced by the current flow.
-  Obviously, computing the complete residual graph in each iteration is a bad idea. 
-  One solution to this problem is to compute the edges of the residual graph on the fly from the network and the current flow.
-  Although this solution seems to be common, it has the disadvantage that for each edge of the residual graph, two (or even three) 
-  edges of the network and the flow have to be accessed. As edges of the residual graph are accessed in the inner loop, during 
-  the BFS, these operations are time critical.
-  
-  After our profiling indicated a hot spot on accessing the capacity matrices of the network and the flow, we switched to 
-  an algorithm that operates on a representation of the residual graph directly. This resulted in a speed-up of roughly a factor of two.
-  As the residual graph uniquely determines the flow (and vice versa), it is straightforward to phrase the
-  operations directly on the residual graph. Performing a data refinement of the flow \wrt the refinement 
-  relation $\{(c_f,f) \mid \text{$f$ is a flow}\}$ then yields the desired algorithm. 
-
-  For the push-relabel algorithms, we combine the transition from preflows to residual graphs with the introduction of an 
-  explicit map from nodes to their current excess values: The refinement relation $\{((x_f,c_f),f) \mid \text{$f$ is a flow}\}$
-  relates pairs of excess values and residual graphs to the corresponding flow.
-  
-  \subsection{Height Frequencies}
-  For an efficient implementation of the gap heuristics, we introduce an explicit map from height-values to the number of nodes with this height.
-  Using this map, it is easy to detect when we relabel the last node of a specific height such that the gap heuristics applies.
-  
-  \subsection{Implementing Augmentation}    
-  In our abstract formalization of the Ford-Fulkerson method, which matches the presentation in Section~\ref{sec:background}, we have formulated augmentation by first defining 
-  the residual capacity $c_p$ of the augmenting path. Using $c_p$, we have defined the residual flow $f_p$, which was finally added to the current flow.
-  In the refinement to operate on residual graphs, we have refined this to augment the residual graph.
-  For the implementation, we compute the residual capacity in a first iteration over the augmenting path, and modify the residual graph 
-  in a second iteration. Proving this implementation correct is straightforward by induction on the augmenting path.
-      
-  \subsection{Algorithms for Relabel and Discharge}    
-  For the relabel operation, it is straightforward to find the new label by iterating over the outgoing edges in the residual graph.
-  The discharge operation is a bit more tricky: Abstractly, we nondeterministically select a new edge to push, until we find no more edges.
+  Minor problems for which we had to develop algorithms are augmentation of the flow along the shortest path, and the relabel and discharge operations.
+  While it is straightforward to find the height to relabel a node with by iterating over the outgoing edges, the discharge operation is a bit more tricky:
+  Abstractly, we nondeterministically select a new edge to push, until we find no more edges.
   In the concrete implementation, however, we fold over the list of successor nodes.
   This structural difference between abstract and concrete algorithm cannot be handled by the heuristics of the Refinement Framework's verification condition generator.
-  Thus, we had to manually prove some refinement rules that are specifically tailored to our case.
-      
-  \subsection{Computing Successors}
-  In order to find an augmenting path, the BFS algorithm has to compute the successors of a node in the residual graph. 
-  Similar, the relabel operation has to iterate over all successors to find the new minimal labeling, and the discharge operation iterates over all outgoing edges of a node.
-  Although these iterations can be implemented by iterating over all nodes, this would be inefficient for sparse graphs,
-  where we would iterate over many possible successor nodes just to find that there is no edge. 
+  Thus, we had to manually prove some refinement rules that are specifically tailored to our case.  
   
-  A common optimization is to pre-compute an \emph{adjacency map} from nodes to adjacent nodes in the network. 
-  As an edge in the residual graph is either in the same or opposite direction of 
-  a network edge, it is enough to iterate over the adjacent nodes in the network, and check whether they are actual successors in the residual graph.
-  It is straightforward to show that this implementation actually returns the successor nodes in the residual graph.
+  \subsection{Additional Data}\label{sec:impl_add_data}
+  An important optimization is to let the algorithms manipulate residual graphs instead of flows: 
+  Most operations can be phrased to only access one edge of the residual graph, while they would 
+  need to access multiple edges if phrased on flows. At the end of the algorithm, the flow can be 
+  computed from the residual graph. 
+  An initial version of our Edmonds-Karp algorithm worked on flows, and switching to residual graphs yielded a speedup of roughly factor 2.
   
+  Another important optimization is to pre-compute an adjacency map of the network:
+  To find the successors of a node in the residual graph, it is enough to search among the adjacent nodes in the network. 
+  As iterations over successor nodes occur in the inner loops of the algorithms, this optimization is quite effective, in particular for sparse graphs.
 
+  Moreover, for the push-relabel algorithms, we introduce a map from nodes to their current excess value: 
+  A single lookup in this map is sufficient to compute the flow for a push operation --- instead of summing up all 
+  the incoming and outgoing flows.
+  
+  For the gap-heuristics, we introduce a height frequency map, which maps each height value to the number of nodes labeled with this value.
+  A single lookup in this map suffices to detect when we relabel the last node of a specific height such that the gap heuristics applies.
+  
+  
+  
   \subsection{Using Efficient Data Structures}\label{sec:impl_data_structures}
-  In a final step, we choose efficient data structures. 
+  In a final step, we refine our algorithms to use efficient data structures.
+  This step is partially automated by the Sepref tool~\cite{La15,La16}, which synthesizes imperative programs and 
+  the corresponding refinement proofs, based on a user defined mapping from abstract types to data structures.
+  The imperative programs are specified in Imperative HOL~\cite{BKHEM08}, which defines a heap monad for Isabelle/HOL.
+
   We implement capacities as (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation as fixed precision numbers would also be possible,
   but requires additional checks on the network to ensure that no overflows can happen. 
   % TODO: Can we trick the Java reference implementation on integer overflow?
-  
-  We implement nodes as natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
+  Nodes are represented by natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
   are realized as arrays of size $N\times N$ with row-major indexing, such that the successors of a node are close together in memory.
   The adjacency map of the network is implemented as an array of lists of nodes. 
   An augmenting path is represented by a list of edges, \ie a list of pairs of nodes. 
-  
-  
-%   For the BFS algorithm, we implement the sets $C$ and $N$ by lists, and the predecessor map $P$ as an array of \isai{node option}. 
-%   The successors of a node are represented as a list with no duplicate elements. The resulting path, which is extracted from $P$ upon termination of
-%   the BFS, is represented as a list of edges. 
-  
-  
-  The input network of the algorithm is represented as a function from network edges to capacities, which is tabulated into an array
-  to obtain the initial residual graph. This gives us some flexibility in using the algorithm, as any capacity matrix representation can be converted into a 
-  function easily, without losing efficiency for read-access. 
-  Similarly, our implementations expect an adjacency map as additional parameter, which is then tabulated into an array. This is convenient in our context, 
-  where a preprocessing step computes the adjacency map anyway.
-      
-  The output flow of the algorithms is represented as the residual graph. The user can decide how to compute the maximum flow from it. For example,
-  in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
-  expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
-  
-  For the push-relabel algorithms, the maps from a node to its height and excess, as well as the height frequency map are implemented by arrays. 
-  The queue of the FIFO push-relabel algorithm is implemented by two stacks, yielding amortized constant time enqueue and dequeue operations.
-  Similarly, the list of the relabel-to-front algorithm is implemented by two lists, \emph{left} and \emph{right}, that contain the nodes left and right of the current position,
-  the left list being stored in reverse order. Advancing the position is implemented in constant time by popping the first element of the right list, and pushing 
-  it to the left list. Resetting the position to the front of the list is implemented by pushing all elements from the left list to the right list. 
-  By accounting these push operations to the operations that created the left list, resetting the position can be estimated to be amortized constant time.
-  
-  
+  The height frequency map and the maps from nodes to heights and excess values are implemented as arrays.
+  The queue of the FIFO push-relabel algorithm and the list of the relabel-to-front algorithm are implemented by two stacks, allowing for amortized constant time operations.
 
   Note that there is still some optimization potential left in the choice of our data structures: 
   For example, the BFS algorithm computes a predecessor map $P$. It then iterates over $P$ to extract the shortest path as a list of edges.
@@ -783,11 +719,184 @@ took only a day to complete.
   Fortunately, our profiling data shows that these operations do not significantly contribute to the runtime of our implementations, such that 
   we leave these optimizations for future work.
   
-  Note that we performed the last refinement step using our Sepref tool~\cite{La15,La16}, which automates the refinement from 
-  purely functional programs into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
-  This refinement step consists of setting up the mappings between the abstract and concrete data structures,
-  and then using Sepref to synthesize the Imperative/HOL programs and their refinement proofs.
-  Finally, Imperative/HOL comes with a setup for the Isabelle code generator~\cite{Haft09,HaNi10} to generate imperative programs in OCaml, SML, Scala, and Haskell.
+  
+  Finally, we use the Isabelle code generator~\cite{Haft09,HaNi10} to extract programs in OCaml, SML, Scala, and Haskell.
+  
+%   
+%   
+%   automates the refinement from 
+%   purely functional programs into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
+%   
+%   choose efficient data structures. 
+%   
+%   
+%   We implement capacities as (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation as fixed precision numbers would also be possible,
+%   but requires additional checks on the network to ensure that no overflows can happen. 
+%   % TODO: Can we trick the Java reference implementation on integer overflow?
+%   
+%   We implement nodes as natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
+%   are realized as arrays of size $N\times N$ with row-major indexing, such that the successors of a node are close together in memory.
+%   The adjacency map of the network is implemented as an array of lists of nodes. 
+%   An augmenting path is represented by a list of edges, \ie a list of pairs of nodes. 
+%   
+%   
+% %   For the BFS algorithm, we implement the sets $C$ and $N$ by lists, and the predecessor map $P$ as an array of \isai{node option}. 
+% %   The successors of a node are represented as a list with no duplicate elements. The resulting path, which is extracted from $P$ upon termination of
+% %   the BFS, is represented as a list of edges. 
+%   
+%   
+%   The input network of the algorithm is represented as a function from network edges to capacities, which is tabulated into an array
+%   to obtain the initial residual graph. This gives us some flexibility in using the algorithm, as any capacity matrix representation can be converted into a 
+%   function easily, without losing efficiency for read-access. 
+%   Similarly, our implementations expect an adjacency map as additional parameter, which is then tabulated into an array. This is convenient in our context, 
+%   where a preprocessing step computes the adjacency map anyway.
+%       
+%   The output flow of the algorithms is represented as the residual graph. The user can decide how to compute the maximum flow from it. For example,
+%   in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
+%   expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
+%   
+%   For the push-relabel algorithms, the maps from a node to its height and excess, as well as the height frequency map are implemented by arrays. 
+%   The queue of the FIFO push-relabel algorithm is implemented by two stacks, yielding amortized constant time enqueue and dequeue operations.
+%   Similarly, the list of the relabel-to-front algorithm is implemented by two lists, \emph{left} and \emph{right}, that contain the nodes left and right of the current position,
+%   the left list being stored in reverse order. Advancing the position is implemented in constant time by popping the first element of the right list, and pushing 
+%   it to the left list. Resetting the position to the front of the list is implemented by pushing all elements from the left list to the right list. 
+%   By accounting these push operations to the operations that created the left list, resetting the position can be estimated to be amortized constant time.
+%   
+%   
+%   
+%   
+%   
+%   
+%   
+%   
+%   
+%   
+%   \subsection{Using Breadth First Search}
+%   A standard way to find a shortest path in a graph is breadth first search (BFS). Luckily, we had already formalized a BFS algorithm as an example for the 
+%   Isabelle Refinement Framework. Unfortunately, this algorithm only computed the minimum distance between two nodes, without returning an actual path. For this project, we extended the formalization accordingly, and added an efficient imperative implementation, using the same stepwise refinement techniques as for the main algorithm. Note that the resulting BFS algorithm is independent, and can be reused for finding shortest paths in other applications. 
+%   
+% %   Implementing shortest path finding by BFS in the Edmonds-Karp algorithm yields a specification that algorithmically describes all major operations, 
+% %   but still leaves open the data structures used for implementation.
+%   
+% %   
+% %   We briefly report on our adapted formalization here, which is displayed in Figure~\ref{TODO: Snippet}: 
+% %   TODO: Reference to figure (line numbers?)
+% %   The abstract algorithm keeps track of a set $C$ of current nodes, a set $N$ of new nodes, and a partial map $P$ from already visited nodes to predecessor nodes.
+% %   Initially, only the start node is in $C$ and $N$ is empty. In each iteration of the loop, a node $u\in C$ is picked, and its successors $v$ that have not yet been 
+% %   visited are added to $N$, and $P~v$ is set to $u$. If $C$ becomes empty, $C$ and $N$ are swapped. If the target node is encountered, the algorithm immediately terminates.
+% %   Note that this implementation is a generalized version of the usual queue implementation of BFS: While a queue enforces a complete order on the encountered nodes, our 
+% %   implementation only enforces an ordering between nodes on the current level and nodes on the next level. 
+% % 
+% %   For the actual algorithm, we wrap this algorithm by a procedure to handle the special case where source and target nodes are the same, and to extract a shortest path 
+% %   from $P$ upon termination. Moreover, we implement the abstract specification of adding the successor nodes of a node by a loop.
+% %   
+% %   Finally, we prove the following theorem: %TODO: Not actually true, the impls are oly done in bfs2!
+% % %     theorem
+% % %       assumes "src∈V" 
+% % %       shows "bfs src dst ≤ (spec p. 
+% % %         case p of None ⇒ ¬conn src dst | Some p ⇒ shortestPath src p dst)"
+% %   
+% %   Obviously, the BFS algorithm refines the specification for obtaining a shortest path.
+% %   Using this to refine the Edmonds-Karp formalization yields a program that algorithmically specifies all major operations.
+%      
+%   \subsection{Manipulating Residual Graphs Directly}\label{sec:impl_res_graph}
+%   The Edmonds-Karp algorithm is phrased in terms of a flow, which is updated until it is maximal. 
+%   In each iteration, an augmenting path is searched on the residual graph induced by the current flow.
+%   Obviously, computing the complete residual graph in each iteration is a bad idea. 
+%   One solution to this problem is to compute the edges of the residual graph on the fly from the network and the current flow.
+%   Although this solution seems to be common, it has the disadvantage that for each edge of the residual graph, two (or even three) 
+%   edges of the network and the flow have to be accessed. As edges of the residual graph are accessed in the inner loop, during 
+%   the BFS, these operations are time critical.
+%   
+%   After our profiling indicated a hot spot on accessing the capacity matrices of the network and the flow, we switched to 
+%   an algorithm that operates on a representation of the residual graph directly. This resulted in a speed-up of roughly a factor of two.
+%   As the residual graph uniquely determines the flow (and vice versa), it is straightforward to phrase the
+%   operations directly on the residual graph. Performing a data refinement of the flow \wrt the refinement 
+%   relation $\{(c_f,f) \mid \text{$f$ is a flow}\}$ then yields the desired algorithm. 
+% 
+%   For the push-relabel algorithms, we combine the transition from preflows to residual graphs with the introduction of an 
+%   explicit map from nodes to their current excess values: The refinement relation $\{((x_f,c_f),f) \mid \text{$f$ is a flow}\}$
+%   relates pairs of excess values and residual graphs to the corresponding flow.
+%   
+%   \subsection{Height Frequencies}
+%   For an efficient implementation of the gap heuristics, we introduce an explicit map from height-values to the number of nodes with this height.
+%   Using this map, it is easy to detect when we relabel the last node of a specific height such that the gap heuristics applies.
+%   
+%   \subsection{Implementing Augmentation}    
+%   In our abstract formalization of the Ford-Fulkerson method, which matches the presentation in Section~\ref{sec:background}, we have formulated augmentation by first defining 
+%   the residual capacity $c_p$ of the augmenting path. Using $c_p$, we have defined the residual flow $f_p$, which was finally added to the current flow.
+%   In the refinement to operate on residual graphs, we have refined this to augment the residual graph.
+%   For the implementation, we compute the residual capacity in a first iteration over the augmenting path, and modify the residual graph 
+%   in a second iteration. Proving this implementation correct is straightforward by induction on the augmenting path.
+%       
+%   \subsection{Algorithms for Relabel and Discharge}    
+%   For the relabel operation, it is straightforward to find the new label by iterating over the outgoing edges in the residual graph.
+%   The discharge operation is a bit more tricky: Abstractly, we nondeterministically select a new edge to push, until we find no more edges.
+%   In the concrete implementation, however, we fold over the list of successor nodes.
+%   This structural difference between abstract and concrete algorithm cannot be handled by the heuristics of the Refinement Framework's verification condition generator.
+%   Thus, we had to manually prove some refinement rules that are specifically tailored to our case.
+%       
+%   \subsection{Computing Successors}
+%   In order to find an augmenting path, the BFS algorithm has to compute the successors of a node in the residual graph. 
+%   Similar, the relabel operation has to iterate over all successors to find the new minimal labeling, and the discharge operation iterates over all outgoing edges of a node.
+%   Although these iterations can be implemented by iterating over all nodes, this would be inefficient for sparse graphs,
+%   where we would iterate over many possible successor nodes just to find that there is no edge. 
+%   
+%   A common optimization is to pre-compute an \emph{adjacency map} from nodes to adjacent nodes in the network. 
+%   As an edge in the residual graph is either in the same or opposite direction of 
+%   a network edge, it is enough to iterate over the adjacent nodes in the network, and check whether they are actual successors in the residual graph.
+%   It is straightforward to show that this implementation actually returns the successor nodes in the residual graph.
+%   
+% 
+%   \subsection{Using Efficient Data Structures}\label{sec:impl_data_structures}
+%   In a final step, we choose efficient data structures. 
+%   We implement capacities as (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation as fixed precision numbers would also be possible,
+%   but requires additional checks on the network to ensure that no overflows can happen. 
+%   % TODO: Can we trick the Java reference implementation on integer overflow?
+%   
+%   We implement nodes as natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
+%   are realized as arrays of size $N\times N$ with row-major indexing, such that the successors of a node are close together in memory.
+%   The adjacency map of the network is implemented as an array of lists of nodes. 
+%   An augmenting path is represented by a list of edges, \ie a list of pairs of nodes. 
+%   
+%   
+% %   For the BFS algorithm, we implement the sets $C$ and $N$ by lists, and the predecessor map $P$ as an array of \isai{node option}. 
+% %   The successors of a node are represented as a list with no duplicate elements. The resulting path, which is extracted from $P$ upon termination of
+% %   the BFS, is represented as a list of edges. 
+%   
+%   
+%   The input network of the algorithm is represented as a function from network edges to capacities, which is tabulated into an array
+%   to obtain the initial residual graph. This gives us some flexibility in using the algorithm, as any capacity matrix representation can be converted into a 
+%   function easily, without losing efficiency for read-access. 
+%   Similarly, our implementations expect an adjacency map as additional parameter, which is then tabulated into an array. This is convenient in our context, 
+%   where a preprocessing step computes the adjacency map anyway.
+%       
+%   The output flow of the algorithms is represented as the residual graph. The user can decide how to compute the maximum flow from it. For example,
+%   in order to compute the maximum flow value, only the outgoing edges of the source node have to be computed, which is typically less 
+%   expensive than computing the complete flow matrix. The correctness theorem of the algorithm abstractly states how to obtain the maximum flow from the output.
+%   
+%   For the push-relabel algorithms, the maps from a node to its height and excess, as well as the height frequency map are implemented by arrays. 
+%   The queue of the FIFO push-relabel algorithm is implemented by two stacks, yielding amortized constant time enqueue and dequeue operations.
+%   Similarly, the list of the relabel-to-front algorithm is implemented by two lists, \emph{left} and \emph{right}, that contain the nodes left and right of the current position,
+%   the left list being stored in reverse order. Advancing the position is implemented in constant time by popping the first element of the right list, and pushing 
+%   it to the left list. Resetting the position to the front of the list is implemented by pushing all elements from the left list to the right list. 
+%   By accounting these push operations to the operations that created the left list, resetting the position can be estimated to be amortized constant time.
+%   
+%   
+% 
+%   Note that there is still some optimization potential left in the choice of our data structures: 
+%   For example, the BFS algorithm computes a predecessor map $P$. It then iterates over $P$ to extract the shortest path as a list of edges.
+%   A subsequent iteration over this list computes the residual capacity, and a final iteration performs the augmentation. 
+%   This calls for a deforestation optimization to get rid of the intermediate list, and iterate only two times over the predecessor map directly.
+%   Also the FIFO queue could be implemented by a ring buffer based on a fixed size array, yielding true constant-time operations with less overhead.
+%   Fortunately, our profiling data shows that these operations do not significantly contribute to the runtime of our implementations, such that 
+%   we leave these optimizations for future work.
+%   
+%   Note that we performed the last refinement step using our Sepref tool~\cite{La15,La16}, which automates the refinement from 
+%   purely functional programs into imperative programs expressed in Imperative/HOL~\cite{BKHEM08}.
+%   This refinement step consists of setting up the mappings between the abstract and concrete data structures,
+%   and then using Sepref to synthesize the Imperative/HOL programs and their refinement proofs.
+%   Finally, Imperative/HOL comes with a setup for the Isabelle code generator~\cite{Haft09,HaNi10} to generate imperative programs in OCaml, SML, Scala, and Haskell.
 
   \subsection{Network Checker and Main Correctness Theorem}
   Additionally, we implemented an algorithm that takes as input a list of edges, a source node, and a target node.
@@ -1034,11 +1143,36 @@ Ford-fulkerson theorem.
 \end{comment}
   
 \section{Benchmarking}\label{sec:benchmark}
-  We have compared the running time of our algorithm in SML against an unverified reference implementation in Java, taken from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}. We have used MLton 20100608~\cite{MLton} and OpenJDK Java 1.7.0\_95, running on a standard laptop machine with a 2.8GHz i7 quadcore processor and 16GiB of RAM.
+  We have benchmarked our verified algorithms against unverified reference implementations.
+  We extract SML code for our verified Edmonds-Karp and FIFO push-relabel algorithms, and compile with MLton 20100608~\cite{MLton}.
   
-  We have done the comparison on randomly generated sparse and dense networks, the sparse networks having a \emph{density} (${} = \frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
-  For sparse networks, we varied the number of nodes between $1000$ and $5500$, for dense networks between $1000$ and $1450$.
-  The results are shown in Figure~\ref{fig:benchmark}, in a double-logarithmic scale.
+  For the Edmonds-Karp algorithm, we use a reference implementation in Java from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}, which 
+  is compiled and ran with (TODO, Reza's machine?) OpenJDK Java 1.8.0.
+  As data set, we use randomly generated sparse and dense networks, the sparse networks having a \emph{density} (${} = \frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
+  
+  For the push-relabel algorithm, we use the C++ implementation from the Stanford ACM-ICPC notebook~\cite{ICPC-notebook}, which served as 
+  a template for our verified FIFO push-relabel algorithm. Moreover, we use a highly optimized C implementation of a FIFO push-relabel 
+  algorithm with various additional heuristics by Cherkassky et al.~\cite{ChGo97}. These were compiled using (TODO: Reza's machine) gcc 5.4 at optimization level 4.
+  The data set consists of networks from the DIMACS implementation challenge~\cite{JGC93}: 
+  The ``Goldberg bad case networks'' from the ``Washington'' generator, which are tailored to be hard for push-relabel algorithms, 
+  the ``fully dense acyclic networks'' of Waissi, and the RMFGEN networks of Goldfarb and Grigoriadis. 
+  
+  The tests were run on a standard laptop machine with a (TODO: Reza's machine) 2.8GHz i7 quadcore processor and 16GiB of RAM.
+  
+  The results are displayed in Figure~\ref{fig:benchmark}, using a double-logarithmic scale.
+  Note that we only measure the time required to run the algorithms themselves, excluding the time required for parsing the input or the network checker.
+  
+  For the Edmonds-Karp algorithm, we observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, 
+  our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
+  operates on residual graphs (\cf Section~\ref{sec:impl_add_data}). Moreover, the Java implementation does not store the augmenting 
+  path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_data_structures}).
+  Our push-relabel algorithm is more than one order of magnitude faster than Edmonds-Karp algorithm.
+  
+  For the push-relabel algorithms, our verified algorithm is roughly a factor of 8 (TODO) slower than the unverified C++ implementation.
+  The highly optimized C implementation is, depending on the test case, one to two orders of magnitudes faster. 
+  On the ``Goldberg Bad Case'' networks, which are designed as worst-case problems for push-relabel algorithms, 
+  even Edmonds-Karp algorithm is competitive to the simple FIFO push-relabel algorithms, while the highly optimized one shows no weakness on these networks.
+  
 
 
 \begin{figure}[!h]
@@ -1180,7 +1314,7 @@ Ford-fulkerson theorem.
 		%end data for plotting    
 
 	\nextgroupplot[
-      title={Goldberg's Bad Case (Washington)},
+      title={Goldberg Bad Case (Washington)},
       title style={yshift=-2ex},
       axis x line*= bottom,
       axis y line*= left,
@@ -1195,6 +1329,21 @@ Ford-fulkerson theorem.
 	]
 
     %start data for plotting
+    
+    
+		  \addplot+[mark=square] table {
+        3000	0.356
+        4500	0.805
+        6000	1.539
+        7500	2.43
+        9000	3.28
+        10500	4.639
+        12000	5.61
+        13500	7.198
+        15000	8.904
+        16500	11.302
+		  }; %Wash, Edka, SML 
+    
       \addplot+[mark=square*] table {
         3000	1.185
         4500	3.524
@@ -1353,14 +1502,14 @@ Ford-fulkerson theorem.
 \end{figure}
 
 
-
-  We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
-  operates on residual graphs (\cf Section~\ref{sec:impl_res_graph}). Moreover, the Java implementation does not store the augmenting 
-  path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_data_structures}).
-  Finally note that a carefully optimized C++ implementation of the algorithm is only slightly faster than the Java implementation for sparse graphs,
-  but roughly one order of magnitude faster for dense graphs. We leave it to future work to investigate this issue, and conclude that we were able to produce
-  a reasonably fast verified implementation.
-  
+% 
+%   We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
+%   operates on residual graphs (\cf Section~\ref{sec:impl_add_data}). Moreover, the Java implementation does not store the augmenting 
+%   path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_data_structures}).
+%   Finally note that a carefully optimized C++ implementation of the algorithm is only slightly faster than the Java implementation for sparse graphs,
+%   but roughly one order of magnitude faster for dense graphs. We leave it to future work to investigate this issue, and conclude that we were able to produce
+%   a reasonably fast verified implementation.
+%   
 %   , without doing any low-level optimizations, but using the code as generated by the Isabelle/HOL code generator.
   
 % 
