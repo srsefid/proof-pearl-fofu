@@ -1165,25 +1165,6 @@ Ford-fulkerson theorem.
   The ``Goldberg bad case networks'' from the ``Washington'' generator, which are tailored to be hard for push-relabel algorithms, 
   the ``fully dense acyclic networks'' of Waissi, and the RMFGEN networks of Goldfarb and Grigoriadis. 
   
-  The tests were run on a standard laptop machine with a 2.7GHz i7 quadcore processor and 16GiB of RAM.
-  
-  The results are displayed in Figure~\ref{fig:benchmark}, using a log-log scale.
-  Note that we only measure the time required to run the algorithms themselves, excluding the time required for parsing the input and running the network checker.
-  
-  For the Edmonds-Karp algorithm, we observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, 
-  our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
-  operates on residual graphs (\cf Section~\ref{sec:impl_add_data}). Moreover, the Java implementation does not store the augmenting 
-  path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_data_structures}).
-  Our push-relabel algorithm is more than one order of magnitude faster than Edmonds-Karp algorithm.
-  
-  For the push-relabel algorithms, our verified algorithm is, depending on the test case, between 5 and 10 times slower than the unverified C++ implementation.
-  The highly optimized C implementation is up to two orders of magnitude faster. 
-  On the ``goldberg bad case'' networks, which are designed as worst case problems for push-relabel algorithms, 
-  even Edmonds-Karp algorithm is competitive to the simple FIFO push-relabel algorithms, while the highly optimized one shows no weaknesses on these networks.
-  
-  The performance gap between our verified SML code and the C++ code that implements essentially the same algorithm is not surprising: We compare a 
-  memory safe functional language with a slightly aged compiler against an unsafe language with a very recent and actively developed compiler.
-  
 
 
 \begin{figure}[!h]
@@ -1510,6 +1491,26 @@ Ford-fulkerson theorem.
 \caption{Benchmark of different implementations. The x-axis shows the number of nodes, the y axis the execution time in seconds.}\label{fig:benchmark}
 \end{figure}
 
+
+  The tests were run on a standard laptop machine with a 2.7GHz i7 quadcore processor and 16GiB of RAM.
+  
+  The results are displayed in Figure~\ref{fig:benchmark}, using a log-log scale.
+  Note that we only measure the time required to run the algorithms themselves, excluding the time required for parsing the input and running the network checker.
+  
+  For the Edmonds-Karp algorithm, we observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, 
+  our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
+  operates on residual graphs (\cf Section~\ref{sec:impl_add_data}). Moreover, the Java implementation does not store the augmenting 
+  path in an intermediate list, but uses the predecessor map computed by the BFS directly (\cf Section~\ref{sec:impl_data_structures}).
+  Our push-relabel algorithm is more than one order of magnitude faster than Edmonds-Karp algorithm.
+  
+  For the push-relabel algorithms, our verified algorithm is, depending on the test case, between 5 and 10 times slower than the unverified C++ implementation.
+  The highly optimized C implementation is up to two orders of magnitude faster. 
+  On the ``goldberg bad case'' networks, which are designed as worst case problems for push-relabel algorithms, 
+  even Edmonds-Karp algorithm is competitive to the simple FIFO push-relabel algorithms, while the highly optimized one shows no weaknesses on these networks.
+  
+  The performance gap between our verified SML code and the C++ code that implements essentially the same algorithm is not surprising: We compare a 
+  memory safe functional language with a slightly aged compiler against an unsafe language with a very recent and actively developed compiler.
+  
 
 % 
 %   We observe that, for sparse graphs, the Java implementation is roughly faster by a factor of $1.6$, while for dense graphs, our implementation is faster by a factor of $1.2$. Note that the Java implementation operates on flows, while our implementation 
