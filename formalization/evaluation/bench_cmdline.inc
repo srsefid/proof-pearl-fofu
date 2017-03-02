@@ -3,7 +3,16 @@ for i in "$@"
 do
 case $i in
     --tests=*)
-    tests="${i#*=}"
+    fofu_tests="${i#*=}"
+    prpu_tests="${i#*=}"
+    shift
+    ;;
+    --fofu-tests=*)
+    fofu_tests="${i#*=}"
+    shift
+    ;;
+    --prpu-tests=*)
+    prpu_tests="${i#*=}"
     shift
     ;;
     --fofu=*)
@@ -22,7 +31,8 @@ esac
 done
 
 
-test -n "$tests" || tests=`cat tests`
+test -n "$fofu_tests" || fofu_tests=`cat fofu-tests`
+test -n "$prpu_tests" || prpu_tests=`cat prpu-tests`
 test -n "$platforms_fofu" || platforms_fofu=`cat fofu-platforms`
 test -n "$platforms_prpu" || platforms_prpu=`cat prpu-platforms`
 
