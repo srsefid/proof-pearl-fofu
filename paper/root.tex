@@ -77,23 +77,25 @@
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
 \lstset{autogobble=true}
+\lstset{xleftmargin=.15in, xrightmargin=.15in} 
 
+%change both above and following margins to have consistent indentation
+\newenvironment{lstquote}%
+  {\list{}{\leftmargin=0.15in\rightmargin=0.15in}\item[]}%
+  {\endlist}
 
 \newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
-
-
-
 
 \input{macros}
 
 % Include snippets
 \newcommand{\DefineSnippet}[2]{%
    \expandafter\newcommand\csname snippet--#1\endcsname{%
-     \begin{quote}
+     \begin{lstquote} 
      \begin{isabelle}\footnotesize
      #2
      \end{isabelle}
-     \end{quote}}}
+     \end{lstquote}}}
 \newcommand{\Snippet}[1]{\ifcsname snippet--#1\endcsname\csname snippet--#1\endcsname\else\PackageError{}{No snippet '#1' defined.}{}\fi}
 \input{snippets/snippets.out}
 
@@ -1210,11 +1212,11 @@ Ford-fulkerson theorem.
         legend to name=grouplegend
     ]
     % legend information
-      \addlegendimage{fill=gray, mark=square}
       \addlegendimage{fill=gray, mark=square*}
-      \addlegendimage{dashed, every mark/.append style={solid, fill=gray}, mark=*}
-      \addlegendimage{fill=gray, mark=o}
-      \addlegendimage{fill=gray, mark=otimes*}
+      \addlegendimage{fill=gray, mark=*}
+      \addlegendimage{mark=square}
+      \addlegendimage{every mark/.append style={solid, fill=gray}, mark=o}
+      \addlegendimage{dashed, every mark/.append style={solid, fill=gray}, mark=otimes*}
       \addlegendentry{Edmonds-Karp, SML}
       \addlegendentry{FIFO push-relabel, SML}
       \addlegendentry{Edmonds-Karp, Java}
@@ -1224,7 +1226,7 @@ Ford-fulkerson theorem.
 
 
 		%start data for plotting
-		  \addplot+[mark=square] table {
+		  \addplot+[mark=square*] table {
         1000	0.024
         1500	0.099
         2000	0.211
@@ -1237,7 +1239,7 @@ Ford-fulkerson theorem.
         5500	12.024
 		  }; %Sparse, Edka, SML
 		  
-		  \addplot+[dashed, every mark/.append style={solid, fill=gray},mark=*] table {
+		  \addplot+[mark=square] table {
         1000	0.024
         1500	0.05
         2000	0.241
@@ -1250,7 +1252,7 @@ Ford-fulkerson theorem.
         5500	6.411
 		  }; %Sparse, Edka, Java
 		  
-		  \addplot+[mark=square*] table {
+		  \addplot+[mark=*] table {
         1000	0.005
         1500	0.018
         2000	0.038
@@ -1281,7 +1283,7 @@ Ford-fulkerson theorem.
 	]
 
 		%start data for plotting 
-		  \addplot+[mark=square] table {
+		  \addplot+[mark=square*] table {
         1000	2.777
         1050	2.875
         1100	4.43
@@ -1294,7 +1296,7 @@ Ford-fulkerson theorem.
         1450	10.279
 		  }; %Dense, Edka, SML 
       
-		  \addplot+[dashed, every mark/.append style={solid, fill=gray},mark=*] table {
+		  \addplot+[mark=square] table {
         1000	3.892
         1050	4.773
         1100	5.262
@@ -1307,7 +1309,7 @@ Ford-fulkerson theorem.
         1450	13.034 
 		  }; %Dense, Edka, Java 
       
-		  \addplot+[mark=square*] table {
+		  \addplot+[mark=*] table {
         1000	0.058
         1050	0.06
         1100	0.068
@@ -1337,7 +1339,7 @@ Ford-fulkerson theorem.
 	]
 
     %start data for plotting 
-		  \addplot+[mark=square] table {
+		  \addplot+[mark=square*] table {
         3000	0.36
         4500	0.813
         6000	1.565
@@ -1350,7 +1352,7 @@ Ford-fulkerson theorem.
         16500	11.31
 		  }; %Wash, Edka, SML 
     
-      \addplot+[mark=square*] table {
+      \addplot+[mark=*] table {
         3000	1.187
         4500	3.654
         6000	7.491
@@ -1363,7 +1365,7 @@ Ford-fulkerson theorem.
         16500	84.913
       }; %WASH, Prpu, SML  
 
-      \addplot+[mark=o] table {
+      \addplot+[every mark/.append style={solid, fill=gray}, mark=o] table {
         3000	0.183
         4500	0.521
         6000	0.974
@@ -1376,7 +1378,7 @@ Ford-fulkerson theorem.
         16500	12.58
       }; %WASH, Prpu, C++  
       
-      \addplot+[mark=otimes*] table {
+      \addplot+[dashed, every mark/.append style={solid, fill=gray}, mark=otimes*] table {
         3000	0.008
         4500	0.015
         6000	0.027
@@ -1406,7 +1408,7 @@ Ford-fulkerson theorem.
 	]
     
     %start data for plotting 
-      \addplot+[mark=square*] table {
+      \addplot+[mark=*] table {
         1000	0.353
         1050	0.213
         1100	0.247
@@ -1419,7 +1421,7 @@ Ford-fulkerson theorem.
         1450	1.141
       }; %ACNET, Prpu, SML  
       
-      \addplot+[mark=o] table {
+      \addplot+[every mark/.append style={solid, fill=gray}, mark=o] table {
         1000	0.046
         1050	0.031
         1100	0.034
@@ -1432,7 +1434,7 @@ Ford-fulkerson theorem.
         1450	0.104
       }; %ACNET, Prpu, C++  
       
-      \addplot+[mark=otimes*] table {
+      \addplot+[dashed, every mark/.append style={solid, fill=gray}, mark=otimes*] table {
         1000	0.092
         1050	0.122
         1100	0.116
@@ -1461,7 +1463,7 @@ Ford-fulkerson theorem.
 	]
   
     %start data for plotting
-      \addplot+[mark=square*] table {
+      \addplot+[mark=*] table {
         16000	3.334
         17600	4.538
         19200	5.844
@@ -1474,7 +1476,7 @@ Ford-fulkerson theorem.
         30400	19.968
       }; %RPFGEN, Prpu, SML  
       
-      \addplot+[mark=o] table {
+      \addplot+[every mark/.append style={solid, fill=gray}, mark=o] table {
         16000	0.775
         17600	0.966
         19200	1.496
@@ -1487,7 +1489,7 @@ Ford-fulkerson theorem.
         30400	2.745
       }; %RPFGEN, Prpu, C++ 
  
-      \addplot+[mark=otimes*] table {
+      \addplot+[dashed, every mark/.append style={solid, fill=gray}, mark=otimes*] table {
         16000	0.009
         17600	0.011
         19200	0.013
