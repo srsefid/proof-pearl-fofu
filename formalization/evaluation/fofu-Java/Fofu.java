@@ -39,7 +39,7 @@ public class Fofu {
 	        long time = doTest(G);
           System.out.format("@@@time: %d ms\n", time);
           System.out.format("[Input (V E): %d %d]\n", G.V(), G.E());
-          System.out.format("@@@max-flow: %d\n", (int)maxflow.value());
+          System.out.format("@@@max-flow: %.0f\n", maxflow.value());
           System.out.format("outer_c: %d\n\tinner_c: %d\n", maxflow.outer_c, maxflow.inner_c);
 	        
 // 	        if (V_size > 0 && V_size <= 10000) {
