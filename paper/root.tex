@@ -77,12 +77,12 @@
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
 \lstset{autogobble=true}
-\lstset{xleftmargin=.15in, xrightmargin=.15in} 
+\lstset{xleftmargin=.15in, xrightmargin=.05in} 
 
 %%%%%%%%% IMPORTANT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %change both above and following margins to have consistent indentation
 \newenvironment{lstquote}%
-  {\list{}{\leftmargin=0.15in\rightmargin=0.15in}\item[]}%
+  {\list{}{\leftmargin=0.15in\rightmargin=.05in}\item[]}%
   {\endlist}
 
 \newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
@@ -101,7 +101,7 @@
 \input{snippets/snippets.out}
 
 
-% \overfullrule=8pt
+\overfullrule=8pt
 
 %
 \begin{document}
@@ -550,14 +550,14 @@ results in a program that refines the original program. This gives us a natural 
 For the complexity reasoning, we will count the different types of operations. Thus, it is convenient to formalize the algorithm as a labeled transition system
 over flows and heights, the labels indicating the performed operation:
 \begin{lstlisting}
-  inductive_set pr_lts :: "((preflow\<times>labeling) \<times> op_ty \<times> (preflow\<times>labeling)) set" 
+  inductive_set pr_lts :: "((preflow\<times>labeling) \<times> op_ty \<times> (preflow\<times>labeling)) set"
   where
     "push_pre f l e ==> ((f,l),PUSH,(push_eff f e,l)) \<in> pr_lts"
   | "relabel_pre f l u ==> ((f,l),RELABEL,(f,relabel_eff f l u)) \<in> pr_lts"
 \end{lstlisting}  
 Here, the \isai{inductive_set} construction defines the least relation that can be derived by the specified rules. 
 A push operation can be implemented in time $O(1)$, (only the flow on a single edge has to be modified) and a relabel operation can be implemented in time $O(V)$.
-(to find the new height, we have to consider the heights of all successor nodes in the residual graph) We define 
+(the new height depends on the heights of the successors in the residual graph) We define 
 \isai{cost PUSH == 1 | cost RELABEL == card(V)} and prove the following theorem:
 \begin{lstlisting}
 theorem (in Network) generic_preflow_push_OV2E_and_correct:
@@ -708,7 +708,8 @@ took only a day to complete.
   The imperative programs are specified in Imperative HOL~\cite{BKHEM08}, which defines a heap monad for Isabelle/HOL.
 
   We implement capacities by (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation by fixed precision numbers would also be possible,
-  but requires additional checks on the network to ensure that no overflows can happen. 
+  but requires additional checks on the network to ensure that no overflows can happen.\footnote{Actually, the unverified reference 
+  implementations of the push-relabel algorithms~\cite{ChGo97,ICPC-notebook} that we use in our benchmarks (\cf Section~\ref{sec:benchmarks}) lack such checks, and silently report erroneous maximum flow values in case of overflow.}
   % TODO: Can we trick the Java reference implementation on integer overflow?
   Nodes are represented by natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
   are realized as arrays of size $N\times N$ with row-major indexing, such that the successors of a node are close together in memory.
