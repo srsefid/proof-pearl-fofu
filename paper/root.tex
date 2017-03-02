@@ -77,23 +77,25 @@
 \lstset{captionpos=b}
 \lstset{numberbychapter=false}
 \lstset{autogobble=true}
+\lstset{xleftmargin=.15in, xrightmargin=.15in} 
 
+%change both above and following margins to have consistent indentation
+\newenvironment{lstquote}%
+  {\list{}{\leftmargin=0.15in\rightmargin=0.15in}\item[]}%
+  {\endlist}
 
 \newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
-
-
-
 
 \input{macros}
 
 % Include snippets
 \newcommand{\DefineSnippet}[2]{%
    \expandafter\newcommand\csname snippet--#1\endcsname{%
-     \begin{quote}
+     \begin{lstquote} 
      \begin{isabelle}\footnotesize
      #2
      \end{isabelle}
-     \end{quote}}}
+     \end{lstquote}}}
 \newcommand{\Snippet}[1]{\ifcsname snippet--#1\endcsname\csname snippet--#1\endcsname\else\PackageError{}{No snippet '#1' defined.}{}\fi}
 \input{snippets/snippets.out}
 
