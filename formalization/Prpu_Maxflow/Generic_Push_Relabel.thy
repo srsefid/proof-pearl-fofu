@@ -1658,7 +1658,7 @@ text \<open>We show the complexity bound of \<open>O(V\<^sup>2E)\<close> when st
   labeling \cormen{26.24}.\<close>  
 theorem (in Height_Bounded_Labeling) pr_algo_cost_bound:  
   assumes A: "((f,l),p,(f',l')) \<in> trcl pr_algo_lts"
-  shows "(\<Sum>a\<leftarrow>p. cost_estimate a) \<le> 38 * (card V)^2 * card E"
+  shows "(\<Sum>a\<leftarrow>p. cost_estimate a) \<le> 26 * (card V)^2 * card E"
 proof -
   have "(\<Sum>a\<leftarrow>p. cost_estimate a) 
     = card V * length (filter is_RELABEL p) + length (filter is_PUSH p)"
@@ -1674,7 +1674,7 @@ proof -
     by (auto simp: power2_eq_square power3_eq_cube) 
   also note push_action_bound[OF A]
   finally have "sum_list (map cost_estimate p) 
-              \<le> 2 * card V ^ 3 + 34 * (card V)\<^sup>2 * card E"
+              \<le> 2 * card V ^ 3 + 22 * (card V)\<^sup>2 * card E"
     by simp
   also have "(card V)^3 \<le> 2 * (card V)\<^sup>2 * card E"  
     by (simp add: card_V_est_E power2_eq_square power3_eq_cube)
@@ -1691,7 +1691,7 @@ text \<open>Finally, we state the main theorem of this section:
 \<close>  
 theorem (in Network) generic_preflow_push_OV2E_and_correct:
   assumes A: "((pp_init_f, pp_init_l), p, (f, l)) \<in> trcl pr_algo_lts" 
-  shows "(\<Sum>x\<leftarrow>p. cost_estimate x) \<le> 38 * (card V)^2 * card E" (is ?G1)
+  shows "(\<Sum>x\<leftarrow>p. cost_estimate x) \<le> 26 * (card V)^2 * card E" (is ?G1)
     and "(f,l)\<notin>Domain pr_algo_lts \<longrightarrow> isMaxFlow f" (is ?G2)
 proof -
   show ?G1 
@@ -1731,7 +1731,7 @@ lemma pr_algo_rel_alt: "pr_algo_rel =
   by (auto elim!: pr_algo_rel.cases intro: pr_algo_rel.intros)
   
   
-definition "pr_algo_len_bound \<equiv> 2 * (card V)\<^sup>2 + 34 * (card V)\<^sup>2 * card E"
+definition "pr_algo_len_bound \<equiv> 2 * (card V)\<^sup>2 + 22 * (card V)\<^sup>2 * card E"
   
 lemma (in Height_Bounded_Labeling) pr_algo_lts_length_bound:  
   assumes A: "((f, l), p, (f', l')) \<in> trcl pr_algo_lts"
