@@ -1,0 +1,20 @@
+session Edka_Maxflow = Flow_Networks +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+  
+  theories
+    FordFulkerson_Algo
+    EdmondsKarp_Algo
+
+    Augmenting_Path_BFS
+    EdmondsKarp_Impl
+    "../Net_Check/NetCheck"
+    Edka_Checked_Impl
+    
+  theories [document = false]
+    Edka_Benchmark_Export
+    
+  document_files
+    "root.tex"
+    "root.bib"
+
