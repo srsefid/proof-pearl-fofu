@@ -56,7 +56,7 @@ cc = prflow ( n, ndp, arp, cap, source, sink, &flow );
 diff = clock() - start;
 
 printf("@@@time: %.0f ms\n", ((double)(diff)/CLOCKS_PER_SEC) * 1000);
-printf("@@@max-flow: %ld\n", (long)flow);
+printf("@@@max-flow: %10.0lf\n", flow);
 
 //    printf (">>> pushes:      %10ld\n", n_push);
 //    printf (">>> relabels:    %10ld\n", n_rel);
