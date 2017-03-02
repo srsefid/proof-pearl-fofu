@@ -1,2 +1,85 @@
-cava
-generated
+# Standard backup files
+*~
+*.tgz
+*.tar.gz
+*.zip
+
+# Compiled files
+*.class
+
+# Isabelle generated documents
+*/output/*
+
+
+# Latex
+
+
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.dvi
+*-converted-to.*
+
+### Bibliography auxiliary files (bibtex/biblatex/biber):
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.brf
+*.run.xml
+## beamer
+*.nav
+*.snm
+*.vrb
+
+### Build tool auxiliary files:
+*.fdb_latexmk
+*.synctex
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
+
+## gnuplottex
+*-gnuplottex-*
+
+## hyperref
+*.brf
+
+## knitr
+*-concordance.tex
+*.tikz
+*-tikzDictionary
+
+## listings
+*.lol
+
+## makeidx
+*.idx
+*.ilg
+*.ind
+*.ist
+
+## minitoc
+*.maf
+*.mtc
+*.mtc0
+
+## minted
+_minted*
+*.pyg
+
+## these rules might exclude image files for figures etc.
+*.ps
+*.eps
+*.pdf
+
+### Obsolete-Folders
+obsolete/*
+*/obsolete/*
+*_obsolete.*
+*_Obsolete.*

@@ -1,0 +1,19 @@
+session Flow_Networks = Maxflow_Lib +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+    
+  theories [document = false]
+    Graph 
+    Graph_Impl
+  
+  theories
+    Network
+    Residual_Graph
+    Augmenting_Flow
+    Augmenting_Path
+    Ford_Fulkerson
+  
+    
+  document_files
+    "root.tex" "root.bib"
+    

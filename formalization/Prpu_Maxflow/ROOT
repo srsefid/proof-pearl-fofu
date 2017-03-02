@@ -1,0 +1,22 @@
+session Prpu_Maxflow = Flow_Networks +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+  
+  theories [document = false]
+    "../Net_Check/NetCheck"
+  
+  theories
+    Generic_Push_Relabel
+    Relabel_To_Front
+    Fifo_Push_Relabel
+    
+    Fifo_Push_Relabel_Impl
+    
+  theories [document = false]
+    Relabel_To_Front_Impl
+    Prpu_Benchmark_Export
+    
+  document_files
+    "root.tex"
+    "root.bib"
+
