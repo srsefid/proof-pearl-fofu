@@ -57,9 +57,11 @@ export_code
   
   prepareNet 
   
-  relabel_to_front_impl relabel_to_front_impl_tab_am 
+  (*relabel_to_front_impl relabel_to_front_impl_tab_am*)
   
   fifo_push_relabel fifo_push_relabel_prepare_impl fifo_push_relabel_run_impl
+  
+  compute_flow_val_impl
   in SML_imp 
   module_name Prpu
   file "../evaluation/prpu-SML/Prpu_Export.sml"  

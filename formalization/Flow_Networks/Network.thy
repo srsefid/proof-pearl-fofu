@@ -105,6 +105,13 @@ begin
   where "isMaxFlow f \<equiv> Flow c s t f \<and> 
     (\<forall>f'. Flow c s t f' \<longrightarrow> Flow.val c s f' \<le> Flow.val c s f)"
     
+  definition "is_max_flow_val fv \<equiv> \<exists>f. isMaxFlow f \<and> fv=Flow.val c s f"
+
+(* TODO: Can we prove existence of a maximum flow *easily*, i.e.,
+  without going over the min-cut-max-flow theorem or the Ford-Fulkerson method?
+  definition "max_flow_val \<equiv> THE fv. is_max_flow_val fv"
+*)  
+    
   lemma t_not_s[simp]: "t \<noteq> s" using s_not_t by blast
     
 end  
@@ -182,6 +189,23 @@ lemma conservation_const_pointwise:
   using conservation_const assms
   by (auto simp: sum_incoming_pointwise sum_outgoing_pointwise)
 
+text \<open>The value of the flow is bounded by the capacity of the 
+  outgoing edges of the source node\<close>
+lemma val_bounded: 
+  "-(\<Sum>e\<in>incoming s. c e) \<le> val"
+  "val \<le> (\<Sum>e\<in>outgoing s. c e)"
+proof -
+  have 
+    "sum f (outgoing s) \<le> sum c (outgoing s)"
+    "sum f (incoming s) \<le> sum c (incoming s)"
+    using capacity_const by (auto intro!: sum_mono)
+  thus "-(\<Sum>e\<in>incoming s. c e) \<le> val" "val \<le> (\<Sum>e\<in>outgoing s. c e)" 
+    using sum_f_non_negative[of "incoming s"] 
+    using sum_f_non_negative[of "outgoing s"]  
+    unfolding val_def by auto 
+qed    
+    
+    
 end -- \<open>Flow\<close>   
 
 text \<open>Introduce a flow via the conservation constraint\<close>  
@@ -255,7 +279,14 @@ proof -
   finally show ?thesis .   
 qed  
     
-    
+lemma zero_is_flow: "Flow c s t (\<lambda>_. 0)"
+  using cap_non_negative by unfold_locales auto  
+
+lemma max_flow_val_unique: 
+  "\<lbrakk>is_max_flow_val fv1; is_max_flow_val fv2\<rbrakk> \<Longrightarrow> fv1=fv2"    
+  unfolding is_max_flow_val_def isMaxFlow_def 
+  by (auto simp: antisym)
+  
 end -- \<open>Network\<close>
 
 subsubsection \<open>Networks with Flow\<close>

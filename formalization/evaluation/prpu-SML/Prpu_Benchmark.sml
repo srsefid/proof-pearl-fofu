@@ -114,7 +114,7 @@ local
     end
   
 in  
-  fun measure n { prepare, run (*, compres*) } = let
+  fun measure n { prepare, run , compres } = let
     val _ = print ("Netcheck ...");
     val G = prepare ()  
     val G = the_fail G "Failed"
@@ -123,7 +123,7 @@ in
     val _ = print ("Fifo");
     val (t,res) = iterate n Time.zeroTime (run G)
     val t = Time.fromNanoseconds (Time.toNanoseconds t div (IntInf.fromInt n))
-    val res = "TODO" (*compres res*)
+    val res = compres res
     val _ = print ("\n");
     val _ = print ("@@@time: " ^ IntInf.toString (Time.toMilliseconds t) ^ " ms\n");
     val _ = print ("@@@max-flow: " ^ res ^ "\n")
@@ -143,12 +143,12 @@ in
       SOME pr
     end  ,
 
-    run = fn (N,(am,(ami,(c,cf)))) => fn () => fifo_push_relabel_run_impl s t N ami cf () (*,
-    compres = fn (N,c,ps,f) => let
-        val flow = compute_flow_val_imp c s t ps f ()
+    run = fn (N,(am,(c,cf))) => fn () => (N,c,am,fifo_push_relabel_run_impl s t N am cf ()),
+    compres = fn (N,c,am,cf) => let
+        val flow = compute_flow_val_impl c s N am cf ()
       in
-        IntInf.toString (integer_of_int flow) 
-      end  *)
+        Int.toString (int_of_gi flow) 
+      end
   }
 end
 

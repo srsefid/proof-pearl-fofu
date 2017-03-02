@@ -61,9 +61,9 @@ begin
       \<in>unit_assn\<^sup>k \<rightarrow>\<^sub>a pure (nat_rel \<times>\<^sub>r nat_rel \<rightarrow> Id)"
     by (sepref_to_hoare) sep_auto 
     
-  abbreviation cap_assn :: "capacity_impl \<Rightarrow> _" where "cap_assn \<equiv> id_assn"  
-  abbreviation "edge_assn \<equiv> nat_assn \<times>\<^sub>a nat_assn"  
-  abbreviation (input) "node_assn \<equiv> nat_assn"  
+  abbreviation (in -) cap_assn :: "capacity_impl \<Rightarrow> _" where "cap_assn \<equiv> id_assn"  
+  abbreviation (in -) "edge_assn \<equiv> nat_assn \<times>\<^sub>a nat_assn"  
+  abbreviation (in -) (input) "node_assn \<equiv> nat_assn"  
   
 end --\<open>Network Impl. Locale\<close>
   
@@ -1278,9 +1278,49 @@ subsection \<open>Refinement To Efficient Data Structures\<close>
 context Network_Impl
 begin
 
+subsubsection \<open>Registration of Abstract Operations\<close>  
+text \<open>We register all abstract operations at once, 
+  auto-rewriting the capacity matrix type\<close>
+context
+  notes [map_type_eqs] = 
+    map_type_eqI[of "TYPE(capacity_impl flow)" "TYPE(capacity_impl i_mtx)"]
+begin
+
+sepref_register cf_get cf_set cf_init
+  
+sepref_register am_get am_is_in_V    
+  
+sepref_register x_get x_add
+  
+sepref_register l_init l_get l_get_rlx l_set
+  
+sepref_register cnt_init cnt_get cnt_incr cnt_decr  
+  
+sepref_register q_empty q_is_empty q_enqueue q_dequeue  
+  
+sepref_register clc_init clc_get clc_set clc_has_gap clc_get_rlx  
+  
+sepref_register fifo_push2  
+  
+sepref_register gap2 min_adj_label min_adj_label_clc 
+sepref_register fifo_relabel2 fifo_gap_relabel2 
+  
+sepref_register dis_loop2 fifo_discharge2
+  
+sepref_register init_C q_init pp_init_xcf2'
+  
+sepref_register fifo_push_relabel_run2 fifo_push_relabel_init2
+sepref_register fifo_push_relabel2
+  
+end  
+  
 subsubsection \<open>Residual Graph by Adjacency Matrix\<close>  
-definition "cf_assn \<equiv> asmtx_assn N cap_assn"  
-sepref_register cf_get cf_set cf_init 
+definition (in -) "cf_assn N \<equiv> asmtx_assn N cap_assn"
+abbreviation cf_assn where "cf_assn \<equiv> Fifo_Push_Relabel_Impl.cf_assn N"
+lemma [intf_of_assn]: "intf_of_assn (cf_assn) TYPE(capacity_impl i_mtx)"
+  by simp
+ 
+  
 sepref_thm cf_get_impl is "uncurry (PR_CONST cf_get)" 
   :: "cf_assn\<^sup>k *\<^sub>a edge_assn\<^sup>k \<rightarrow>\<^sub>a cap_assn"  
   unfolding cf_get_def cf_assn_def PR_CONST_def
@@ -1306,6 +1346,8 @@ lemmas [sepref_fr_rules] =
   cf_set_impl.refine[OF nwi_this] 
   cf_init_impl.refine[OF nwi_this]
   
+end -- \<open>Network\<close>  
+  
 subsubsection \<open>Functions from Nodes by Arrays\<close>  
 text \<open>
   We provide a template for implementing functions from nodes by arrays.
@@ -1313,28 +1355,33 @@ text \<open>
 
   This template is then used for refinement of various data structures.
 \<close>  
-definition "is_nf dflt f a 
+definition "is_nf N dflt f a 
   \<equiv> \<exists>\<^sub>Al. a\<mapsto>\<^sub>al * \<up>(length l = N \<and> (\<forall>i<N. l!i = f i) \<and> (\<forall>i\<ge>N. f i = dflt))"
   
-lemma nf_init_rule[sep_heap_rules]: 
-  "<emp> Array.new N dflt <is_nf dflt (\<lambda>_. dflt)>"
+lemma nf_init_rule: 
+  "<emp> Array.new N dflt <is_nf N dflt (\<lambda>_. dflt)>"
   unfolding is_nf_def by sep_auto
 
 lemma nf_copy_rule[sep_heap_rules]: 
-  "<is_nf dflt f a> array_copy a <\<lambda>r. is_nf dflt f a * is_nf dflt f r>"
+  "<is_nf N dflt f a> array_copy a <\<lambda>r. is_nf N dflt f a * is_nf N dflt f r>"
   unfolding is_nf_def by sep_auto
   
 lemma nf_lookup_rule[sep_heap_rules]: 
-  "v<N \<Longrightarrow> <is_nf dflt f a> Array.nth a v <\<lambda>r. is_nf dflt f a *\<up>(r = f v)>"
+  "v<N \<Longrightarrow> <is_nf N dflt f a> Array.nth a v <\<lambda>r. is_nf N dflt f a *\<up>(r = f v)>"
   unfolding is_nf_def by sep_auto
   
 lemma nf_update_rule[sep_heap_rules]: 
-  "v<N \<Longrightarrow> <is_nf dflt f a> Array.upd v x a <is_nf dflt (f(v:=x))>"  
+  "v<N \<Longrightarrow> <is_nf N dflt f a> Array.upd v x a <is_nf N dflt (f(v:=x))>"  
   unfolding is_nf_def by sep_auto
-  
+     
+    
+context Network_Impl 
+begin    
+    
 subsubsection \<open>Adjacency Map by Array\<close>  
-definition "am_assn \<equiv> is_nf ([]::nat list)"    
-sepref_register am_get  
+definition (in -) "am_assn N \<equiv> is_nf N ([]::nat list)"    
+abbreviation am_assn where "am_assn \<equiv> Fifo_Push_Relabel_Impl.am_assn N"
+  
 lemma am_get_hnr[sepref_fr_rules]: 
   "(uncurry Array.nth, uncurry (PR_CONST am_get)) 
   \<in> am_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a list_assn id_assn"  
@@ -1346,7 +1393,6 @@ definition (in -) "am_is_in_V_impl am u \<equiv> do {
   amu \<leftarrow> Array.nth am u;
   return (\<not>is_Nil amu)
 }"    
-sepref_register am_is_in_V    
 lemma am_is_in_V_hnr[sepref_fr_rules]: "(uncurry am_is_in_V_impl, uncurry (am_is_in_V)) 
   \<in> [\<lambda>(_,v). v<N]\<^sub>a am_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow> bool_assn"  
   unfolding am_assn_def am_is_in_V_def am_is_in_V_impl_def
@@ -1355,13 +1401,13 @@ lemma am_is_in_V_hnr[sepref_fr_rules]: "(uncurry am_is_in_V_impl, uncurry (am_is
   done
     
 subsubsection \<open>Excess by Array\<close>  
-definition "x_assn \<equiv> is_nf (0::capacity_impl)"    
+definition "x_assn \<equiv> is_nf N (0::capacity_impl)"    
   
 lemma x_init_hnr[sepref_fr_rules]: 
   "(uncurry0 (Array.new N 0), uncurry0 x_init) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a x_assn"  
-  apply sepref_to_hoare unfolding x_assn_def x_init_def by sep_auto
+  apply sepref_to_hoare unfolding x_assn_def x_init_def 
+  by (sep_auto heap: nf_init_rule)
     
-sepref_register x_get    
 lemma x_get_hnr[sepref_fr_rules]: 
   "(uncurry Array.nth, uncurry (PR_CONST x_get)) 
   \<in> x_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a cap_assn"
@@ -1373,7 +1419,6 @@ definition (in -) "x_add_impl x u \<Delta> \<equiv> do {
   x \<leftarrow> Array.upd u (xu+\<Delta>) x;
   return x
 }"  
-sepref_register x_add
 lemma x_add_hnr[sepref_fr_rules]: 
   "(uncurry2 x_add_impl, uncurry2 (PR_CONST x_add)) 
   \<in> x_assn\<^sup>d *\<^sub>a node_assn\<^sup>k *\<^sub>a cap_assn\<^sup>k \<rightarrow>\<^sub>a x_assn"  
@@ -1382,26 +1427,24 @@ lemma x_add_hnr[sepref_fr_rules]:
   by (sep_auto simp: refine_pw_simps)
 
 subsubsection \<open>Labeling by Array\<close>      
-definition "l_assn \<equiv> is_nf (0::nat)"    
+definition "l_assn \<equiv> is_nf N (0::nat)"    
 definition (in -) "l_init_impl N s cardV \<equiv> do {
   l \<leftarrow> Array.new N (0::nat);
   l \<leftarrow> Array.upd s cardV l;
   return l
 }"  
-sepref_register l_init  
 lemma l_init_hnr[sepref_fr_rules]: 
   "(l_init_impl N s, (PR_CONST l_init)) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a l_assn"  
   apply sepref_to_hoare 
-  unfolding l_assn_def l_init_def l_init_impl_def by sep_auto
+  unfolding l_assn_def l_init_def l_init_impl_def 
+  by (sep_auto heap: nf_init_rule)
     
-sepref_register l_get    
 lemma l_get_hnr[sepref_fr_rules]: 
   "(uncurry Array.nth, uncurry (PR_CONST l_get)) 
   \<in> l_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn"
   apply sepref_to_hoare 
   unfolding l_assn_def l_get_def by (sep_auto simp: refine_pw_simps)
     
-sepref_register l_get_rlx
 lemma l_get_rlx_hnr[sepref_fr_rules]: 
   "(uncurry Array.nth, uncurry (PR_CONST l_get_rlx)) 
   \<in> l_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn"
@@ -1409,7 +1452,6 @@ lemma l_get_rlx_hnr[sepref_fr_rules]:
   unfolding l_assn_def l_get_rlx_def by (sep_auto simp: refine_pw_simps)
     
     
-sepref_register l_set
 lemma l_set_hnr[sepref_fr_rules]: 
   "(uncurry2 (\<lambda>a i x. Array.upd i x a), uncurry2 (PR_CONST l_set)) 
   \<in> l_assn\<^sup>d *\<^sub>a node_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a l_assn"
@@ -1420,7 +1462,8 @@ lemma l_set_hnr[sepref_fr_rules]:
     
 subsubsection \<open>Label Frequency by Array\<close>  
   
-definition "cnt_assn (f::node\<Rightarrow>nat) a \<equiv> \<exists>\<^sub>Al. a\<mapsto>\<^sub>al * \<up>(length l = 2*N \<and> (\<forall>i<2*N. l!i = f i) \<and> (\<forall>i\<ge>2*N. f i = 0))"
+definition "cnt_assn (f::node\<Rightarrow>nat) a 
+  \<equiv> \<exists>\<^sub>Al. a\<mapsto>\<^sub>al * \<up>(length l = 2*N \<and> (\<forall>i<2*N. l!i = f i) \<and> (\<forall>i\<ge>2*N. f i = 0))"
   
 definition (in -) "cnt_init_impl N C \<equiv> do {
   a \<leftarrow> Array.new (2*N) (0::nat);
@@ -1441,7 +1484,7 @@ definition (in -) "cnt_decr_impl a k \<equiv> do {
   return a
 }"  
   
-sepref_register cnt_init cnt_get cnt_incr cnt_decr 
+ 
 lemma cnt_init_hnr[sepref_fr_rules]: "(cnt_init_impl N, PR_CONST cnt_init) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a cnt_assn"
   apply sepref_to_hoare
   unfolding cnt_init_def cnt_init_impl_def cnt_assn_def
@@ -1491,7 +1534,7 @@ lemma q_dequeue_impl_correct[simp]:
     
 definition "q_assn \<equiv> pure (br q_\<alpha> (\<lambda>_. True))"
 
-sepref_register q_empty q_is_empty q_enqueue q_dequeue  
+  
   
 lemma q_empty_impl_hnr[sepref_fr_rules]: "(uncurry0 (return q_empty_impl), uncurry0 q_empty) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a q_assn"  
   apply (sepref_to_hoare)
@@ -1518,7 +1561,7 @@ lemma q_dequeue_impl_hnr[sepref_fr_rules]:
 subsubsection \<open>Combined Frequency Count and Labeling\<close>    
 definition "clc_assn \<equiv> cnt_assn \<times>\<^sub>a l_assn"
     
-sepref_register clc_init clc_get clc_set clc_has_gap clc_get_rlx
+
 sepref_thm clc_init_impl is "PR_CONST clc_init" :: "nat_assn\<^sup>k \<rightarrow>\<^sub>a clc_assn" 
   unfolding clc_init_def PR_CONST_def clc_assn_def
   by sepref  
@@ -1560,7 +1603,7 @@ concrete_definition (in -) clc_has_gap_impl
 lemmas [sepref_fr_rules] = clc_has_gap_impl.refine[OF nwi_this]
   
 subsubsection \<open>Push\<close>   
-sepref_register fifo_push2
+
 sepref_thm fifo_push_impl is "uncurry3 (PR_CONST fifo_push2)" 
   :: "x_assn\<^sup>d *\<^sub>a cf_assn\<^sup>d *\<^sub>a q_assn\<^sup>d *\<^sub>a edge_assn\<^sup>k \<rightarrow>\<^sub>a ((x_assn\<times>\<^sub>acf_assn)\<times>\<^sub>aq_assn)" 
   unfolding fifo_push2_def PR_CONST_def
@@ -1570,7 +1613,6 @@ concrete_definition (in -) fifo_push_impl
 lemmas [sepref_fr_rules] = fifo_push_impl.refine[OF nwi_this]
   
 subsubsection \<open>Gap-Relabel\<close>   
-sepref_register gap2
 sepref_thm gap_impl is "uncurry2 (PR_CONST gap2)" 
   :: "nat_assn\<^sup>k *\<^sub>a clc_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a clc_assn" 
   unfolding gap2_def PR_CONST_def
@@ -1578,8 +1620,7 @@ sepref_thm gap_impl is "uncurry2 (PR_CONST gap2)"
 concrete_definition (in -) gap_impl 
   uses Network_Impl.gap_impl.refine_raw is "(uncurry2 ?f,_)\<in>_"
 lemmas [sepref_fr_rules] = gap_impl.refine[OF nwi_this]
-  
-sepref_register min_adj_label
+
 sepref_thm min_adj_label_impl is "uncurry3 (PR_CONST min_adj_label)" 
   :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>k *\<^sub>a l_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn"  
   unfolding min_adj_label_def PR_CONST_def
@@ -1588,16 +1629,15 @@ concrete_definition (in -) min_adj_label_impl
   uses Network_Impl.min_adj_label_impl.refine_raw is "(uncurry3 ?f,_)\<in>_"
 lemmas [sepref_fr_rules] = min_adj_label_impl.refine[OF nwi_this]    
   
-sepref_register min_adj_label_clc
 sepref_thm min_adj_label_clc_impl is "uncurry3 (PR_CONST min_adj_label_clc)" 
   :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>k *\<^sub>a clc_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn" 
   unfolding min_adj_label_clc_def PR_CONST_def clc_assn_def
-  by sepref  
+  by sepref    
+    
 concrete_definition (in -) min_adj_label_clc_impl 
   uses Network_Impl.min_adj_label_clc_impl.refine_raw is "(uncurry3 ?f,_)\<in>_"
 lemmas [sepref_fr_rules] = min_adj_label_clc_impl.refine[OF nwi_this]
   
-sepref_register fifo_relabel2
 sepref_thm fifo_relabel_impl is "uncurry3 (PR_CONST fifo_relabel2)" 
     :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>k *\<^sub>a clc_assn\<^sup>d *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a clc_assn" 
   unfolding fifo_relabel2_def PR_CONST_def
@@ -1606,7 +1646,6 @@ concrete_definition (in -) fifo_relabel_impl
   uses Network_Impl.fifo_relabel_impl.refine_raw is "(uncurry3 ?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_relabel_impl.refine[OF nwi_this]
   
-sepref_register fifo_gap_relabel2
 sepref_thm fifo_gap_relabel_impl is "uncurry5 (PR_CONST fifo_gap_relabel2)" 
     :: "nat_assn\<^sup>k *\<^sub>a am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>k *\<^sub>a clc_assn\<^sup>d *\<^sub>a q_assn\<^sup>d *\<^sub>a node_assn\<^sup>k 
       \<rightarrow>\<^sub>a clc_assn \<times>\<^sub>a q_assn" 
@@ -1618,7 +1657,6 @@ lemmas [sepref_fr_rules] = fifo_gap_relabel_impl.refine[OF nwi_this]
 
 subsubsection \<open>Discharge\<close>  
   
-sepref_register dis_loop2
 sepref_thm fifo_dis_loop_impl is "uncurry5 (PR_CONST dis_loop2)" 
     :: "am_assn\<^sup>k *\<^sub>a x_assn\<^sup>d *\<^sub>a cf_assn\<^sup>d *\<^sub>a clc_assn\<^sup>d *\<^sub>a q_assn\<^sup>d *\<^sub>a node_assn\<^sup>k 
       \<rightarrow>\<^sub>a (x_assn\<times>\<^sub>acf_assn)\<times>\<^sub>aclc_assn \<times>\<^sub>a q_assn" 
@@ -1628,7 +1666,6 @@ concrete_definition (in -) fifo_dis_loop_impl
   uses Network_Impl.fifo_dis_loop_impl.refine_raw is "(uncurry5 ?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_dis_loop_impl.refine[OF nwi_this]
   
-sepref_register fifo_discharge2
 sepref_thm fifo_fifo_discharge_impl is "uncurry5 (PR_CONST fifo_discharge2)" 
     :: "nat_assn\<^sup>k *\<^sub>a am_assn\<^sup>k *\<^sub>a x_assn\<^sup>d *\<^sub>a cf_assn\<^sup>d *\<^sub>a clc_assn\<^sup>d *\<^sub>a q_assn\<^sup>d 
     \<rightarrow>\<^sub>a (x_assn\<times>\<^sub>acf_assn)\<times>\<^sub>aclc_assn \<times>\<^sub>a q_assn" 
@@ -1639,7 +1676,6 @@ concrete_definition (in -) fifo_fifo_discharge_impl
 lemmas [sepref_fr_rules] = fifo_fifo_discharge_impl.refine[OF nwi_this]
   
 subsubsection \<open>Computing the Initial State\<close>  
-sepref_register init_C
 sepref_thm fifo_init_C_impl is "(PR_CONST init_C)" 
     :: "am_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn" 
   unfolding init_C_def PR_CONST_def
@@ -1648,7 +1684,6 @@ concrete_definition (in -) fifo_init_C_impl
   uses Network_Impl.fifo_init_C_impl.refine_raw is "(?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_init_C_impl.refine[OF nwi_this]
   
-sepref_register q_init
 sepref_thm fifo_q_init_impl is "(PR_CONST q_init)" 
     :: "am_assn\<^sup>k \<rightarrow>\<^sub>a q_assn" 
   unfolding q_init_def PR_CONST_def
@@ -1657,7 +1692,6 @@ concrete_definition (in -) fifo_q_init_impl
   uses Network_Impl.fifo_q_init_impl.refine_raw is "(?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_q_init_impl.refine[OF nwi_this]
 
-sepref_register pp_init_xcf2'
 sepref_thm pp_init_xcf2'_impl is "uncurry (PR_CONST pp_init_xcf2')" 
     :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>d \<rightarrow>\<^sub>a x_assn \<times>\<^sub>a cf_assn" 
   unfolding pp_init_xcf2'_def PR_CONST_def
@@ -1667,7 +1701,6 @@ concrete_definition (in -) pp_init_xcf2'_impl
 lemmas [sepref_fr_rules] = pp_init_xcf2'_impl.refine[OF nwi_this]
 
 subsubsection \<open>Main Algorithm\<close>  
-sepref_register fifo_push_relabel_run2
 sepref_thm fifo_push_relabel_run_impl 
   is "uncurry (PR_CONST fifo_push_relabel_run2)" 
     :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>d \<rightarrow>\<^sub>a cf_assn" 
@@ -1677,7 +1710,6 @@ concrete_definition (in -) fifo_push_relabel_run_impl
   uses Network_Impl.fifo_push_relabel_run_impl.refine_raw is "(uncurry ?f,_)\<in>_"
 lemmas [sepref_fr_rules] = fifo_push_relabel_run_impl.refine[OF nwi_this]
   
-sepref_register fifo_push_relabel_init2
 sepref_thm fifo_push_relabel_init_impl 
   is "uncurry0 (PR_CONST fifo_push_relabel_init2)" 
     :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a cf_assn" 
@@ -1689,7 +1721,6 @@ concrete_definition (in -) fifo_push_relabel_init_impl
 lemmas [sepref_fr_rules] = fifo_push_relabel_init_impl.refine[OF nwi_this]
 
   
-sepref_register fifo_push_relabel2
 sepref_thm fifo_push_relabel_impl is "(PR_CONST fifo_push_relabel2)" 
     :: "am_assn\<^sup>k \<rightarrow>\<^sub>a cf_assn" 
   unfolding fifo_push_relabel2_alt PR_CONST_def
@@ -1705,14 +1736,31 @@ export_code fifo_push_relabel_impl checking SML_imp
   
 subsection \<open>Combining the Refinement Steps\<close>  
   
+lemma (in RPreGraph) maxflow_imp_rgraph:
+  assumes "isMaxFlow (flow_of_cf cf)"
+  shows "RGraph c s t cf"
+proof -  
+  from assms interpret Flow c s t f 
+    unfolding isMaxFlow_def by (simp add: f_def)
+ 
+  interpret NFlow c s t f by unfold_locales     
+  
+  show ?thesis    
+    apply unfold_locales
+    apply (rule exI[of _ f])
+    apply (simp add: NFlow_axioms)  
+    done  
+qed      
+  
+  
 theorem (in Network_Impl) fifo_push_relabel_impl_correct[sep_heap_rules]: 
   assumes ABS_PS: "is_adj_map am"
   shows "
     <am_assn am ami> 
       fifo_push_relabel_impl c s t N ami
     <\<lambda>cfi. \<exists>\<^sub>Acf. 
-        cf_assn cf cfi 
-      * \<up>(isMaxFlow (flow_of_cf cf) \<and> RPreGraph c s t cf)>\<^sub>t"
+        am_assn am ami * cf_assn cf cfi 
+      * \<up>(isMaxFlow (flow_of_cf cf) \<and> RGraph c s t cf)>\<^sub>t"
 proof -
   have AM: "(am, adjacent_nodes) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel"
     using ABS_PS
@@ -1733,7 +1781,10 @@ proof -
   note R4 = R3[unfolded hn_ctxt_def pure_def, THEN hn_refineD, simplified]
     
   show ?thesis  
-    by (sep_auto heap: R4 simp: pw_le_iff refine_pw_simps in_br_conv)
+    by (sep_auto 
+        heap: R4 
+        simp: RPreGraph.maxflow_imp_rgraph
+        simp: pw_le_iff refine_pw_simps in_br_conv)
 qed
   
   
@@ -1741,7 +1792,8 @@ subsection \<open>Combination with Network Checker and Main Correctness Theorem\
   
 definition "fifo_push_relabel_impl_tab_am c s t N am \<equiv> do {
   ami \<leftarrow> Array.make N am;  (* TODO/DUP: Called init_ps in Edmonds-Karp impl *)
-  fifo_push_relabel_impl c s t N ami
+  cfi \<leftarrow> fifo_push_relabel_impl c s t N ami;
+  return (ami,cfi)
 }"  
   
   
@@ -1752,10 +1804,10 @@ theorem fifo_push_relabel_impl_tab_am_correct[sep_heap_rules]:
   shows "
     <emp> 
       fifo_push_relabel_impl_tab_am c s t N am
-    <\<lambda>cfi. \<exists>\<^sub>Acf. 
-        asmtx_assn N id_assn cf cfi 
+    <\<lambda>(ami,cfi). \<exists>\<^sub>Acf. 
+        am_assn N am ami * cf_assn N cf cfi
       * \<up>(Network.isMaxFlow c s t (Network.flow_of_cf c cf)
-        \<and> RPreGraph c s t cf
+        \<and> RGraph c s t cf
         )>\<^sub>t"
 proof -
   interpret Network c s t by fact
@@ -1773,7 +1825,8 @@ proof -
     apply (rule Hoare_Triple.cons_rule[
             OF _ _ fifo_push_relabel_impl_correct[OF ABS_PS]])
     subgoal unfolding am_assn_def is_nf_def by sep_auto
-    subgoal unfolding cf_assn_def by sep_auto
+    apply (rule ent_refl)    
+    subgoal by sep_auto
     done  
 qed        
   
@@ -1782,8 +1835,8 @@ definition "fifo_push_relabel el s t \<equiv> do {
   case prepareNet el s t of
     None \<Rightarrow> return None
   | Some (c,am,N) \<Rightarrow> do {
-      cf \<leftarrow> fifo_push_relabel_impl_tab_am c s t N am;
-      return (Some (c,am,N,cf))
+      (ami,cf) \<leftarrow> fifo_push_relabel_impl_tab_am c s t N am;
+      return (Some (c,ami,N,cf))
   }
 }"
 export_code fifo_push_relabel checking SML_imp
@@ -1802,22 +1855,28 @@ text \<open>
   Finally, \<open>am\<close> is a valid adjacency map of the graph, and the nodes of the graph are integers less than \<open>N\<close>.
 \<close>  
   
-theorem fifo_push_relabel_correct:
+theorem fifo_push_relabel_correct[sep_heap_rules]:
   "<emp>
   fifo_push_relabel el s t
   <\<lambda>
     None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
-  | Some (c,am,N,cfi) \<Rightarrow> 
+  | Some (c,ami,N,cfi) \<Rightarrow> 
       \<up>(c = ln_\<alpha> el \<and> ln_invar el \<and> Network c s t) 
-    * (\<exists>\<^sub>Acf. asmtx_assn N int_assn cf cfi 
-          * \<up>(RPreGraph c s t cf 
-            \<and> Network.isMaxFlow c s t (Network.flow_of_cf c cf))) 
-    * \<up>(Graph.is_adj_map c am \<and> Graph.V c \<subseteq> {0..<N})
+    * (\<exists>\<^sub>Aam cf. am_assn N am ami * cf_assn N cf cfi 
+          * \<up>(RGraph c s t cf 
+            \<and> Network.isMaxFlow c s t (Network.flow_of_cf c cf)) 
+          * \<up>(Graph.is_adj_map c am 
+            \<and> Graph.V c \<subseteq> {0..<N} 
+            \<and> Network_Impl c s t N))
   >\<^sub>t
   "
   unfolding fifo_push_relabel_def
   using prepareNet_correct[of el s t]
-  by (sep_auto simp: ln_rel_def in_br_conv)
+  apply (sep_auto simp: ln_rel_def in_br_conv)
+  apply intro_locales  
+    subgoal by assumption
+    subgoal by unfold_locales auto
+  done      
   
 
 subsubsection \<open>Justification of Splitting into Prepare and Run Phase\<close>    
@@ -1829,7 +1888,7 @@ definition "fifo_push_relabel_prepare_impl el s t \<equiv> do {
   | Some (c,am,N) \<Rightarrow> do {
       ami \<leftarrow> Array.make N am;
       cfi \<leftarrow> fifo_push_relabel_init_impl c N;
-      return (Some (N,am,ami,c,cfi))
+      return (Some (N,ami,c,cfi))
     }
 }"
 
@@ -1839,14 +1898,189 @@ theorem justify_fifo_push_relabel_prep_run_split:
     pr \<leftarrow> fifo_push_relabel_prepare_impl el s t;
     case pr of
       None \<Rightarrow> return None
-    | Some (N,am,ami,c,cf) \<Rightarrow> do {
+    | Some (N,ami,c,cf) \<Rightarrow> do {
         cf \<leftarrow> fifo_push_relabel_run_impl s t N ami cf;
-        return (Some (c,am,N,cf))
+        return (Some (c,ami,N,cf))
       }
   }"  
   unfolding fifo_push_relabel_def fifo_push_relabel_prepare_impl_def
     fifo_push_relabel_impl_tab_am_def fifo_push_relabel_impl_def
   by (auto split: option.split)  
   
+  
+subsection \<open>Computing the Maximum Flow\<close>    
+(* TODO: Clone from Edka-Impl. Unify these stuff!*)
+    
+subsection \<open>Usage Example: Computing Maxflow Value \<close>
+text \<open>We implement a function to compute the value of the maximum flow.\<close>
+
+
+lemma (in Network) am_s_is_incoming:
+  assumes "is_adj_map am"
+  shows "E``{s} = set (am s)"
+  using assms no_incoming_s
+  unfolding is_adj_map_def
+  by auto
+  
+context RGraph begin
+
+  lemma val_by_adj_map:
+    assumes "is_adj_map am"
+    shows "f.val = (\<Sum>v\<in>set (am s). c (s,v) - cf (s,v))"
+  proof -
+    have "f.val = (\<Sum>v\<in>E``{s}. c (s,v) - cf (s,v))"
+      unfolding f.val_alt
+      by (simp add: sum_outgoing_pointwise f_def flow_of_cf_def)
+    also have "\<dots> = (\<Sum>v\<in>set (am s). c (s,v) - cf (s,v))"  
+      by (simp add: am_s_is_incoming[OF assms])
+    finally show ?thesis . 
+  qed  
+      
+end
+
+locale RGraph_Impl = RGraph c s t cf + Network_Impl c s t N
+  for c :: "capacity_impl flow" and s t N cf
+  
+context Network_Impl 
+begin
+
+  definition "get_cap e \<equiv> c e"
+      
+  definition "compute_flow_val_aux am cf \<equiv> do {
+      succs \<leftarrow> am_get am s;
+      setsum_impl 
+      (\<lambda>v. do {
+        let csv = get_cap (s,v);
+        cfsv \<leftarrow> cf_get cf (s,v);
+        return (csv - cfsv)
+      }) (set succs)
+    }"
+
+  lemma (in RGraph_Impl) compute_flow_val_aux_correct:
+    assumes "is_adj_map am"
+    shows "compute_flow_val_aux am cf \<le> (spec v. v = f.val)"
+    unfolding val_by_adj_map[OF assms]
+    unfolding compute_flow_val_aux_def cf_get_def get_cap_def am_get_def
+    apply (refine_vcg setsum_imp_correct)
+    apply (vc_solve simp: s_node)
+    unfolding am_s_is_incoming[symmetric, OF assms] 
+    by (auto simp: V_def)
+
+  text \<open>For technical reasons (poor foreach-support of Sepref tool), 
+    we have to add another refinement step: \<close>  
+  definition "compute_flow_val am cf \<equiv> (do {
+    succs \<leftarrow> am_get am s;
+    nfoldli succs (\<lambda>_. True)
+     (\<lambda>x a. do {
+           b \<leftarrow> do {
+               let csv = get_cap (s, x);
+               cfsv \<leftarrow> cf_get cf (s, x);
+               return (csv - cfsv)
+             };
+           return (a + b)
+         })
+     0
+  })"  
+
+  lemma (in RGraph_Impl) compute_flow_val_correct[THEN order_trans, refine_vcg]:
+    assumes "is_adj_map am"
+    shows "compute_flow_val am cf \<le> (spec v. v = f.val)"
+  proof -
+    have [refine_dref_RELATES]: "RELATES (\<langle>Id\<rangle>list_set_rel)" 
+      by (simp add: RELATES_def)
+    show ?thesis
+      apply (rule order_trans[OF _ compute_flow_val_aux_correct[OF assms]])
+      unfolding compute_flow_val_def compute_flow_val_aux_def setsum_impl_def
+      apply (rule refine_IdD)
+      apply (refine_rcg LFO_refine bind_refine')
+      apply refine_dref_type
+      apply vc_solve
+      using assms
+      by (auto 
+          simp: list_set_rel_def br_def am_get_def is_adj_map_def 
+          simp: refine_pw_simps)
+  qed    
+    
+
+  lemma [sepref_import_param]: "(c,PR_CONST get_cap) \<in> Id\<times>\<^sub>rId \<rightarrow> Id" 
+    by (auto simp: get_cap_def)
+  lemma [def_pat_rules]: 
+    "Network_Impl.get_cap$c \<equiv> UNPROTECT get_cap" by simp
+  sepref_register 
+    "PR_CONST get_cap" :: "node \<times> node \<Rightarrow> capacity_impl"
+
+
+  sepref_thm compute_flow_val_impl
+    is "uncurry (PR_CONST compute_flow_val)" 
+      :: "am_assn\<^sup>k *\<^sub>a cf_assn\<^sup>k \<rightarrow>\<^sub>a cap_assn" 
+    unfolding compute_flow_val_def PR_CONST_def
+    by sepref  
+  concrete_definition (in -) compute_flow_val_impl 
+    uses Network_Impl.compute_flow_val_impl.refine_raw is "(uncurry ?f,_)\<in>_"
+  lemmas compute_flow_val_impl_hnr[sepref_fr_rules] 
+      = compute_flow_val_impl.refine[OF nwi_this]
+      
+end
+   
+lemma compute_flow_val_impl_correct[sep_heap_rules]:
+  assumes "Network_Impl c s t N"
+  assumes "RGraph c s t cf"
+  assumes AM: "Graph.is_adj_map c am"  
+  shows "<cf_assn N cf cfi * am_assn N am ami> 
+          compute_flow_val_impl c s N ami cfi 
+        <\<lambda>v. cf_assn N cf cfi * am_assn N am ami 
+            * \<up>( v = Flow.val c s (RPreGraph.f c cf) )>\<^sub>t"
+proof -
+  interpret Network_Impl c s t N by fact
+  interpret RGraph c s t cf by fact    
+  interpret RGraph_Impl c s t N cf by unfold_locales
+
+      
+  from hn_refine_ref[OF 
+      compute_flow_val_correct[OF AM order_refl] 
+      compute_flow_val_impl_hnr[to_hnr, unfolded autoref_tag_defs]]    
+  show ?thesis  
+    apply (simp add: hn_ctxt_def pure_def hn_refine_def f_def)
+    apply (rule cons_post_rule)
+    apply assumption  
+    apply sep_auto
+    done  
+qed    
+  
+definition "fifo_push_relabel_compute_flow_val el s t \<equiv> do {
+  r \<leftarrow> fifo_push_relabel el s t;
+  case r of 
+    None \<Rightarrow> return None
+  | Some (c,am,N,cf) \<Rightarrow> do {
+      v \<leftarrow> compute_flow_val_impl c s N am cf;
+      return (Some v)
+    }
+}"
+    
+text \<open>The computed flow value is correct\<close>  
+theorem fifo_push_relabel_compute_flow_val_correct:
+  "<emp> 
+    fifo_push_relabel_compute_flow_val el s t 
+  <\<lambda>
+    None \<Rightarrow> \<up>(\<not>ln_invar el \<or> \<not>Network (ln_\<alpha> el) s t)
+  | Some v \<Rightarrow> \<up>( ln_invar el 
+      \<and> (let c = ln_\<alpha> el in
+          Network c s t \<and> Network.is_max_flow_val c s t v
+        ))    
+  >\<^sub>t"  
+proof -
+  {
+    fix cf
+    assume "RGraph (ln_\<alpha> el) s t cf"
+    then interpret RGraph "(ln_\<alpha> el)" s t cf .
+    have "f = flow_of_cf cf" unfolding f_def by simp
+  } note aux=this
+  
+  show ?thesis
+    unfolding fifo_push_relabel_compute_flow_val_def    
+    by (sep_auto simp: Network.is_max_flow_val_def aux)
+qed    
+      
+export_code fifo_push_relabel_compute_flow_val checking SML_imp  
   
 end
