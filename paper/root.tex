@@ -141,7 +141,7 @@ We prove correctness and time complexity of these algorithms.
 Our formal proof closely follows a standard textbook proof, and is accessible even without being
 an expert in Isabelle/HOL --- the interactive theorem prover used for the formalization.
 
-Using stepwise refinement techniques, we instantiate the generic Ford-Fulkerson method to Edmonds-Karp algorithm, 
+Using stepwise refinement techniques, we instantiate the generic Ford-Fulkerson algorithm to Edmonds-Karp algorithm, 
 and the generic push-relabel algorithm of Goldberg and Tarjan to both the relabel-to-front and the FIFO push-relabel algorithm.
 Further refinement then yields verified efficient implementations of the algorithms, which compare well to unverified reference implementations.
 
@@ -160,9 +160,9 @@ Further refinement then yields verified efficient implementations of the algorit
 
 
 \section{Introduction}
-Computing the maximum flow of a network is an important problem in graph theory.
+Computing the maximum flow in a network is an important problem in graph theory.
 Many other problems, like maximum bipartite matching, edge disjoint paths, circulation demand, as well as various scheduling and resource allocating problems can be reduced to it.
-The Ford-Fulkerson method~\cite{FF56} describes a class of algorithms to solve the maximum flow problem. 
+The generic Ford-Fulkerson algorithm~\cite{FF56} describes a class of algorithms to solve the maximum flow problem. 
 The basic idea is to repeatedly search for \emph{augmenting paths} along which more flow can be moved from the source to the sink.
 An important instance is the Edmonds-Karp algorithm~\cite{EK72},
 which was one of the first algorithms to solve the maximum flow problem in polynomial time ($O(VE^2)$) for the general case of networks with real-valued capacities.
@@ -186,22 +186,22 @@ The abstract parts of our verification closely follow the textbook presentation 
 Using the Isar~\cite{Wenzel99} proof language, we were able to produce proofs that are accessible even to non-Isabelle experts.
 
 This paper is an extended version of our conference paper~\cite{LaSe16}, which only covered the Edmonds-Karp algorithm.
-While there exists another formalization of the Ford-Fulkerson method in Mizar~\cite{Lee05}\footnote{Section~\ref{sec:related_work} provides a detailed discussion}, we are, to the best of our knowledge, the first that verify a polynomial time maximum flow algorithm, prove the polynomial complexity bound, or provide a verified executable implementation. Moreover, this paper is a case study on elegantly formalizing algorithms.
+While there exists another formalization of the Ford-Fulkerson algorithm in Mizar~\cite{Lee05}\footnote{Section~\ref{sec:related_work} provides a detailed discussion}, we are, to the best of our knowledge, the first that verify a polynomial time maximum flow algorithm, prove the polynomial complexity bound, or provide a verified executable implementation. Moreover, this paper is a case study on elegantly formalizing algorithms.
 
-In the rest of this paper, we give a short informal description the Ford-Fulkerson method (\S\ref{sec:background})
-and present our formalization of it (\S\ref{sec:abs-formalization}). After introducing the Isabelle Refinement Framework~\cite{LaTu12,La12} (\S\ref{sec:refinement}), we report on the instantiation of the Ford-Fulkerson method to the Edmonds-Karp algorithm, and on its complexity proof (\S\ref{sec:edka}).
+In the rest of this paper, we give a short informal description of the Ford-Fulkerson algorithm (\S\ref{sec:background})
+and present our formalization of it (\S\ref{sec:abs-formalization}). After introducing the Isabelle Refinement Framework~\cite{LaTu12,La12} (\S\ref{sec:refinement}), we report on the instantiation of the Ford-Fulkerson algorithm to the Edmonds-Karp algorithm, and on its complexity proof (\S\ref{sec:edka}).
 Next, we describe the correctness and complexity proof of the generic push-relabel algorithm (\S\ref{sec:gen-prpu}), and its instantiations 
 to the relabel-to-front and FIFO push-relabel algorithms (\S\ref{sec:prpu-inst}).
 Finally, we report on the refinement of all three algorithms to efficient implementations (\S\ref{sec:executable}), and their comparison to unverified reference 
 implementations (\S\ref{sec:benchmark}).
 
-The source code of our formalization is available at \url{http://www21.in.tum.de/~lammich/edmonds_karp/}. 
+The source code of our formalization is available at \url{http://www21.in.tum.de/~lammich/max_flow/}. 
 The part on Edmonds-Karp algorithm is also available in the Archive of Formal Proofs~\cite{LaSe16_afp}.
 
 
 % Despite its importance, no formalization of the Ford-Fulkerson algorithm has been developed in modern proof assistants. The only similar work that the authors are aware of is formalization of the Ford-Fulkerson algorithm in Mizar~\cite{Lee05}. This formalization defines and proves correctness of the algorithm at the level of graph manipulations without providing concrete implementation of the algorithm. Providing such an implementation is specially important, as it could provide the basis for many verfied programs with practical importance.
 
-\section{The Ford-Fulkerson Method}\label{sec:background}
+\section{The Ford-Fulkerson Algorithm}\label{sec:background}
 % \begin{comment}
 %   GOAL: 
 %     1) Remind the reader of FoFu. The educated reader should have the feeling:
@@ -238,7 +238,7 @@ The part on Edmonds-Karp algorithm is also available in the Archive of Formal Pr
 %       Edmonds-Karp: Shortest augmenting path. Always terminates! Complexity: O(|E||V|) outer loop iterations, BFS requires O|E|.
 %   \end{comment}
 
-In this section, we give a short introduction to the Ford-Fulkerson method, closely following the presentation by Cormen et al.~\cite{CLRS09}.
+In this section, we give a short introduction to the Ford-Fulkerson algorithm, closely following the presentation by Cormen et al.~\cite{CLRS09}.
 
 % TODO: Possible alternative presentation
 %   First define a relaxed network, without the constraints. Define the flow there. Then add network constraints.
@@ -257,7 +257,7 @@ sum of outgoing flows.
 % A \emph{flow} is a \emph{preflow} that satisfies the \emph{Conservation constraint}: For all nodes except $s$ and $t$, the excess flow is zero.
 % Intuitively, only the source may generate flow, and only the sink may consume flow, and for all other nodes, the incoming flow must be equal to the outgoing flow.
 The value of a flow $f$ is denoted by $|f|$, and defined to be the sum over the outgoing flows of $s$ minus the sum over the incoming flows of $s$.
-Given a network $G$, the maximum flow problem is to find a flow with a maximum value among all flows of the network. 
+Given a network $G$, the maximum flow problem is to find a flow with the maximum value among all flows of the network. 
 
 To simplify reasoning about the maximum flow problem, we assume that our network satisfies some additional constraints: 1) the source only has outgoing edges while the sink only has incoming edges; 2) if the network contains an edge $(u, v)$ then there is no \emph{parallel edge} $(v, u)$ in the reverse direction\footnote{With $u=v$, this also implies that there are no self loops.}; and 3) every node of the network must be on a path from $s$ to $t$. Note that any network can be transformed to a network with the aforementioned properties and the same maximum flow~\cite{CLRS09}.
 
@@ -266,7 +266,7 @@ An important result is the relation between flows and cuts in a network. A \emph
 the source and the other set contains the sink. The capacity of a cut is the sum of the capacities of all edges going from the source's side to the sink's side of the cut.
 It is easy to see that the value of any flow cannot exceed the capacity of any cut, as all flow from the source must ultimately reach the sink, and thus go through the edges of the cut. The min-cut-max-flow theorem tightens this bound and states that the value of the maximum flow is equal to the capacity of the minimum cut.
 
-The Ford-Fulkerson method is a corollary of this theorem. It is based on a greedy approach: Starting from a zero flow, the value of the flow is iteratively increased until a maximum flow is reached. In order to increase the overall flow value, it may be necessary to redirect some flow, \ie to decrease the flow passed through specific edges. For this purpose the Ford-Fulkerson method defines the residual graph, which has edges in the same and opposite direction as the network edges.
+The Ford-Fulkerson algorithm is a corollary of this theorem. It is based on a greedy approach: Starting from a zero flow, the value of the flow is iteratively increased until a maximum flow is reached. In order to increase the overall flow value, it may be necessary to redirect some flow, \ie to decrease the flow passed through specific edges. For this purpose the Ford-Fulkerson algorithm defines the residual graph, which has edges in the same and opposite direction as the network edges.
 % , which has edges both in parallel and reverse to the edges of the network. 
 Each edge is labeled by the amount of flow that can be effectively passed along this edge, by either increasing or decreasing the flow on a network edge.
 Formally, the residual graph $G_f$ of a flow $f$ is the graph induced by the 
@@ -279,7 +279,7 @@ edges with positive labels according to the following labeling function $c_f$:
   \end{cases} 
 \]
 
-In each iteration, the Ford-Fulkerson method tries to find an \emph{augmenting path}, \ie a simple path from $s$ to $t$ in the residual graph.
+In each iteration, the algorithm tries to find an \emph{augmenting path}, \ie a simple path from $s$ to $t$ in the residual graph.
 It then pushes as much flow as possible along this path to increase the value of the current flow. 
 Formally, for an augmenting path $p$, one first defines the \emph{residual capacity} $c_p$ as the minimum value over all edges of $p$:
 \[c_f(p) = \min \{c_f(u, v): \text{$(u, v)$ is on  $p$}\}\]
@@ -309,11 +309,11 @@ The correctness of the Ford-Fulkerson algorithm follows from the min-cut-max-flo
 \item there is a cut $C$ in $G$ such that the capacity of $C$ is equal to the value of $f$.
 \end{enumerate}
 
-The Ford-Fulkerson method does not specify how to find an augmenting path in the residual graph. There are several possible implementations with different execution times. The general method is only guaranteed to terminate for networks with rational capacities, while it may infinitely converge against non-maximal flows in the case of irrational edge capacities~\cite{FF56,Zwick95}. When always choosing a \emph{shortest} augmenting path, the number of iterations is bound by $O(VE)$, even for the general case of real-valued capacities. Note that we write $V$ and $E$ instead of $|V|$ and $|E|$ for the number of nodes and edges if the intended meaning is clear from the context.
+The Ford-Fulkerson algorithm is generic in that it does not specify how to find an augmenting path in the residual graph. There are several possible implementations with different execution times. The generic algorithm is only guaranteed to terminate for networks with rational capacities, while it may infinitely converge against non-maximal flows in the case of irrational edge capacities~\cite{FF56,Zwick95}. When always choosing a \emph{shortest} augmenting path, the number of iterations is bound by $O(VE)$, even for the general case of real-valued capacities. Note that we write $V$ and $E$ instead of $|V|$ and $|E|$ for the number of nodes and edges if the intended meaning is clear from the context.
 A shortest path can be found by breadth first search (BFS) in time $O(E)$, yielding the Edmonds-Karp algorithm~\cite{EK72} with an overall running time of $O(VE^2)$. 
 
 
-\section{Formalizing the Ford-Fulkerson Method}\label{sec:abs-formalization}
+\section{Formalizing the Ford-Fulkerson Algorithm}\label{sec:abs-formalization}
 %  GOAL: Present highlights of our formalization, persuade the reader that we have done something substantial.
 %    Reader should think: Yeah, they did cool stuff!
 %
@@ -333,7 +333,7 @@ A shortest path can be found by breadth first search (BFS) in time $O(E)$, yield
 
 %A formal proof contains many technical details that are not presented in an informal proof. While dealing with the technical details in a proof causes distraction, leaving out such details makes it hard to follow the proofs.  . So, readers may use this informal proof as a guide to better understand the relevant thoughts in our formal proof. Moreover using the proof language Isar, we made the formal proof readable even for readers that are not familiar with Isabelle.
 
-In this section, we provide a brief overview of our formalization of the Ford-Fulkerson method. 
+In this section, we provide a brief overview of our formalization of the Ford-Fulkerson algorithm. 
 In order to develop theory in the context of a fixed graph or network, we use Isabelle's concept of \emph{locales}~\cite{Ballarin:2006:MKM}, which allows
 us to define named contexts that fix some parameters and assumptions.
 For example, the graph theory is developed in the locale \isai{Graph}, which 
@@ -363,7 +363,7 @@ verbose than informal proofs. Moreover, formal proofs are conducted in the tacti
 Thus, many formal proofs are essentially programs that instruct the proof assistant how to conduct the proof. They tend to be inaccessible without a deep knowledge of the used proof assistant, in many cases requiring to replay the proof in the proof assistant in order to understand the idea behind it.
 
 For the Isabelle/HOL proof assistant, the Isar proof language~\cite{Wenzel99} allows to write formal proofs that resemble standard mathematical textbook proofs, and are accessible, to a certain extent, even for those not familiar with Isabelle/HOL. 
-We use Isar to present our proof of the Ford-Fulkerson method such that it resembles the informal proof described by Cormen et al.~\cite{CLRS09}.
+We use Isar to present our proof of the Ford-Fulkerson algorithm such that it resembles the informal proof described by Cormen et al.~\cite{CLRS09}.
 
 As an example, consider the proof that for a flow $f$ and a residual flow $f'$, the augmented flow $f\augment f'$ is again a valid flow. In particular, one has to show 
 that the augmented flow satisfies the capacity constraint. Cormen et al.~give the following proof, which we display literally here, only replacing the references to 
@@ -390,7 +390,7 @@ In the following we present the corresponding formal proof in Isar:
 The structure of the Isar proof is exactly the same as that of the textbook proof, except that we had to also consider the case $(u,v)\notin E$, which is not mentioned in the informal proof at all, and easily discharged in our formal proof by the \isai{auto}-tactic after the \isai{qed}. We also use exactly the same justifications as the original proof, except that we had to use the fact that there are no parallel edges to show $c_f(v,u)=f(u,v)$, which is not mentioned in the original proof.
 
 \subsection{Presentation of Algorithms}
-In textbooks, it is common to present algorithms in pseudocode, which captures the essential ideas, but leaves open implementation details. As a formal equivalent to pseudocode, we use the monadic programming language provided by the Isabelle Refinement Framework~\cite{LaTu12,La12}. For example, we define the Ford-Fulkerson method as follows:
+In textbooks, it is common to present algorithms in pseudocode, which captures the essential ideas, but leaves open implementation details. As a formal equivalent to pseudocode, we use the monadic programming language provided by the Isabelle Refinement Framework~\cite{LaTu12,La12}. For example, we define the Ford-Fulkerson algorithm as follows:
 \Snippet{ford_fulkerson_algo}
 
 % DONE: Introduce obtain-syntax, and unfold find-augmenting-path spec! Or even while-exists loop as combinator?
@@ -399,12 +399,12 @@ The code looks quite similar to pseudocode that one would expect in a textbook, 
 % The only caveat is that our framework currently does not support breaking of loops, such that we had to use an explicit flag instead. 
 
 Finally, using the Ford-Fulkerson theorem and the verification condition generator of the Isabelle Refinement Framework, it is straightforward to prove (partial) correctness of
-the Ford-Fulkerson method, which is stated in Isabelle/HOL by the following theorem:
+the Ford-Fulkerson algorithm, which is stated in Isabelle/HOL by the following theorem:
 \Snippet{ford_fulkerson_correct}
 
 \section{Refinement in Isabelle/HOL}\label{sec:refinement}
 After having stated and proved correct an algorithm on the abstract level, the next step is to provide an (efficient) implementation. 
-In our case, we first specialize the Ford-Fulkerson method to use shortest augmenting paths, then implement the search for shortest augmenting paths by BFS, and finally use efficient data structures to represent the abstract objects modified by the algorithm. 
+In our case, we first specialize the Ford-Fulkerson algorithm to use shortest augmenting paths, then implement the search for shortest augmenting paths by BFS, and finally use efficient data structures to represent the abstract objects modified by the algorithm. 
 
 A natural way to achieve this formally is \emph{stepwise refinement}~\cite{Wirth71}, and in particular \emph{refinement calculus}~\cite{Back78,BaWr98}, which allows us to systematically transform an abstract algorithm into a more concrete one, preserving its correctness.
 
@@ -478,7 +478,7 @@ results in a program that refines the original program. This gives us a natural 
 
 
 \section{The Edmonds-Karp Algorithm}\label{sec:edka}
-  Specializing the Ford-Fulkerson method to the Edmonds-Karp algorithm is straightforward, as finding a shortest augmenting path is a refinement of finding any augmenting path.
+  Specializing the Ford-Fulkerson algorithm to the Edmonds-Karp algorithm is straightforward, as finding a shortest augmenting path is a refinement of finding any augmenting path.
   
   Considerably more effort is required to show that the resulting algorithm terminates within $O(VE)$ iterations. 
   The idea of the proof is as follows: Edges in the opposite direction to an edge on a shortest path cannot lie 
@@ -531,9 +531,9 @@ results in a program that refines the original program. This gives us a natural 
   with the invariant that for every edge $(u, v)$ of the residual graph we have that $l(u) \le l(v) + 1$. 
   Moreover, the height of the source is fixed to $\left\vert{V}\right\vert$, and the height of the sink is fixed to $0$.
   By generalizing the labeling invariant to paths, we get that for every path $p$ from $u$ to $v$ in the residual graph, we have $l(u) \le l(v) + |p|$.
-  This implies that there cannot be a path from $s$ to $t$: the length of any (simple) path is less than $|V|$, however, a valid labeling 
+  This implies that there cannot be an augmenting path, \ie a simple path from $s$ to $t$: the length of any simple path is less than $|V|$, however, a valid labeling 
   implies a length greater than or equal to $|V|$. Upon termination of the algorithm, there will be no active nodes. 
-  Thus, the preflow is actually a flow, and as we have no $s$--$t$ paths, the Ford-Fulkerson theorem implies that it is maximal.
+  Thus, the preflow is actually a flow, and as there are no augmenting paths, the min-cut-max-flow theorem implies that the flow is maximal.
   
   The push relabel algorithm initializes the heights of all nodes but the source to zero. Moreover, the outgoing edges of the source are 
   set to carry maximum flow, all other edges get zero flow. Then, the algorithm repeats the following operations as long as they apply:
@@ -598,7 +598,7 @@ The simple structure of the generic algorithm allowed us to conveniently define 
 by inductive arguments over the runs of the algorithm.
 Moreover, the powerful Isabelle/HOL standard library, in particular the support for summations
 over finite sets, was very helpful to keep the formalization effort manageable. 
-Anyway, the whole complexity proof is roughly 1000 lines of Isabelle text, and took a few weeks to complete.
+Nevertheless, the whole complexity proof is roughly 1000 lines of Isabelle text, and took a few weeks to complete.
 This includes the time that we spent on an initial termination proof that used simpler arguments, but did not derive an exact complexity bound.
 
 \section{Instantiating the Generic Push-Relabel Algorithm}\label{sec:prpu-inst}
@@ -636,14 +636,14 @@ and took only a few days to develop.
 
 \subsection{FIFO Push-Relabel Algorithm}
 While the relabel-to-front algorithm has a theoretical worst case complexity of $O(V^3)$, it seems to be rather inefficient in practice.\footnote{We have not found any implementation based on relabel-to-front, and our own experiments indicate a rather poor performance.}
-An alternative implementation is the FIFO push-relabel algorithm, which maintains a first-in-first-out queue of the active nodes. 
-In each iteration, it dequeues a node from the FIFO, and tries to discharge it by only using push operations.
+An alternative implementation is the FIFO push-relabel algorithm, which maintains a queue (FIFO) of the active nodes. 
+In each iteration, it dequeues a node and tries to discharge it by only using push operations.
 If the node is still active, it is relabeled and enqueued.
 
 
 The FIFO push-relabel algorithm has several advantages: It's correctness is straightforward to prove, 
 as the only required additional invariant is that the queue contains exactly the active nodes. 
-Moreover, it performs well in practice, and we have found several reference implementations of it~\cite{ChGo97,ICPC-notebook}.
+Moreover, it performs well in practice, and we have found several reference implementations of it~\cite{Gold_Network_Opt,ICPC-notebook}.
 
 Our algorithm follows the implementation that we found in the Stanford ACM-ICPC notebook~\cite{ICPC-notebook}, 
 which uses an additional gap heuristics: If there is a value $0<k<|V|$ such that there is no node that has height $k$, 
@@ -663,7 +663,7 @@ took only a day to complete.
   In this section, we outline the further refinement steps that were necessary to obtain an efficient implementation.
 
   \subsection{Algorithms}
-  The most complex problem for which we specified no algorithm yet is finding a shortest augmenting path.
+  The most complex problem for which we specified no algorithm yet is how to find a shortest augmenting path in the Edmonds-Karp algorithm.
   We use breadth first search (BFS) for this. We adapted a BFS formalization from the examples collection of the Isabelle Refinement Framework to
   our needs and added an efficient imperative implementation. The resulting algorithm 
   is independent of flow networks and can be reused for other applications.
@@ -709,7 +709,7 @@ took only a day to complete.
 
   We implement capacities by (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation by fixed precision numbers would also be possible,
   but requires additional checks on the network to ensure that no overflows can happen.\footnote{Actually, the unverified reference 
-  implementations of the push-relabel algorithms~\cite{ChGo97,ICPC-notebook} that we use in our benchmarks (\cf Section~\ref{sec:benchmark}) lack such checks, and silently report erroneous maximum flow values in case of overflow.}
+  implementations of the push-relabel algorithms~\cite{Gold_Network_Opt,ICPC-notebook} that we use in our benchmarks (\cf Section~\ref{sec:benchmark}) lack such checks, and silently report erroneous maximum flow values in case of overflow.}
   % TODO: Can we trick the Java reference implementation on integer overflow?
   Nodes are represented by natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
   are realized as arrays of size $N\times N$ with row-major indexing, such that the successors of a node are close together in memory.
@@ -1154,19 +1154,6 @@ Ford-fulkerson theorem.
   We have benchmarked our verified algorithms against unverified reference implementations.
   We extract SML code for our verified Edmonds-Karp and FIFO push-relabel algorithms, and compile it with MLton~\cite{MLton} version 20100608.
   We have not included the relabel-to-front algorithm, as it was three orders of magnitude slower in preliminary tests.
-  
-  For the Edmonds-Karp algorithm, we use a reference implementation in Java from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}, which 
-  is compiled and ran with OpenJDK Java 1.8.0.
-  As data set, we use randomly generated sparse and dense networks, the sparse networks having a \emph{density} (${} = \frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
-  
-  For the push-relabel algorithm, we use the C++ implementation from the Stanford ACM-ICPC notebook~\cite{ICPC-notebook}, which served as 
-  a template for our verified FIFO push-relabel algorithm. Moreover, we use a highly optimized C implementation of a FIFO push-relabel 
-  algorithm with various additional heuristics by Cherkassky et al.~\cite{ChGo97}. These were compiled using gcc 5.4 at optimization level 4.
-  The data set consists of networks from the DIMACS implementation challenge~\cite{JGC93}: 
-  The ``Goldberg bad case networks'' from the ``Washington'' generator, which are tailored to be hard for push-relabel algorithms, 
-  the ``fully dense acyclic networks'' of Waissi, and the RMFGEN networks of Goldfarb and Grigoriadis. 
-  
-
 
 \begin{figure}[!h]
 \begin{center}    
@@ -1492,6 +1479,20 @@ Ford-fulkerson theorem.
 \caption{Benchmark of different implementations. The x-axis shows the number of nodes, the y axis the execution time in seconds.}\label{fig:benchmark}
 \end{figure}
 
+  
+  
+  For the Edmonds-Karp algorithm, we use a reference implementation in Java from Sedgewick and Wayne's book on algorithms~\cite{SeWa11}, which 
+  is compiled and ran with OpenJDK Java 1.8.0.
+  As data set, we use randomly generated sparse and dense networks, the sparse networks having a \emph{density} (${} = \frac{E}{V(V - 1)}$) of $0.02$, and the dense networks having a density of $0.25$. Note that the maximum density for networks that satisfy our assumptions is $0.5$, as we allow no parallel edges.
+  
+  For the push-relabel algorithm, we use the C++ implementation from the Stanford ACM-ICPC notebook~\cite{ICPC-notebook}, which served as 
+  a template for our verified FIFO push-relabel algorithm. Moreover, we use the Q\_PRF program 
+  version $1.8$ from Andrew Goldberg's Network Optimization Library~\cite{Gold_Network_Opt}, which is a highly optimized C implementation of a FIFO push-relabel 
+  algorithm with various additional heuristics, originally developed by Cherkassky and Goldberg~\cite{ChGo97}. 
+  These were compiled using gcc 5.4 at optimization level 4.
+  The data set consists of networks from the DIMACS implementation challenge~\cite{JGC93}: 
+  The ``Goldberg bad case networks'' from the ``Washington'' generator, which are tailored to be hard for push-relabel algorithms, 
+  the ``fully dense acyclic networks'' of Waissi, and the RMFGEN networks of Goldfarb and Grigoriadis. 
 
   The tests were run on a standard laptop machine with a 2.7GHz i7 quadcore processor and 16GiB of RAM.
   
@@ -1505,8 +1506,9 @@ Ford-fulkerson theorem.
   Our push-relabel algorithm is more than one order of magnitude faster than Edmonds-Karp algorithm.
   
   For the push-relabel algorithms, our verified algorithm is, depending on the test case, between 5 and 10 times slower than the unverified C++ implementation.
-  The highly optimized C implementation is up to two orders of magnitude faster. 
-  On the ``goldberg bad case'' networks, which are designed as worst case problems for push-relabel algorithms, 
+  The highly optimized C implementation is significantly faster in most cases, only for the ``fully dense acyclic networks'' it is slower than the 
+  simple C++ implementation.
+  On the ``Goldberg bad case'' networks, which are designed as worst case problems for push-relabel algorithms, 
   even Edmonds-Karp algorithm is competitive to the simple FIFO push-relabel algorithms, while the highly optimized one shows no weaknesses on these networks.
   
   The performance gap between our verified SML code and the C++ code that implements essentially the same algorithm is not surprising: We compare a 
@@ -1540,7 +1542,7 @@ Ford-fulkerson theorem.
   We have presented a mechanical verification of the correctness and time complexity of maximum flow algorithms based on both 
   the augmenting path and the push-relabel approaches, as well as the min-cut-max-flow theorem, which underlies all these algorithms.
   
-  For the augmenting path algorithms, we start with a verification of the generic Ford-Fulkerson method, 
+  For the augmenting path algorithms, we start with a verification of the generic Ford-Fulkerson algorithm, 
   specialize it to the Edmonds-Karp algorithm, and prove its time complexity of $O(VE^2)$.
   For the push-relabel approaches, we start with a verification of the generic push-relabel algorithm of Goldberg and Tarjan, show its time complexity of $O(V^2E)$, and
   instantiate it to both the relabel-to-front and the FIFO push-relabel algorithm.
@@ -1583,9 +1585,9 @@ Ford-fulkerson theorem.
   
   
   \subsection{Related Work}\label{sec:related_work}
-  We are only aware of one other formalization of the Ford-Fulkerson method conducted in Mizar~\cite{MaRu05} by Lee. Unfortunately, there seems to be no publication
+  We are only aware of one other formalization of the Ford-Fulkerson algorithm conducted in Mizar~\cite{MaRu05} by Lee. Unfortunately, there seems to be no publication
   on this formalization except~\cite{Lee05}, which provides a Mizar proof script without any additional comments except that it ``defines and proves correctness of Ford/Fulkerson's Maximum Network Flow algorithm at the level of graph manipulations''. Moreover, in Lee et al.~\cite{LeRu07}, which is about graph representation in Mizar, the formalization is shortly mentioned, and it is clarified that it does not provide any implementation or data structure formalization.
-  As far as we understood the Mizar proof script, it formalizes an algorithm roughly equivalent to our abstract version of the Ford-Fulkerson method.
+  As far as we understood the Mizar proof script, it formalizes an algorithm roughly equivalent to our abstract version of the Ford-Fulkerson algorithm.
   Termination is only proved for integer valued capacities.
   
   Apart from our own work~\cite{La14,NoLa12}, there are several other verifications of graph algorithms and their implementations, using different techniques and proof assistants. Noschinski~\cite{Nosch15} verifies a checker for (non-)planarity certificates using a bottom-up approach. Starting at a C implementation,
@@ -1601,7 +1603,7 @@ Ford-fulkerson theorem.
   we use in the benchmarks. The same authors also provide an implementation based on the highest label selection rule, which is reported to be even more efficient 
   in practice. 
   Compared to these advanced algorithms, our formalization misses two important heuristics: First, the global relabeling heuristics periodically performs a breadth first search on the reversed residual graph, to determine exact node labels based on their distance to the sink. Second, the algorithm is split in two phases: 
-  The first phase ignores nodes with labels greater $|V|$, and already determines the exact value of the flow. The second phase only pushes excess flow back to the source. 
+  The first phase ignores nodes with labels greater than $|V|$, and already determines the exact value of the flow. The second phase only pushes excess flow back to the source.
   Using different implementations for the two phases is reported to improve practical performance~\cite{ChGo97}. 
   Thus, the main focus of future work will be to verify these heuristics in order to obtain more efficient verified algorithms.
   
