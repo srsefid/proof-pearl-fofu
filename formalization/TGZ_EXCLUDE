@@ -1,8 +1,16 @@
 */.*
 *.log
 */mlmon.out
+*/mlmon.prof.out
 *.class
 */fofu-SML/Fofu
 */fofu-C++/Fofu
-*/fofu-C++/Fofu2
+*/prpu-C/Prpu
+*/prpu-C++/Prpu
+*/prpu-SML/Prpu
 */data/data-gen
+*/data/data-cnv
+*/generators/gen
+*.csv
+mkpkg.sh
+TGZ_EXCLUDE

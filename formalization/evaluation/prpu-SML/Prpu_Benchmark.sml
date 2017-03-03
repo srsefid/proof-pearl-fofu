@@ -145,7 +145,7 @@ in
 
     run = fn (N,(am,(c,cf))) => fn () => (N,c,am,fifo_push_relabel_run_impl s t N am cf ()),
     compres = fn (N,c,am,cf) => let
-        val flow = compute_flow_val_impl c s N am cf ()
+        val flow = compute_flow_val_impl s N am cf ()
       in
         Int.toString (int_of_gi flow) 
       end

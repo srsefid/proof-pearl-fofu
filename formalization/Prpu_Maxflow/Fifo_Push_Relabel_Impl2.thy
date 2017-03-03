@@ -1,3 +1,4 @@
+section \<open>Implementation of the FIFO Push/Relabel Algorithm\<close>
 theory Fifo_Push_Relabel_Impl2
 imports 
   Fifo_Push_Relabel

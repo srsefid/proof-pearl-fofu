@@ -4,7 +4,6 @@ session Flow_Networks = Maxflow_Lib +
     
   theories [document = false]
     Graph 
-    Graph_Impl
   
   theories
     Network
@@ -13,6 +12,9 @@ session Flow_Networks = Maxflow_Lib +
     Augmenting_Path
     Ford_Fulkerson
   
+  theories [document = false]
+    Graph_Impl
+    Network_Impl
     
   document_files
     "root.tex" "root.bib"

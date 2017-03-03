@@ -7,13 +7,16 @@ session Prpu_Maxflow = Flow_Networks +
   
   theories
     Generic_Push_Relabel
+    Prpu_Common_Inst
     Relabel_To_Front
     Fifo_Push_Relabel
     
-    Fifo_Push_Relabel_Impl
+    
+    Prpu_Common_Impl
+    Fifo_Push_Relabel_Impl2
     
   theories [document = false]
-    Relabel_To_Front_Impl
+    Relabel_To_Front_Impl2
     Prpu_Benchmark_Export
     
   document_files
