@@ -1,6 +1,6 @@
 section \<open>Code Generation for Benchmarks\<close>
 theory Prpu_Benchmark_Export
-imports Relabel_To_Front_Impl Fifo_Push_Relabel_Impl
+imports Relabel_To_Front_Impl2 Fifo_Push_Relabel_Impl2
 begin
 
 
@@ -45,9 +45,9 @@ schematic_goal [code]: "fifo_push_impl = ?x"
   apply (rewrite insert_stat_push_c)
   by (rule CNV_I)
 
-schematic_goal [code]: "fifo_relabel_impl = ?x" 
+schematic_goal [code]: "relabel_impl = ?x" 
   apply (rule CNV_eqD)
-  unfolding fifo_relabel_impl_def
+  unfolding relabel_impl_def
   apply (rewrite insert_stat_relabel_c)
   by (rule CNV_I)
     

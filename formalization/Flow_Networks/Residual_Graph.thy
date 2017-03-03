@@ -276,7 +276,7 @@ begin
     
   lemma resE_nonNegative: "cf e \<ge> 0"  
     using f.resE_nonNegative by auto
-
+      
 end
 
 context NPreflow begin
@@ -331,12 +331,39 @@ begin
 end        
       
 context NFlow begin
-  lemma is_RGraph: "RGraph c s t cf"
-    apply unfold_locales
-    apply (rule exI[where x=f])
-    apply (safe; unfold_locales)
-    done
-end
+
+lemma is_RGraph: "RGraph c s t cf"
+  apply unfold_locales
+  apply (rule exI[where x=f])
+  apply (safe; unfold_locales)
+  done
+      
+text \<open>The value of the flow can be computed from the residual graph only\<close>    
+lemma val_by_cf: "val = (\<Sum>(u,v)\<in>outgoing s. cf (v,u))"
+proof -
+  have "f (s,v) = cf (v,s)" for v
+    unfolding cf_def by auto
+  thus ?thesis 
+    unfolding val_alt outgoing_def 
+    by (auto intro!: sum.cong) 
+qed  
+      
+end -- \<open>Network with Flow\<close>
+
+lemma (in RPreGraph) maxflow_imp_rgraph:
+  assumes "isMaxFlow (flow_of_cf cf)"
+  shows "RGraph c s t cf"
+proof -  
+  from assms interpret Flow c s t f 
+    unfolding isMaxFlow_def by (simp add: f_def)
+ 
+  interpret NFlow c s t f by unfold_locales     
   
+  show ?thesis    
+    apply unfold_locales
+    apply (rule exI[of _ f])
+    apply (simp add: NFlow_axioms)  
+    done  
+qed      
   
 end -- \<open>Theory\<close>

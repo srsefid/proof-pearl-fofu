@@ -1818,5 +1818,119 @@ lemma wf_pr_algo_rel[simp, intro!]: "wf pr_algo_rel"
       
 end -- \<open>Network\<close>
   
+subsection \<open>Gap Heuristics\<close>  
+context Network
+begin
+text \<open>If we find a label value \<open>k\<close> that is assigned to no node,
+  we may relabel all nodes \<open>v\<close> with \<open>k < l v < card V\<close> to \<open>card V + 1\<close>.
+\<close>
+definition "gap_precond l k \<equiv> \<forall>v\<in>V. l v \<noteq> k"
+definition "gap_effect l k 
+  \<equiv> \<lambda>v. if k<l v \<and> l v < card V then card V + 1 else l v"
+  
+text \<open>The gap heuristics preserves a valid labeling.\<close>  
+lemma (in Labeling) gap_pres_Labeling:
+  assumes PRE: "gap_precond l k"
+  defines "l' \<equiv> gap_effect l k"
+  shows "Labeling c s t f l'"
+proof    
+  from lab_src show "l' s = card V" unfolding l'_def gap_effect_def by auto
+  from lab_sink show "l' t = 0" unfolding l'_def gap_effect_def by auto
+  
+  have l'_incr: "l' v \<ge> l v" for v unfolding l'_def gap_effect_def by auto
+      
+  fix u v
+  assume A: "(u,v) \<in> cf.E"  
+  hence "u\<in>V" "v\<in>V" using cfE_ss_invE E_ss_VxV by auto  
+  thus "l' u \<le> l' v + 1"  
+    unfolding l'_def gap_effect_def
+    using valid[OF A] PRE 
+    unfolding gap_precond_def 
+    by auto
+qed  
+
+text \<open>The gap heuristics also preserves the height bounds.\<close>  
+lemma (in Height_Bounded_Labeling) gap_pres_hb_labeling:
+  assumes PRE: "gap_precond l k"
+  defines "l' \<equiv> gap_effect l k"
+  shows "Height_Bounded_Labeling c s t f l'"  
+proof -  
+  from gap_pres_Labeling[OF PRE] interpret Labeling c s t f l'
+    unfolding l'_def .
+  
+  show ?thesis    
+    apply unfold_locales
+    unfolding l'_def gap_effect_def using height_bound by auto
+qed  
+  
+text \<open>We combine the regular relabel operation with the gap heuristics:
+  If relabeling results in a gap, the gap heuristics is applied immediately.
+\<close>  
+definition "gap_relabel_effect f l u \<equiv> let l' = relabel_effect f l u in
+  if (gap_precond l' (l u)) then gap_effect l' (l u) else l'
+"  
+
+text \<open>The combined gap-relabel operation preserves a valid labeling.\<close>  
+lemma (in Labeling) gap_relabel_pres_Labeling:
+  assumes PRE: "relabel_precond f l u"
+  defines "l' \<equiv> gap_relabel_effect f l u"
+  shows "Labeling c s t f l'"
+  unfolding l'_def gap_relabel_effect_def
+  using relabel_pres_Labeling[OF PRE] Labeling.gap_pres_Labeling
+  by (fastforce simp: Let_def)
+  
+text \<open>The combined gap-relabel operation preserves the height-bound.\<close>  
+lemma (in Height_Bounded_Labeling) gap_relabel_pres_hb_labeling:
+  assumes PRE: "relabel_precond f l u"
+  defines "l' \<equiv> gap_relabel_effect f l u"
+  shows "Height_Bounded_Labeling c s t f l'"  
+  unfolding l'_def gap_relabel_effect_def
+  using relabel_pres_height_bound[OF PRE] Height_Bounded_Labeling.gap_pres_hb_labeling
+  by (fastforce simp: Let_def)
+
+subsubsection \<open>Termination with Gap Heuristics\<close>    
+text \<open>
+  Intuitively, the algorithm with the gap heuristics terminates because 
+  relabeling according to the gap heuristics preserves the invariant and 
+  increases some labels towards their upper bound. 
+
+  Formally, the simplest way is to combine a heights measure function with
+  the already established measure for the standard algorithm:
+\<close>    
+lemma (in Height_Bounded_Labeling) gap_measure:
+  assumes "gap_precond l k"
+  shows "sum_heights_measure (gap_effect l k) \<le> sum_heights_measure l"
+  unfolding gap_effect_def sum_heights_measure_def
+  by (auto intro!: sum_mono)  
+  
+lemma (in Height_Bounded_Labeling) gap_relabel_measure:
+  assumes PRE: "relabel_precond f l u"
+  shows "sum_heights_measure (gap_relabel_effect f l u) < sum_heights_measure l"
+  unfolding gap_relabel_effect_def
+  using relabel_measure[OF PRE] relabel_pres_height_bound[OF PRE] Height_Bounded_Labeling.gap_measure
+  by (fastforce simp: Let_def)
+    
+text \<open>Analogously to @{const pr_algo_rel}, we provide a well-founded relation 
+  that over-approximates the steps of a push-relabel algorithm with gap 
+  heuristics.
+\<close>    
+inductive_set gap_algo_rel where
+  push: "\<lbrakk>Height_Bounded_Labeling c s t f l; push_precond f l e\<rbrakk> 
+    \<Longrightarrow> ((push_effect f e,l),(f,l))\<in>gap_algo_rel"
+| relabel: "\<lbrakk>Height_Bounded_Labeling c s t f l; relabel_precond f l u\<rbrakk>
+    \<Longrightarrow> ((f,gap_relabel_effect f l u),(f,l))\<in>gap_algo_rel"
+  
+lemma wf_gap_algo_rel[simp, intro!]: "wf gap_algo_rel"  
+proof -
+  have "gap_algo_rel \<subseteq> inv_image (less_than <*lex*> less_than) (\<lambda>(f,l). (sum_heights_measure l, pr_algo_measure (f,l)))"
+    using pr_algo_measure  
+    using Height_Bounded_Labeling.gap_relabel_measure  
+    by (fastforce elim!: gap_algo_rel.cases intro: pr_algo_rel.intros )
+  thus ?thesis
+    by (rule_tac wf_subset; auto)
+qed  
+  
+end -- \<open>Network\<close>
+  
   
 end

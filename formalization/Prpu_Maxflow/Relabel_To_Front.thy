@@ -2,7 +2,7 @@ section \<open>Relabel-to-Front Algorithm\<close>
 theory Relabel_To_Front
 imports 
   "../Lib/Refine_Add_Fofu"
-  Generic_Push_Relabel 
+  Prpu_Common_Inst 
   "../Lib/Graph_Topological_Ordering"
 begin
   text \<open>As an example for an implementation, Cormen et al.\ discuss the 
@@ -268,18 +268,6 @@ text \<open>The discharge operation performs push and relabel operations on a
   The lemmas in this section are based on the ideas described in
  the proof of \cormen{26.29}.
 \<close>  
-definition "relabel f l u \<equiv> do {
-  assert (Height_Bounded_Labeling c s t f l);
-  assert (relabel_precond f l u);
-  assert (u\<in>V-{s,t});
-  return (relabel_effect f l u)
-}"
-  
-definition "push f l e \<equiv> do {
-  assert (Labeling c s t f l);
-  assert (push_precond f l e);
-  return (push_effect f e)
-}"
   
 definition "discharge f l n u \<equiv> do {  
   assert (u \<in> V - {s,t});
@@ -407,7 +395,7 @@ proof -
       by fastforce  
     subgoal 
       using converse_rtrancl_into_rtrancl[
-              OF relabel[OF dis_is_hbl PRE] algo_rel] 
+              OF pr_algo_rel.relabel[OF dis_is_hbl PRE] algo_rel] 
       .
     done  
 qed                                                    

@@ -1,9 +1,10 @@
+(* TODO: That's quite specific to the BFS alg. Move to Edka! *)
 theory Graph_Impl
 imports "../Lib/Refine_Add_Fofu" Graph
 begin
 
 -- \<open>Fixing capacities to integer values\<close>
-type_synonym capacity_impl = int
+type_synonym capacity_impl = int (* TODO: DUP in Network_Impl. Remove here!*)
 
 
 locale Impl_Succ =
