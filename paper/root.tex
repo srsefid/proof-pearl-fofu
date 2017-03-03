@@ -709,7 +709,8 @@ took only a day to complete.
 
   We implement capacities by (arbitrary precision) integer numbers\footnote{Up to this point, the formalization models capacities as \emph{linearly ordered integral domains}, which subsume reals, rationals, and integers. Thus, we could chose any executable number representation here.}. Note that an implementation by fixed precision numbers would also be possible,
   but requires additional checks on the network to ensure that no overflows can happen.\footnote{Actually, the unverified reference 
-  implementations of the push-relabel algorithms~\cite{Gold_Network_Opt,ICPC-notebook} that we use in our benchmarks (\cf Section~\ref{sec:benchmark}) lack such checks, and silently report erroneous maximum flow values in case of overflow.}
+  implementations of the push-relabel algorithms~\cite{Gold_Network_Opt,ICPC-notebook} that we use in our benchmarks (\cf Section~\ref{sec:benchmark}) lack such checks, and silently report erroneous maximum flow values in case of overflow. One implementation~\cite{ICPC-notebook} has a parser that silently ignores overflows, 
+  while the other~\cite{Gold_Network_Opt} uses a too small integer type for the excess flow.}
   % TODO: Can we trick the Java reference implementation on integer overflow?
   Nodes are represented by natural numbers less than an upper bound $N$, and residual graphs are implemented by their capacity matrices, which, in turn,
   are realized as arrays of size $N\times N$ with row-major indexing, such that the successors of a node are close together in memory.
