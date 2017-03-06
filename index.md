@@ -1,4 +1,4 @@
-# Formalization of Network-Flow Algorithms
+# Formalizing Network Flow Algorithms
 
 We present a formalization of classical algorithms for computing the maximum flow in a network:
 The Edmonds-Karp algorithm and the push-relabel algorithm. 
