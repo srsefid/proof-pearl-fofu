@@ -1,4 +1,4 @@
-Formalization of the Network-flow Algorithms
+Formalizing Network Flow Algorithms
 ============================================
 
 In order to build the isabelle documents and executable codes, execute the following command
