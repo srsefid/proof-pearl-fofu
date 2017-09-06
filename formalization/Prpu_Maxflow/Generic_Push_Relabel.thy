@@ -434,8 +434,14 @@ proof -
     by (simp add: nat_less_le that)
   hence LU_INCR: "l u \<le> Min { l v | v. (u,v)\<in>cf.E }" 
     by (auto simp: less_Suc_eq_le)
-  with valid have "\<forall>u'. (u',u)\<in>cf.E \<longrightarrow> l u' \<le> Min { l v | v. (u,v)\<in>cf.E } + 1"    
-    by (smt ab_semigroup_add_class.add.commute add_le_cancel_left le_trans)
+  have "\<forall>u'. (u',u)\<in>cf.E \<longrightarrow> l u' \<le> Min { l v | v. (u,v)\<in>cf.E } + 1"
+  proof (intro allI impI)  
+    fix u'
+    assume "(u',u) \<in> cf.E"  
+    note valid[OF this]  
+    also note LU_INCR  
+    finally show "l u' \<le> Min { l v | v. (u,v)\<in>cf.E } + 1" by auto
+  qed      
   moreover have "\<forall>v. (u,v)\<in>cf.E \<longrightarrow> Min { l v | v. (u,v)\<in>cf.E } + 1 \<le> l v + 1"
     using Min_le by auto
   ultimately show ?G1 ?G2

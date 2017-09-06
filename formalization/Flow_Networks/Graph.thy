@@ -1,6 +1,6 @@
 section \<open>Directed Graphs\<close>
 theory Graph
-imports "../Lib/Fofu_Abs_Base"
+imports "Lib/Fofu_Abs_Base"
 begin
 text \<open>
   We define a specialized graph library for graphs that are induced by 

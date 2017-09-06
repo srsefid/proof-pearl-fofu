@@ -3,7 +3,7 @@ theory Prpu_Common_Impl
 imports
   Prpu_Common_Inst
   "../Flow_Networks/Network_Impl" 
-  "../Net_Check/NetCheck"
+  "../Flow_Networks/NetCheck"
 begin
   
 subsection \<open>Basic Operations\<close>
@@ -280,8 +280,9 @@ proof -
   hence [simp]: "u\<in>V" unfolding cf.outgoing_def using cfE_of_ss_VxV by auto
   from \<open>cf.outgoing u \<noteq> {}\<close> 
   have AUX2: "\<exists>v. v \<in> adjacent_nodes u \<and> cf (u, v) \<noteq> 0"
-    by (smt AUX Collect_empty_eq Image_singleton_iff UnCI adjacent_nodes_def 
-            cf.outgoing_def cf_def converse_iff prod.simps(2))
+    unfolding adjacent_nodes_def cf.outgoing_def
+    using cfE_ss_invE 
+    by (auto simp: AUX)
       
   show ?thesis unfolding min_adj_label_aux_def EQ   
     apply (refine_vcg 

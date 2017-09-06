@@ -1,9 +1,8 @@
 section \<open>Implementation of Relabel-to-Front\<close>
-theory Relabel_To_Front_Impl2
+theory Relabel_To_Front_Impl
 imports
   Relabel_To_Front
   Prpu_Common_Impl
-  "../Net_Check/NetCheck"
 begin
   
   
@@ -28,13 +27,16 @@ definition n_get_hd :: "(node \<Rightarrow> node list) \<Rightarrow> node \<Righ
     return (hd (n u))
   }"
 
-definition n_move_next :: "(node \<Rightarrow> node list) \<Rightarrow> node \<Rightarrow> (node \<Rightarrow> node list) nres"
+definition n_move_next 
+  :: "(node \<Rightarrow> node list) \<Rightarrow> node \<Rightarrow> (node \<Rightarrow> node list) nres"
   where "n_move_next n u \<equiv> do {
     assert (u\<in>V-{s,t} \<and> n u \<noteq> []);
     return (n (u := tl (n u)))
   }"
     
-definition n_reset :: "(node \<Rightarrow> node list) \<Rightarrow> (node \<Rightarrow> node list) \<Rightarrow> node \<Rightarrow> (node \<Rightarrow> node list) nres"
+definition n_reset 
+  :: "(node \<Rightarrow> node list) \<Rightarrow> (node \<Rightarrow> node list) \<Rightarrow> node 
+    \<Rightarrow> (node \<Rightarrow> node list) nres"
   where "n_reset am n u \<equiv> do {
     assert (u\<in>V-{s,t});
     return (n (u := am u))
@@ -42,16 +44,21 @@ definition n_reset :: "(node \<Rightarrow> node list) \<Rightarrow> (node \<Righ
   
 lemma n_init_refine[refine2]: 
   assumes AM: "is_adj_map am"  
-  shows "n_init am \<le> (spec c. (c, rtf_init_n) \<in> (nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel))"
+  shows "n_init am 
+    \<le> (spec c. (c, rtf_init_n) \<in> (nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel))"
 proof -
   have[simp]: "am v = []" if "v\<notin>V" for v
   proof -
-    from that have "adjacent_nodes v = {}" unfolding adjacent_nodes_def using E_ss_VxV by auto
-    thus ?thesis using am_to_adj_nodes_refine[OF AM] by (auto simp: list_set_rel_def in_br_conv)
+    from that have "adjacent_nodes v = {}" 
+      unfolding adjacent_nodes_def using E_ss_VxV by auto
+    thus ?thesis using am_to_adj_nodes_refine[OF AM] 
+      by (auto simp: list_set_rel_def in_br_conv)
   qed
   show ?thesis      
     unfolding n_init_def rtf_init_n_def 
-    by (auto simp: pw_le_iff refine_pw_simps list_set_autoref_empty am_to_adj_nodes_refine[OF AM])
+    by (auto 
+        simp: pw_le_iff refine_pw_simps list_set_autoref_empty 
+        simp: am_to_adj_nodes_refine[OF AM])
 qed  
   
 subsection \<open>Refinement to Basic Operations\<close>  
@@ -88,8 +95,9 @@ lemma discharge_structure_refine_aux:
   assumes SU: "(ui,u)\<in>Id"  
   assumes fNR: "fNi \<le> \<Down>R fN"
   assumes UIV: "u\<in>V-{s,t}"  
-  assumes fSR: "\<And>v vi vs. \<lbrakk> (vi,v)\<in>Id; v\<in>n u; ni u = v#vs; (v#vs,n u)\<in>\<langle>nat_rel\<rangle>list_set_rel \<rbrakk> 
-    \<Longrightarrow> fSi vi \<le> \<Down>R (fS v)"
+  assumes fSR: "\<And>v vi vs. \<lbrakk> 
+      (vi,v)\<in>Id; v\<in>n u; ni u = v#vs; (v#vs,n u)\<in>\<langle>nat_rel\<rangle>list_set_rel 
+    \<rbrakk> \<Longrightarrow> fSi vi \<le> \<Down>R (fS v)"
   shows
   "( do {
     at_end \<leftarrow> n_at_end ni ui;
@@ -116,18 +124,22 @@ lemma discharge_structure_refine_aux:
   subgoal for v vs
     using fun_relD[OF SR SU] SU UIV
     using fSR[OF IdI[of v], of vs]  
-    apply (clarsimp simp: list_set_rel_def in_br_conv pw_le_iff refine_pw_simps split: option.splits)
+    apply (clarsimp 
+        simp: list_set_rel_def in_br_conv pw_le_iff refine_pw_simps 
+        split: option.splits)
     by fastforce  
   done    
   
-lemma xf_rel_RELATES[refine_dref_RELATES]: "RELATES xf_rel" by (auto simp: RELATES_def)
+lemma xf_rel_RELATES[refine_dref_RELATES]: "RELATES xf_rel" 
+  by (auto simp: RELATES_def)
   
 lemma discharge2_refine[refine]:     
   assumes A: "((x,cf),f) \<in> xf_rel"
   assumes AM: "(am,adjacent_nodes)\<in>nat_rel\<rightarrow>\<langle>nat_rel\<rangle>list_set_rel"
   assumes [simplified,simp]: "(li,l)\<in>Id" "(ui,u)\<in>Id"
   assumes NR: "(ni,n)\<in>nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel"  
-  shows "discharge2 am x cf li ni ui \<le> \<Down>(xf_rel \<times>\<^sub>r Id \<times>\<^sub>r (nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel)) (discharge f l n u)"  
+  shows "discharge2 am x cf li ni ui 
+    \<le> \<Down>(xf_rel \<times>\<^sub>r Id \<times>\<^sub>r (nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel)) (discharge f l n u)"  
   unfolding discharge2_def discharge_def
   apply (rewrite in "monadic_WHILEIT _ _ \<hole> _" vcg_intro_frame)  
   apply refine_rcg  
@@ -171,7 +183,9 @@ lemma init_CQ_correct[THEN order_trans, refine_vcg]:
   shows "init_CQ am \<le> SPEC (\<lambda>(C,Q). C = card V \<and> distinct Q \<and> set Q = V-{s,t})"
   unfolding init_CQ_def  
   apply (refine_vcg 
-      nfoldli_rule[where I="\<lambda>l1 _ (C,Q). C = card (V\<inter>set l1) \<and> distinct Q \<and> set Q = (V\<inter>set l1)-{s,t} "]
+      nfoldli_rule[where 
+        I="\<lambda>l1 _ (C,Q). 
+             C = card (V\<inter>set l1) \<and> distinct Q \<and> set Q = (V\<inter>set l1)-{s,t} "]
       )  
   apply (clarsimp_all simp: am_to_adj_nodes_refine[OF AM])
   using V_ss by (auto simp: upt_eq_lel_conv Int_absorb2)
@@ -187,25 +201,28 @@ definition "relabel_to_front2 am \<equiv> do {
 
   let L_left=[];
 
-  ((x,cf),l,n,L_left,L_right) \<leftarrow> while\<^sub>T (\<lambda>((x,cf),l,n,L_left,L_right). L_right \<noteq> []) (\<lambda>((x,cf),l,n,L_left,L_right). do {
-    assert (L_right \<noteq> []);
-    let u = hd L_right;
-    old_lu \<leftarrow> l_get l u;
-
-    ((x,cf),l,n) \<leftarrow> discharge2 am x cf l n u;
-
-    lu \<leftarrow> l_get l u;
-    if (lu \<noteq> old_lu) then do {
-      (* Move u to front of l, and restart scanning L. The cost for rev_append is amortized by going to next node in L *)
-      let (L_left,L_right) = ([u],rev_append L_left (tl L_right));
-      return ((x,cf),l,n,L_left,L_right)
-    } else do {
-      (* Goto next node in L *)
-      let (L_left,L_right) = (u#L_left, tl L_right);
-      return ((x,cf),l,n,L_left,L_right)
-    }
-
-  }) (xcf,l,n,L_left,L_right);
+  ((x,cf),l,n,L_left,L_right) \<leftarrow> while\<^sub>T 
+    (\<lambda>((x,cf),l,n,L_left,L_right). L_right \<noteq> []) 
+    (\<lambda>((x,cf),l,n,L_left,L_right). do {
+      assert (L_right \<noteq> []);
+      let u = hd L_right;
+      old_lu \<leftarrow> l_get l u;
+  
+      ((x,cf),l,n) \<leftarrow> discharge2 am x cf l n u;
+  
+      lu \<leftarrow> l_get l u;
+      if (lu \<noteq> old_lu) then do {
+        (* Move u to front of l, and restart scanning L. The cost for 
+           rev_append is amortized by going to next node in L *)
+        let (L_left,L_right) = ([u],rev_append L_left (tl L_right));
+        return ((x,cf),l,n,L_left,L_right)
+      } else do {
+        (* Goto next node in L *)
+        let (L_left,L_right) = (u#L_left, tl L_right);
+        return ((x,cf),l,n,L_left,L_right)
+      }
+  
+    }) (xcf,l,n,L_left,L_right);
 
   return cf
 }"
@@ -213,10 +230,22 @@ definition "relabel_to_front2 am \<equiv> do {
     
 lemma relabel_to_front2_refine[refine]: 
   assumes AM: "is_adj_map am"  
-  shows "relabel_to_front2 am \<le> \<Down>(br (flow_of_cf) (RPreGraph c s t)) relabel_to_front"
+  shows "relabel_to_front2 am 
+    \<le> \<Down>(br (flow_of_cf) (RPreGraph c s t)) relabel_to_front"
 proof -
-  define s_rel :: "(_ \<times> ( capacity_impl flow * (nat\<Rightarrow>nat) * (node\<Rightarrow>node set) * node list * node list)) set"
-    where "s_rel \<equiv> xf_rel \<times>\<^sub>r Id \<times>\<^sub>r (nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel) \<times>\<^sub>r br rev (\<lambda>_. True) \<times>\<^sub>r Id"
+  define s_rel 
+    :: "( _ \<times> (
+       capacity_impl flow 
+    \<times> (nat\<Rightarrow>nat) 
+    \<times> (node\<Rightarrow>node set) 
+    \<times> node list 
+    \<times> node list)) set"
+    where "s_rel \<equiv> 
+       xf_rel 
+    \<times>\<^sub>r Id 
+    \<times>\<^sub>r (nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel) 
+    \<times>\<^sub>r br rev (\<lambda>_. True) 
+    \<times>\<^sub>r Id"
   
   have [refine_dref_RELATES]: "RELATES s_rel" unfolding RELATES_def ..
       
@@ -241,12 +270,14 @@ proof -
       F L_right
     })
   " 
-  if "\<And>L_right xcf n. \<lbrakk> (xcf,pp_init_f)\<in>xf_rel; (n,rtf_init_n) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel \<rbrakk> 
+  if "\<And>L_right xcf n. 
+    \<lbrakk> (xcf,pp_init_f)\<in>xf_rel; (n,rtf_init_n) \<in> nat_rel \<rightarrow> \<langle>nat_rel\<rangle>list_set_rel \<rbrakk>
     \<Longrightarrow> Fi L_right xcf pp_init_l n \<le> \<Down>R (F L_right)"
   for Fi F R
     unfolding l_init_def
     apply (rule refine2specI)
-    supply pp_init_xcf2_refine[OF AM, unfolded conc_fun_RETURN, THEN order_trans, refine_vcg]  
+    supply pp_init_xcf2_refine
+            [OF AM, unfolded conc_fun_RETURN, THEN order_trans, refine_vcg]  
     supply n_init_refine[OF AM,THEN order_trans, refine_vcg]  
     apply (refine_vcg AM V_ss)
     apply clarsimp  
@@ -262,7 +293,9 @@ proof -
     apply (refine_rcg)
     apply refine_dref_type
     unfolding s_rel_def
-    apply (vc_solve simp: in_br_conv rev_append_eq xf_rel_def AUX1 fun_relD am_to_adj_nodes_refine[OF AM])
+    apply (vc_solve 
+        simp: in_br_conv rev_append_eq xf_rel_def AUX1 fun_relD 
+        simp: am_to_adj_nodes_refine[OF AM])
     done  
 qed  
   
@@ -282,83 +315,98 @@ begin
 end  
   
 subsubsection \<open>Neighbor Lists by Array of Lists\<close>  
-  definition "n_assn \<equiv> is_nf N ([]::nat list)"    
-      
-  definition (in -) "n_init_impl s t am \<equiv> do {
-    n \<leftarrow> array_copy am;
-    n \<leftarrow> Array.upd s [] n;
-    n \<leftarrow> Array.upd t [] n;
-    return n
-  }"      
-      
-  lemma [sepref_fr_rules]: "(n_init_impl s t,PR_CONST n_init) \<in> am_assn\<^sup>k \<rightarrow>\<^sub>a n_assn" 
-    apply sepref_to_hoare
-    unfolding am_assn_def n_assn_def n_init_impl_def n_init_def
-    by (sep_auto)  
-      
-  definition (in -) "n_at_end_impl n u \<equiv> do {
-    nu \<leftarrow> Array.nth n u;
-    return (is_Nil nu)
-  }"
-      
-  lemma [sepref_fr_rules]: "(uncurry n_at_end_impl, uncurry (PR_CONST n_at_end)) \<in> n_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn"  
-    apply sepref_to_hoare unfolding n_at_end_impl_def n_at_end_def n_assn_def
-    by (sep_auto simp: refine_pw_simps split: list.split)
+definition "n_assn \<equiv> is_nf N ([]::nat list)"    
     
-  definition (in -) "n_get_hd_impl n u \<equiv> do {
-    nu \<leftarrow> Array.nth n u;
-    return (hd nu)
-  }"      
-  lemma [sepref_fr_rules]: "(uncurry n_get_hd_impl, uncurry (PR_CONST n_get_hd)) \<in> n_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a node_assn"  
-    apply sepref_to_hoare unfolding n_get_hd_impl_def n_get_hd_def n_assn_def
-    by (sep_auto simp: refine_pw_simps)
+definition (in -) "n_init_impl s t am \<equiv> do {
+  n \<leftarrow> array_copy am;
+  n \<leftarrow> Array.upd s [] n;
+  n \<leftarrow> Array.upd t [] n;
+  return n
+}"      
     
-  definition (in -) "n_move_next_impl n u \<equiv> do {
-    nu \<leftarrow> Array.nth n u;
-    n \<leftarrow> Array.upd u (tl nu) n;
-    return n
-  }" 
-  lemma [sepref_fr_rules]: "(uncurry n_move_next_impl, uncurry (PR_CONST n_move_next)) \<in> n_assn\<^sup>d *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a n_assn"  
-    apply sepref_to_hoare unfolding n_move_next_impl_def n_move_next_def n_assn_def
-    by (sep_auto simp: refine_pw_simps)
+lemma [sepref_fr_rules]: 
+  "(n_init_impl s t,PR_CONST n_init) \<in> am_assn\<^sup>k \<rightarrow>\<^sub>a n_assn" 
+  apply sepref_to_hoare
+  unfolding am_assn_def n_assn_def n_init_impl_def n_init_def
+  by (sep_auto)  
     
-  definition (in -) "n_reset_impl am n u \<equiv> do {
-    nu \<leftarrow> Array.nth am u;
-    n \<leftarrow> Array.upd u nu n;
-    return n
-  }"
-  lemma [sepref_fr_rules]: "(uncurry2 n_reset_impl, uncurry2 (PR_CONST n_reset)) \<in> am_assn\<^sup>k *\<^sub>a n_assn\<^sup>d *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a n_assn"  
-    apply sepref_to_hoare unfolding n_reset_impl_def n_reset_def n_assn_def am_assn_def
-    by (sep_auto simp: refine_pw_simps)
+definition (in -) "n_at_end_impl n u \<equiv> do {
+  nu \<leftarrow> Array.nth n u;
+  return (is_Nil nu)
+}"
+    
+lemma [sepref_fr_rules]: 
+  "(uncurry n_at_end_impl, uncurry (PR_CONST n_at_end)) 
+  \<in> n_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn"  
+  apply sepref_to_hoare unfolding n_at_end_impl_def n_at_end_def n_assn_def
+  by (sep_auto simp: refine_pw_simps split: list.split)
+  
+definition (in -) "n_get_hd_impl n u \<equiv> do {
+  nu \<leftarrow> Array.nth n u;
+  return (hd nu)
+}"      
+lemma [sepref_fr_rules]: 
+  "(uncurry n_get_hd_impl, uncurry (PR_CONST n_get_hd)) 
+  \<in> n_assn\<^sup>k *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a node_assn"  
+  apply sepref_to_hoare unfolding n_get_hd_impl_def n_get_hd_def n_assn_def
+  by (sep_auto simp: refine_pw_simps)
+  
+definition (in -) "n_move_next_impl n u \<equiv> do {
+  nu \<leftarrow> Array.nth n u;
+  n \<leftarrow> Array.upd u (tl nu) n;
+  return n
+}" 
+lemma [sepref_fr_rules]: 
+  "(uncurry n_move_next_impl, uncurry (PR_CONST n_move_next)) 
+  \<in> n_assn\<^sup>d *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a n_assn"  
+  apply sepref_to_hoare 
+  unfolding n_move_next_impl_def n_move_next_def n_assn_def
+  by (sep_auto simp: refine_pw_simps)
+  
+definition (in -) "n_reset_impl am n u \<equiv> do {
+  nu \<leftarrow> Array.nth am u;
+  n \<leftarrow> Array.upd u nu n;
+  return n
+}"
+lemma [sepref_fr_rules]: 
+  "(uncurry2 n_reset_impl, uncurry2 (PR_CONST n_reset)) 
+  \<in> am_assn\<^sup>k *\<^sub>a n_assn\<^sup>d *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a n_assn"  
+  apply sepref_to_hoare 
+  unfolding n_reset_impl_def n_reset_def n_assn_def am_assn_def
+  by (sep_auto simp: refine_pw_simps)
   
 subsubsection \<open>Discharge\<close>  
-  sepref_thm discharge_impl is "uncurry5 (PR_CONST discharge2)" 
-    :: "am_assn\<^sup>k *\<^sub>a x_assn\<^sup>d *\<^sub>a cf_assn\<^sup>d *\<^sub>a l_assn\<^sup>d *\<^sub>a n_assn\<^sup>d *\<^sub>a node_assn\<^sup>k \<rightarrow>\<^sub>a (x_assn \<times>\<^sub>a cf_assn) \<times>\<^sub>a l_assn \<times>\<^sub>a n_assn"  
-    unfolding discharge2_def PR_CONST_def
-    by sepref  
-  concrete_definition (in -) discharge_impl uses Network_Impl.discharge_impl.refine_raw is "(uncurry5 ?f,_)\<in>_"
-  lemmas [sepref_fr_rules] = discharge_impl.refine[OF Network_Impl_axioms]    
-  
+sepref_thm discharge_impl is "uncurry5 (PR_CONST discharge2)" 
+  :: "am_assn\<^sup>k *\<^sub>a x_assn\<^sup>d *\<^sub>a cf_assn\<^sup>d *\<^sub>a l_assn\<^sup>d *\<^sub>a n_assn\<^sup>d *\<^sub>a node_assn\<^sup>k 
+    \<rightarrow>\<^sub>a (x_assn \<times>\<^sub>a cf_assn) \<times>\<^sub>a l_assn \<times>\<^sub>a n_assn"  
+  unfolding discharge2_def PR_CONST_def
+  by sepref  
+concrete_definition (in -) discharge_impl 
+  uses Network_Impl.discharge_impl.refine_raw is "(uncurry5 ?f,_)\<in>_"
+lemmas [sepref_fr_rules] = discharge_impl.refine[OF Network_Impl_axioms]    
+
 subsubsection \<open>Initialization of Queue\<close>  
-    
-  sepref_thm init_CQ_impl is "(PR_CONST init_CQ)" 
-    :: "am_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn \<times>\<^sub>a list_assn nat_assn"
-    unfolding init_CQ_def PR_CONST_def
-    apply (rewrite HOL_list.fold_custom_empty)
-    by sepref
-  concrete_definition (in -) init_CQ_impl uses Network_Impl.init_CQ_impl.refine_raw is "(?f,_)\<in>_"
-  lemmas [sepref_fr_rules] = init_CQ_impl.refine[OF Network_Impl_axioms]    
-    
+  
+sepref_thm init_CQ_impl is "(PR_CONST init_CQ)" 
+  :: "am_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn \<times>\<^sub>a list_assn nat_assn"
+  unfolding init_CQ_def PR_CONST_def
+  apply (rewrite HOL_list.fold_custom_empty)
+  by sepref
+concrete_definition (in -) init_CQ_impl 
+  uses Network_Impl.init_CQ_impl.refine_raw is "(?f,_)\<in>_"
+lemmas [sepref_fr_rules] = init_CQ_impl.refine[OF Network_Impl_axioms]    
+  
 subsubsection \<open>Main Algorithm\<close>  
-  sepref_thm relabel_to_front_impl is 
-    "(PR_CONST relabel_to_front2)" :: "am_assn\<^sup>k \<rightarrow>\<^sub>a cf_assn"  
-    unfolding relabel_to_front2_def PR_CONST_def
-    supply [[goals_limit = 1]]  
-    apply (rewrite in "Let [] _" HOL_list.fold_custom_empty)
-    apply (rewrite in "[_]" HOL_list.fold_custom_empty)
-    by sepref  
-  concrete_definition (in -) relabel_to_front_impl uses Network_Impl.relabel_to_front_impl.refine_raw is "(?f,_)\<in>_"
-  lemmas [sepref_fr_rules] = relabel_to_front_impl.refine[OF Network_Impl_axioms]
+sepref_thm relabel_to_front_impl is 
+  "(PR_CONST relabel_to_front2)" :: "am_assn\<^sup>k \<rightarrow>\<^sub>a cf_assn"  
+  unfolding relabel_to_front2_def PR_CONST_def
+  supply [[goals_limit = 1]]  
+  apply (rewrite in "Let [] _" HOL_list.fold_custom_empty)
+  apply (rewrite in "[_]" HOL_list.fold_custom_empty)
+  by sepref  
+concrete_definition (in -) relabel_to_front_impl 
+  uses Network_Impl.relabel_to_front_impl.refine_raw is "(?f,_)\<in>_"
+lemmas [sepref_fr_rules] = relabel_to_front_impl.refine[OF Network_Impl_axioms]
   
 end -- \<open>Network Implementation Locale\<close> 
   
@@ -372,15 +420,19 @@ context Network_Impl begin
     shows "
       <am_assn am ami> 
         relabel_to_front_impl c s t N ami
-      <\<lambda>cfi. \<exists>\<^sub>Acf. cf_assn cf cfi * \<up>(isMaxFlow (flow_of_cf cf) \<and> RGraph_Impl c s t N cf)>\<^sub>t"
+      <\<lambda>cfi. \<exists>\<^sub>Acf. cf_assn cf cfi 
+                * \<up>(isMaxFlow (flow_of_cf cf) \<and> RGraph_Impl c s t N cf)>\<^sub>t"
   proof -
     note relabel_to_front2_refine[OF AM]    
     also note relabel_to_front_correct
-    finally have R1: "relabel_to_front2 am \<le> \<Down> (br flow_of_cf (RPreGraph c s t)) (SPEC isMaxFlow)" .  
+    finally have R1: 
+      "relabel_to_front2 am 
+      \<le> \<Down> (br flow_of_cf (RPreGraph c s t)) (SPEC isMaxFlow)" .  
 
     have [simp]: "nofail (\<Down>R (RES X))" for R X by (auto simp: refine_pw_simps)
         
-    note R2 = relabel_to_front_impl.refine[OF Network_Impl_axioms, to_hnr, unfolded autoref_tag_defs]
+    note R2 = relabel_to_front_impl.refine[
+      OF Network_Impl_axioms, to_hnr, unfolded autoref_tag_defs]
     note R3 = hn_refine_ref[OF R1 R2, of ami]  
     note R4 = R3[unfolded hn_ctxt_def pure_def, THEN hn_refineD, simplified]
 
@@ -424,7 +476,8 @@ proof -
   show ?thesis
     unfolding relabel_to_front_impl_tab_am_def 
     apply vcg
-    apply (rule Hoare_Triple.cons_rule[OF _ _ relabel_to_front_impl_correct[OF ABS_PS]])
+    apply (rule 
+        Hoare_Triple.cons_rule[OF _ _ relabel_to_front_impl_correct[OF ABS_PS]])
     subgoal unfolding am_assn_def is_nf_def by sep_auto
     subgoal unfolding cf_assn_def by sep_auto
     done  
@@ -442,11 +495,13 @@ export_code relabel_to_front checking SML_imp
 
 text \<open>
   Main correctness statement:
-  If \<open>relabel_to_front\<close> returns \<open>None\<close>, the edge list was invalid or described an invalid network.
-  If it returns \<open>Some (c,am,N,cfi)\<close>, then the edge list is valid and describes a valid network.
-  Moreover, \<open>cfi\<close> is an integer square matrix of dimension \<open>N\<close>, which describes a valid residual graph
-  in the network, whose corresponding flow is maximal.
-  Finally, \<open>am\<close> is a valid adjacency map of the graph, and the nodes of the graph are integers less than \<open>N\<close>.
+  \<^item> If \<open>relabel_to_front\<close> returns \<open>None\<close>, the edge list was invalid or described 
+    an invalid network. 
+  \<^item> If it returns \<open>Some (c,am,N,cfi)\<close>, then the edge list is valid and describes
+    a valid network. Moreover, \<open>cfi\<close> is an integer square matrix of 
+    dimension \<open>N\<close>, which describes a valid residual graph in the network, whose
+    corresponding flow is maximal. Finally, \<open>am\<close> is a valid adjacency map of the
+    graph, and the nodes of the graph are integers less than \<open>N\<close>.
 \<close>  
 theorem relabel_to_front_correct:
   "<emp>

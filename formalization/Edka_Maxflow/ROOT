@@ -8,11 +8,10 @@ session Edka_Maxflow = Flow_Networks +
 
     Augmenting_Path_BFS
     EdmondsKarp_Impl
-    "../Net_Check/NetCheck"
     Edka_Checked_Impl
     
-  theories [document = false]
-    Edka_Benchmark_Export
+(*No-AFP*)  theories [document = false]
+(*No-AFP*)  Edka_Benchmark_Export
     
   document_files
     "root.tex"

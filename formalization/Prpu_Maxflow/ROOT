@@ -1,4 +1,4 @@
-session Prpu_Maxflow = Flow_Networks +
+session Prpu_Maxflow (AFP) = Flow_Networks +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML"]
   
@@ -8,16 +8,18 @@ session Prpu_Maxflow = Flow_Networks +
   theories
     Generic_Push_Relabel
     Prpu_Common_Inst
-    Relabel_To_Front
     Fifo_Push_Relabel
+    Graph_Topological_Ordering
+    Relabel_To_Front
     
     
     Prpu_Common_Impl
-    Fifo_Push_Relabel_Impl2
+    Fifo_Push_Relabel_Impl
+    Relabel_To_Front_Impl
     
   theories [document = false]
-    Relabel_To_Front_Impl2
-    Prpu_Benchmark_Export
+    Generated_Code_Test
+(*No-AFP*) Prpu_Benchmark_Export
     
   document_files
     "root.tex"

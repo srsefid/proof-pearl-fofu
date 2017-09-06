@@ -1,9 +1,9 @@
 section \<open>Checking for Valid Network\<close>
 theory NetCheck
 imports 
-  "../Lib/Refine_Add_Fofu"
-  "../Flow_Networks/Network"
-  "../Flow_Networks/Graph_Impl"
+  "Lib/Refine_Add_Fofu"
+  "Network"
+  "Graph_Impl"
   "$AFP/DFS_Framework/Examples/Reachable_Nodes"
 begin
 text \<open>

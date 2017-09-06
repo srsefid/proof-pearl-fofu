@@ -1,3 +1,7 @@
+(* Another set of patches to Refinement Framework from another development.
+  Kept in separate file for this submission to reduce confusion/duplication
+  when integrating this into afp-devel.
+*)
 theory DRAT_Misc
 imports "$AFP/Refine_Imperative_HOL/IICF/IICF"
 begin

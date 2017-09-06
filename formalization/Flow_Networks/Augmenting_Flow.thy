@@ -90,6 +90,9 @@ text \<open>As there are no parallel edges in the network, and all edges
   in the residual graph are either parallel or reverse to a network edge,
   we can split summations of the residual flow over outgoing/incoming edges in the 
   residual graph to summations over outgoing/incoming edges in the network.
+
+  Note that the term @{term \<open>E``{u}\<close>} characterizes the successor nodes of @{term \<open>u\<close>},
+  and @{term \<open>E\<inverse>``{u}\<close>} characterizes the predecessor nodes of @{term \<open>u\<close>}.
 \<close>
 (* TODO: Introduce pred/succ functions on Graph *)
 private lemma split_rflow_outgoing: 

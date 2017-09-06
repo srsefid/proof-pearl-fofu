@@ -1,7 +1,7 @@
 section \<open>Breadth First Search\<close>
 theory Augmenting_Path_BFS
 imports 
-  "../Lib/Refine_Add_Fofu"
+  "../Flow_Networks/Lib/Refine_Add_Fofu"
   "../Flow_Networks/Graph_Impl"
 begin
   text \<open>

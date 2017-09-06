@@ -117,7 +117,9 @@ proof (rule ccontr)
   have fct2: "Flow.val cf s (augmentingFlow p) > 0" using obt augFlow_val
     resCap_gzero isAugmentingPath_def cf.isSimplePath_def by auto
   have "NFlow c s t (augment (augmentingFlow p))" 
-    using fct1 augment_flow_presv Network_axioms unfolding Flow_def NFlow_def NPreflow_def by auto
+    using fct1 augment_flow_presv Network_axioms 
+    unfolding Flow_def NFlow_def NPreflow_def 
+    by auto
   moreover have "Flow.val c s (augment (augmentingFlow p)) > val" 
     using fct1 fct2 augment_flow_value by auto
   ultimately show "False" using asm by auto
@@ -219,7 +221,8 @@ text \<open>In this subsection we present a few corollaries of the
 text \<open>The outgoing flow of the source is the same as the incoming flow of 
   the sink. Intuitively, this means that no flow is generated or lost in the 
   network, except at the source and sink.\<close>
-lemma inflow_t_outflow_s: "(\<Sum>e \<in> incoming t. f e) = (\<Sum>e \<in> outgoing s. f e)"
+corollary inflow_t_outflow_s: 
+  "(\<Sum>e \<in> incoming t. f e) = (\<Sum>e \<in> outgoing s. f e)"
 proof -
   txt \<open>We choose a cut between the sink and all other nodes\<close>
   let ?K = "V - {t}"
@@ -242,13 +245,13 @@ qed
 
 text \<open>As an immediate consequence of the Ford-Fulkerson theorem, we get that
   there is no augmenting path if and only if the flow is maximal.\<close>
-lemma noAugPath_iff_maxFlow: "\<not> (\<exists> p. isAugmentingPath p) \<longleftrightarrow> isMaxFlow f"
+corollary noAugPath_iff_maxFlow: "(\<nexists>p. isAugmentingPath p) \<longleftrightarrow> isMaxFlow f"
   using ford_fulkerson by blast
 
 end -- \<open>Network with flow\<close>
 
 text \<open>The value of the maximum flow equals the capacity of the minimum cut\<close>
-lemma (in Network) maxFlow_minCut: "\<lbrakk>isMaxFlow f; isMinCut c s t k\<rbrakk> 
+corollary (in Network) maxFlow_minCut: "\<lbrakk>isMaxFlow f; isMinCut c s t k\<rbrakk> 
   \<Longrightarrow> Flow.val c s f = NCut.cap c k"
 proof -
   assume "isMaxFlow f" "isMinCut c s t k"
@@ -258,10 +261,10 @@ proof -
   
   
   from ford_fulkerson \<open>isMaxFlow f\<close>
-  obtain k' where K': "NCut c s t k'" "val = NCut.cap c k'"
+  obtain k' where "NCut c s t k'" and "val = NCut.cap c k'"
     by blast
-  show "val = cap"
-    using \<open>isMinCut c s t k\<close> K' weak_duality
+  thus "val = cap"
+    using \<open>isMinCut c s t k\<close> weak_duality
     unfolding isMinCut_def by auto
 qed    
 

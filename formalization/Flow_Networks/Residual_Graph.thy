@@ -7,7 +7,7 @@ text \<open>
   \<close>
 
 subsection \<open>Definition\<close>
-text \<open>The \emph{residual graph} of a network and a flow indicates how much 
+text \<open>The \<^emph>\<open>residual graph\<close> of a network and a flow indicates how much 
   flow can be effectively pushed along or reverse to a network edge,
   by increasing or decreasing the flow on that edge:\<close>
 definition residualGraph :: "_ graph \<Rightarrow> _ flow \<Rightarrow> _ graph"
@@ -266,8 +266,6 @@ begin
     apply simp
     done
 
-  (*lemma finite_cf: "finite (cf.V)" by simp*)
-
   lemma E_ss_cfinvE: "E \<subseteq> cf.E \<union> cf.E\<inverse>"  
     using f.E_ss_cfinvE by simp
 
@@ -309,7 +307,8 @@ locale RGraph -- \<open>Locale that characterizes a residual graph of a network\
 begin  
   sublocale RPreGraph 
   proof    
-    from EX_RG obtain f where "NFlow c s t f" and [simp]: "cf = residualGraph c f" by auto
+    from EX_RG obtain f where 
+      "NFlow c s t f" and [simp]: "cf = residualGraph c f" by auto
     then interpret NFlow c s t f by simp    
 
     show "\<exists>f. NPreflow c s t f \<and> cf = residualGraph c f"
@@ -338,7 +337,7 @@ lemma is_RGraph: "RGraph c s t cf"
   apply (safe; unfold_locales)
   done
       
-text \<open>The value of the flow can be computed from the residual graph only\<close>    
+text \<open>The value of the flow can be computed from the residual graph.\<close>
 lemma val_by_cf: "val = (\<Sum>(u,v)\<in>outgoing s. cf (v,u))"
 proof -
   have "f (s,v) = cf (v,s)" for v

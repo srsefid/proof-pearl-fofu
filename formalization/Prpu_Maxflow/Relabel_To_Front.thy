@@ -1,9 +1,8 @@
 section \<open>Relabel-to-Front Algorithm\<close>
 theory Relabel_To_Front
 imports 
-  "../Lib/Refine_Add_Fofu"
   Prpu_Common_Inst 
-  "../Lib/Graph_Topological_Ordering"
+  "Graph_Topological_Ordering"
 begin
   text \<open>As an example for an implementation, Cormen et al.\ discuss the 
     relabel-to-front algorithm.
@@ -234,11 +233,11 @@ proof -
     fix a b
     assume A: "a\<noteq>u" "b\<in>adjacent_nodes a" "b \<notin> n a" "(a,b)\<in>adm_edges f ?l'"
     hence "(a,b)\<in>cf.E" unfolding adm_edges_def by auto
-    with A relabel_adm_edges(2,3)[OF PRE] neighbors_adm
+    with A relabel_adm_edges(2,3)[OF PRE] neighbors_adm[of b a]
     show False 
-      apply (auto) (* TODO: Clean up this mess *)
-      by (smt DiffD2 Diff_triv adm_edges_def cf.incoming_def 
-          mem_Collect_eq prod.simps(2) relabel_preserve_other)
+      by (cases "u=b")
+         (auto simp: relabel_preserve_other adm_edges_def cf.incoming_def)
+        
   qed
 qed  
 

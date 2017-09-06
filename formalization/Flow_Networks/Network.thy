@@ -11,6 +11,16 @@ subsection \<open>Definitions\<close>
 
 subsubsection \<open>Flows\<close>
 
+text \<open>An \<open>s\<close>-\<open>t\<close> preflow on a graph is a labeling of the edges with 
+  values from a linearly ordered integral domain, such that: 
+  \begin{description}
+    \item[capacity constraint] the flow on each edge is non-negative and 
+      does not exceed the edge's capacity;
+    \item[non-deficiency constraint] for all nodes except \<open>s\<close> and \<open>t\<close>, 
+      the incoming flow greater or equal to the outgoing flow.
+  \end{description}    
+\<close>
+  
 type_synonym 'capacity flow = "edge \<Rightarrow> 'capacity"
 
 locale Preflow = Graph c for c :: "'capacity::linordered_idom graph" +
@@ -24,14 +34,9 @@ begin
 end  
   
   
-text \<open>An $s$-$t$ flow on a graph is a labeling of the edges with 
-  real values, such that: 
-  \begin{description}
-    \item[capacity constraint] the flow on each edge is non-negative and 
-      does not exceed the edge's capacity;
-    \item[conservation constraint] for all nodes except $s$ and $t$, 
-      the incoming flows equal the outgoing flows.
-  \end{description}    
+text \<open>An \<open>s\<close>-\<open>t\<close> \<^emph>\<open>flow\<close> on a graph is a preflow that has no active nodes except 
+  source and sink, where a node is \<^emph>\<open>active\<close> iff it has more incoming flow 
+  than outgoing flow.
 \<close>
 
 locale Flow = Preflow c s t f
@@ -41,8 +46,10 @@ locale Flow = Preflow c s t f
   assumes no_active_nodes: 
     "\<forall>v \<in> V - {s,t}. (\<Sum>e\<in>outgoing v. f e) \<ge> (\<Sum>e\<in>incoming v. f e)"
 begin
-  lemma conservation_const: "\<forall>v \<in> V - {s, t}. 
-    (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
+  text \<open>For a flow, inflow equals outflow for all nodes except sink and source.
+    This is called \<^emph>\<open>conservation\<close>. \<close>
+  lemma conservation_const: 
+    "\<forall>v \<in> V - {s, t}. (\<Sum>e \<in> incoming v. f e) = (\<Sum>e \<in> outgoing v. f e)"
     using no_deficient_nodes no_active_nodes 
     by force
   
@@ -59,8 +66,9 @@ locale Finite_Flow = Flow c s t f + Finite_Preflow c s t f
 
 
 subsubsection \<open>Cuts\<close>
-text \<open>A cut is a partitioning of the nodes into two sets. 
-  We define it by just specifying one of the partitions.\<close>
+text \<open>A \<^emph>\<open>cut\<close> is a partitioning of the nodes into two sets. 
+  We define it by just specifying one of the partitions. 
+  The other partition is implicitly given by the remaining nodes.\<close>
 type_synonym cut = "node set" 
 
 locale Cut = Graph +  (* TODO: We probably do not need the cut-locale, 
@@ -69,14 +77,21 @@ locale Cut = Graph +  (* TODO: We probably do not need the cut-locale,
   assumes cut_ss_V: "k \<subseteq> V"
 
 subsubsection \<open>Networks\<close>
-text \<open>A network is a finite graph with two distinct nodes, source and sink, 
+text \<open>A \<^emph>\<open>network\<close> is a finite graph with two distinct nodes, source and sink, 
   such that all edges are labeled with positive capacities. 
   Moreover, we assume that 
-  \begin{itemize}
-    \item the source has no incoming edges, and the sink has no outgoing edges
-    \item we allow no parallel edges, i.e., for any edge, the reverse edge must not be in the network
-    \item Every node must lay on a path from the source to the sink
-  \end{itemize}
+  \<^item> The source has no incoming edges, and the sink has no outgoing edges.
+  \<^item> There are no parallel edges, i.e., for any edge, the reverse edge must not be in the network.
+  \<^item> Every node must lay on a path from the source to the sink.
+
+  Notes on the formalization
+  \<^item> We encode the graph by a mapping \<open>c\<close>, such that \<open>c (u,v)\<close> is 
+    the capacity of edge \<open>(u,v)\<close>, or \<open>0\<close>, if there is no edge from \<open>u\<close> to \<open>v\<close>.
+    Thus, in the formalization below, we only demand 
+    that \<open>c (u,v) \<ge> 0\<close> for all \<open>u\<close> and \<open>v\<close>.
+  \<^item> We only demand the set of nodes reachable from the source to be finite.
+    Together with the constraint that all nodes lay on a path from the source,
+    this implies that the graph is finite.
 \<close>
 
 locale Network = Graph c for c :: "'capacity::linordered_idom graph" +
@@ -84,6 +99,7 @@ locale Network = Graph c for c :: "'capacity::linordered_idom graph" +
   assumes s_node[simp, intro!]: "s \<in> V"
   assumes t_node[simp, intro!]: "t \<in> V"
   assumes s_not_t[simp, intro!]: "s \<noteq> t"
+    
   assumes cap_non_negative: "\<forall>u v. c (u, v) \<ge> 0"
   assumes no_incoming_s: "\<forall>u. (u, s) \<notin> E"
   assumes no_outgoing_t: "\<forall>u. (t, u) \<notin> E"
@@ -91,6 +107,25 @@ locale Network = Graph c for c :: "'capacity::linordered_idom graph" +
   assumes nodes_on_st_path: "\<forall>v \<in> V. connected s v \<and> connected v t"
   assumes finite_reachable: "finite (reachableNodes s)"
 begin
+  text \<open>Edges have positive capacity\<close>
+  lemma edge_cap_positive: "(u,v)\<in>E \<Longrightarrow> c (u,v) > 0"
+    unfolding E_def using cap_non_negative[THEN spec2, of u v] by simp
+  
+  text \<open>The network constraints implies that all nodes are 
+    reachable from the source node\<close>  
+  lemma reachable_is_V[simp]: "reachableNodes s = V"
+  proof
+    show "V \<subseteq> reachableNodes s"
+    unfolding reachableNodes_def using s_node nodes_on_st_path
+      by auto
+  qed (simp add: reachable_ss_V)
+  
+  text \<open>Thus, the network is actually a finite graph.\<close>
+  sublocale Finite_Graph 
+    apply unfold_locales
+    using reachable_is_V finite_reachable by auto
+      
+  
   text \<open>Our assumptions imply that there are no self loops\<close>
   lemma no_self_loop: "\<forall>u. (u, u) \<notin> E"
     using no_parallel_edge by auto
@@ -113,19 +148,19 @@ begin
 *)  
     
   lemma t_not_s[simp]: "t \<noteq> s" using s_not_t by blast
-    
+
+      
+  text \<open>The excess of a node is the difference between incoming and 
+    outgoing flow.\<close> (* TODO: Define in context of preflow!? *)
+  definition excess :: "'capacity flow \<Rightarrow> node \<Rightarrow> 'capacity" where
+    "excess f v \<equiv> (\<Sum>e\<in>incoming v. f e) - (\<Sum>e\<in>outgoing v. f e)"
+  
 end  
   
 subsubsection \<open>Networks with Flows and Cuts\<close>  
 text \<open>For convenience, we define locales for a network with a fixed flow,
   and a network with a fixed cut\<close>
 
-context Network begin  
-
-definition excess :: "'capacity flow \<Rightarrow> node \<Rightarrow> 'capacity" where
-  "excess f v \<equiv> (\<Sum>e\<in>incoming v. f e) - (\<Sum>e\<in>outgoing v. f e)"
-end
-  
 locale NPreflow = Network c s t + Preflow c s t f 
   for c :: "'capacity::linordered_idom graph" and s t f
 begin
@@ -251,19 +286,6 @@ lemma incoming_s_empty[simp]: "incoming s = {}"
 lemma outgoing_t_empty[simp]: "outgoing t = {}"
   unfolding outgoing_def using no_outgoing_t by auto
   
-text \<open>The network constraints implies that all nodes are 
-  reachable from the source node\<close>  
-
-lemma reachable_is_V[simp]: "reachableNodes s = V"
-proof
-  show "V \<subseteq> reachableNodes s"
-  unfolding reachableNodes_def using s_node nodes_on_st_path
-    by auto
-qed (simp add: reachable_ss_V)
-
-sublocale Finite_Graph 
-  apply unfold_locales
-  using reachable_is_V finite_reachable by auto
   
 lemma cap_positive: "e \<in> E \<Longrightarrow> c e > 0"
   unfolding E_def using cap_non_negative le_neq_trans by fastforce 
@@ -314,7 +336,8 @@ proof (rule ccontr)
   thus "False" using obt1 no_outgoing_t outgoing_def by auto
 qed
 
-text \<open>For an edge, there is no reverse edge, and thus, no flow in the reverse direction:\<close>
+text \<open>For an edge, there is no reverse edge, and thus, 
+  no flow in the reverse direction:\<close>
 lemma zero_rev_flow_simp[simp]: "(u,v)\<in>E \<Longrightarrow> f(v,u) = 0"
   using no_parallel_edge by auto
 
@@ -329,7 +352,7 @@ lemma excess_nodes_only: "excess f v > 0 \<Longrightarrow> v \<in> V"
 lemma excess_non_negative': "\<forall>v \<in> V - {s}. excess f v \<ge> 0"
 proof -
   have "excess f t \<ge> 0" unfolding excess_def outgoing_def 
-    by (auto simp add: no_outgoing_t capacity_const sum_nonneg)
+    by (auto simp: capacity_const sum_nonneg)
   thus ?thesis using excess_non_negative by blast
 qed 
 
@@ -341,6 +364,7 @@ end -- \<open>Network with preflow\<close>
 
 context NFlow begin  
   sublocale Finite_Preflow by unfold_locales
+      
   text \<open>There is no outflow from the sink in a network. 
     Thus, we can simplify the definition of the value:\<close>  
   corollary val_alt: "val = (\<Sum>e \<in> outgoing s. f e)"

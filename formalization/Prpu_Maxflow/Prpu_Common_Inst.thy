@@ -1,6 +1,6 @@
 theory Prpu_Common_Inst
 imports 
-  "../Lib/Refine_Add_Fofu"
+  "../Flow_Networks/Lib/Refine_Add_Fofu"
   Generic_Push_Relabel
 begin
 

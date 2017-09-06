@@ -14,7 +14,7 @@ text \<open>list-before only relates elements of the list\<close>
 lemma list_before_rel_on_elems: "list_before_rel l \<subseteq> set l \<times> set l" 
   unfolding list_before_rel_def by auto
   
-text \<open>Irreflixivity of list-before is equivalent to the elements of the list being disjoint.\<close>  
+text \<open>Irreflexivity of list-before is equivalent to the elements of the list being disjoint.\<close>  
 lemma list_before_irrefl_eq_distinct: "irrefl (list_before_rel l) \<longleftrightarrow> distinct l"  
   using not_distinct_decomp[of l]
   by (auto simp: irrefl_def list_before_rel_def)

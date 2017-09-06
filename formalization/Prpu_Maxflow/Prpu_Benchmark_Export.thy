@@ -1,8 +1,10 @@
 section \<open>Code Generation for Benchmarks\<close>
 theory Prpu_Benchmark_Export
-imports Relabel_To_Front_Impl2 Fifo_Push_Relabel_Impl2
+imports Relabel_To_Front_Impl Fifo_Push_Relabel_Impl
 begin
 
+text \<open>Moved to own theory, as code-export makes theory unusable for inclusion from
+other AFP entries. \<close>
 
 subsection \<open>Adding Statistic Counters\<close>
 text \<open>We first add some statistic counters, that we use for profiling\<close>
