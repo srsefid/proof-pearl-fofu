@@ -1,0 +1,69 @@
+Rebuttal and comments on reviewer comments:
+
+Thank you to the reviewers for there reviews and very useful comments. 
+
+Please find in the following a short log on how we incorporated the comments in our paper, and reasons 
+why we did not follow some of the reviewer's proposals.
+
+
+@Reviewer #1:
+
+Unfortunately, the paper is already scratching the 21 page limit, so that we were hardly able to add more detail.
+
+We added a short explanation of reflexive transitive closure of LTSs, and explained Isabelle's non-standard set comprehension syntax.
+We also added a more detailed explanation of the Hoare-triple and separation logic syntax used for the correctness theorem.
+
+We changed the wording for the presentation of Isar, to not present it as unusual. 
+We also added the argument of the community size behind MLton vs. gcc.
+
+Chargueraud et al. actually used their methods to verify graph algorithms, while Chlipala et al. 
+only applied refinement in a quite specific setting to data-structure refinement for databases. 
+I'm not aware of any other application of Fiat so far. As this paper is mainly about human-readable formalizations of (graph) algorithms,
+and not so much about automated refinement techniques, we did not include Fiat into the related work discussion.
+
+
+@Reviewer2:
+
+We tried to clarify in the introduction that we only formalize a O(V^2E) bound. 
+We decided not to integrate this in the abstract, in order to keep it short.
+Also, in the related work section, we added some discussion on our method of estimating complexity, 
+compared to other methods of Nipkow and Chargueraud.
+
+We clarified that the transformation to satisfy our constraints is linear time, and not part of our formalization.
+
+We explained the non-standard set-comprehension syntax.
+
+We re-phrased the paragraph mentioning that we need to provide more powerful combinators in the Refinement Framework.
+
+We gave a pointer to our ITP'12 paper \sec 2.3, where a more detailed explanation of total vs partial correctness in the Refinement Framework can be found.
+
+Unfortunately, the page-limit does not allow a more detailed explanation of the induction proof for the Edmonds-Karp complexity.
+
+We slightly changed Sec 5, and added a discussion about our complexity analysis compared to other methods to related work.
+
+We tried to re-phrase the informal explanation of push-relabel algorithms to make it easier to read. We think that 
+"simple path" is standard enough that we do not need to define it explicitly. At least from the context it should be 
+quite clear (now) that it is a path with no repeated vertexes.
+
+We added a footnote to show how much we loosened the constant factors in our analysis, compared to Cormen.
+
+
+We added some comments on our matrix implementation of graphs, and its deficits on sparse graphs.
+
+We added some explanation of the syntax used in the main correctness statement (Hoare triple, sep-logic, ...)
+
+We added some missing curves to the benchmark charts, and explained why some are still missing.
+
+We added Chen and Levys work to related work, we also discuss Chargueraud and Pottier for their complexity analysis techniques.
+However, we did not want to discuss any formalization of something like a graph algorithm, to keep the related work section concise 
+(and within the page limit).
+
+
+
+@Reviewer 3:
+
+We did not want to over-emphasize these rather low-level and easy to fix parser and overflow errors in the reference 
+implementations, thus we kept it as footnote.
+
+We explained our Hoare-triple syntax. I, personally, am not a fan of too overloaded syntactic sugar, and there is already a lot of that in the Refinement Framework.
+
